@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashlabs-ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "cwd": "dashlabs-ui",
+      "port": 4200,
+      "autoPort": false
+    }
+  ]
+}

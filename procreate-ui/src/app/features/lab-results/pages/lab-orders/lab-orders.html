@@ -1,0 +1,131 @@
+<div class="page-header">
+  <h1>Lab Orders</h1>
+</div>
+
+<div class="filter-tabs">
+  <button
+    *ngFor="let filter of statusFilters"
+    class="filter-tab"
+    [class.active]="activeFilter === filter"
+    (click)="onFilterChange(filter)"
+  >
+    {{ filter }}
+  </button>
+</div>
+
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading lab orders...</p>
+</div>
+
+<ng-container *ngIf="!isLoading">
+  <div class="card">
+    <div class="card-body">
+      <table class="data-table" *ngIf="orders.length > 0; else emptyState">
+        <thead>
+          <tr>
+            <th>Order Code</th>
+            <th>Visit Code</th>
+            <th>Patient</th>
+            <th>Test Name</th>
+            <th>Barcode</th>
+            <th>Status</th>
+            <th>Ordered Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of orders">
+            <td>
+              <span class="badge">{{ order.orderCode }}</span>
+            </td>
+            <td>
+              <span class="badge">{{ order.visitCode }}</span>
+            </td>
+            <td>{{ order.patientName }}</td>
+            <td>{{ order.testName }}</td>
+            <td>
+              <span class="barcode-text">{{ order.specimenBarcode }}</span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="getStatusClass(order.status)">
+                {{ order.status }}
+              </span>
+            </td>
+            <td>{{ order.orderedDate | date: 'MMM d, yyyy' }}</td>
+            <td>
+              <div class="action-btns">
+                <button
+                  *ngIf="order.status === 'Ordered'"
+                  class="btn btn-sm btn-primary"
+                  (click)="collectSpecimen(order.id)"
+                >
+                  Collect Specimen
+                </button>
+                <button
+                  *ngIf="order.status === 'Collected'"
+                  class="btn btn-sm btn-warning"
+                  (click)="navigateToEncode(order.id)"
+                >
+                  Encode Results
+                </button>
+                <button
+                  *ngIf="order.status === 'Resulted' || order.status === 'Released'"
+                  class="btn btn-sm btn-secondary"
+                  (click)="navigateToEncode(order.id)"
+                >
+                  View Results
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <p>No lab orders found.</p>
+          <p *ngIf="activeFilter !== 'All'">
+            Try selecting a different filter or
+            <a href="javascript:void(0)" (click)="onFilterChange('All')">view all orders</a>.
+          </p>
+        </div>
+      </ng-template>
+
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="page-btn"
+          [disabled]="pageIndex === 0"
+          (click)="onPageChange(pageIndex - 1)"
+        >
+          &laquo; Prev
+        </button>
+
+        <ng-container *ngFor="let page of pages">
+          <span *ngIf="page < 0" class="page-ellipsis">&hellip;</span>
+          <button
+            *ngIf="page >= 0"
+            class="page-btn"
+            [class.active]="page === pageIndex"
+            (click)="onPageChange(page)"
+          >
+            {{ page + 1 }}
+          </button>
+        </ng-container>
+
+        <button
+          class="page-btn"
+          [disabled]="pageIndex === totalPages - 1"
+          (click)="onPageChange(pageIndex + 1)"
+        >
+          Next &raquo;
+        </button>
+      </div>
+
+      <div class="pagination-info" *ngIf="totalCount > 0">
+        Showing {{ pageIndex * pageSize + 1 }}–{{ (pageIndex + 1) * pageSize > totalCount ? totalCount : (pageIndex + 1) * pageSize }}
+        of {{ totalCount }} orders
+      </div>
+    </div>
+  </div>
+</ng-container>

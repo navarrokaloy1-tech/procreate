@@ -1,0 +1,17 @@
+<header class="header">
+  <div class="header__left">
+    <span class="header__title">Clinic Management System</span>
+  </div>
+  <div class="header__right">
+    <div class="user-info" *ngIf="currentUser$ | async as user">
+      <div class="user-avatar">{{ user.fullName.charAt(0) }}</div>
+      <div class="user-details">
+        <span class="user-name">{{ user.fullName }}</span>
+        <span class="user-role">{{ user.role }}</span>
+      </div>
+    </div>
+    <button class="btn-logout" (click)="logout()">
+      <span>⏻</span> Logout
+    </button>
+  </div>
+</header>

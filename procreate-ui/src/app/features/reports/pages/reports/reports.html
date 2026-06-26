@@ -1,0 +1,138 @@
+<div class="page-header">
+  <h1>Reports</h1>
+</div>
+
+<!-- Date Selector -->
+<div class="date-selector-card">
+  <label class="form-label" for="reportDate">Select Date</label>
+  <input
+    id="reportDate"
+    type="date"
+    class="date-input"
+    [(ngModel)]="selectedDate"
+    (change)="onDateChange($any($event.target).value)"
+  />
+  <button class="btn btn-primary" (click)="loadReport()" [disabled]="isLoading">
+    {{ isLoading ? 'Loading...' : 'Load Report' }}
+  </button>
+</div>
+
+<!-- Loading State -->
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading report...</p>
+</div>
+
+<!-- Report Content -->
+<ng-container *ngIf="!isLoading && report">
+  <!-- Stats Cards -->
+  <div class="reports-stats">
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="stat-icon stat-icon--blue">🏥</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ report.totalVisits }}</div>
+          <div class="stat-label">Total Visits</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="stat-icon stat-icon--green">💰</div>
+        <div class="stat-info">
+          <div class="stat-value">₱{{ report.totalRevenue | number: '1.2-2' }}</div>
+          <div class="stat-label">Total Revenue</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="stat-icon stat-icon--success">✅</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ report.completedVisits }}</div>
+          <div class="stat-label">Completed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="stat-icon stat-icon--warning">⏳</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ report.pendingResults }}</div>
+          <div class="stat-label">Pending Results</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visits Table -->
+  <div class="card">
+    <div class="card-body">
+      <h3 class="section-title">Visits on {{ report.date | date: 'MMMM d, yyyy' }}</h3>
+
+      <table class="data-table" *ngIf="report.visits && report.visits.length > 0; else emptyVisits">
+        <thead>
+          <tr>
+            <th>Visit Code</th>
+            <th>Patient</th>
+            <th>Tests</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let visit of report.visits">
+            <td>
+              <span class="badge">{{ visit.visitCode }}</span>
+            </td>
+            <td>{{ visit.patientName }}</td>
+            <td>{{ visit.testsCount }}</td>
+            <td>₱{{ visit.totalAmount | number: '1.2-2' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(visit.status)">
+                {{ visit.status }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(visit.paymentStatus)">
+                {{ visit.paymentStatus }}
+              </span>
+            </td>
+            <td>
+              <button
+                class="btn btn-sm btn-secondary"
+                (click)="downloadPdf(visit.id)"
+                [disabled]="isDownloading[visit.id]"
+              >
+                {{ isDownloading[visit.id] ? 'Downloading...' : '📄 Download PDF' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #emptyVisits>
+        <div class="empty-state">
+          <p>No visits recorded for this date.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</ng-container>
+
+<!-- No Report State -->
+<ng-container *ngIf="!isLoading && !report">
+  <div class="card">
+    <div class="card-body">
+      <div class="empty-state">
+        <p>No report data available for the selected date.</p>
+        <p>Select a date and click "Load Report" to view data.</p>
+      </div>
+    </div>
+  </div>
+</ng-container>

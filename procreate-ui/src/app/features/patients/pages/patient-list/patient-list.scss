@@ -1,0 +1,124 @@
+.page-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.search-input {
+  padding: 9px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 280px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.page-ellipsis {
+  padding: 6px 4px;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(:disabled):not(.active) {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+  }
+
+  &.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.action-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-info {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 0;
+  color: #6c757d;
+
+  p {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 0;
+  color: #6c757d;
+  gap: 8px;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  a {
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .btn {
+    margin-top: 8px;
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
+  font-family: monospace;
+}

@@ -1,0 +1,219 @@
+<div class="page-header">
+  <h1>{{ isEditMode ? 'Edit Patient' : 'New Patient' }}</h1>
+</div>
+
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading patient data...</p>
+</div>
+
+<div class="card" *ngIf="!isLoading">
+  <div class="card-body">
+    <div class="alert alert-danger" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+    <div class="alert alert-success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+
+    <form [formGroup]="patientForm" (ngSubmit)="onSubmit()" novalidate>
+      <div class="form-grid">
+
+        <!-- First Name -->
+        <div class="form-group">
+          <label class="form-label" for="firstName">
+            First Name <span class="required-mark">*</span>
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="f['firstName'].invalid && f['firstName'].touched"
+            formControlName="firstName"
+            placeholder="Enter first name"
+          />
+          <div class="invalid-feedback" *ngIf="f['firstName'].invalid && f['firstName'].touched">
+            First name is required.
+          </div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-group">
+          <label class="form-label" for="lastName">
+            Last Name <span class="required-mark">*</span>
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="f['lastName'].invalid && f['lastName'].touched"
+            formControlName="lastName"
+            placeholder="Enter last name"
+          />
+          <div class="invalid-feedback" *ngIf="f['lastName'].invalid && f['lastName'].touched">
+            Last name is required.
+          </div>
+        </div>
+
+        <!-- Middle Name -->
+        <div class="form-group">
+          <label class="form-label" for="middleName">Middle Name</label>
+          <input
+            id="middleName"
+            type="text"
+            class="form-control"
+            formControlName="middleName"
+            placeholder="Enter middle name"
+          />
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-group">
+          <label class="form-label" for="dateOfBirth">
+            Date of Birth <span class="required-mark">*</span>
+          </label>
+          <input
+            id="dateOfBirth"
+            type="date"
+            class="form-control"
+            [class.is-invalid]="f['dateOfBirth'].invalid && f['dateOfBirth'].touched"
+            formControlName="dateOfBirth"
+          />
+          <div class="invalid-feedback" *ngIf="f['dateOfBirth'].invalid && f['dateOfBirth'].touched">
+            Date of birth is required.
+          </div>
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group">
+          <label class="form-label" for="gender">
+            Gender <span class="required-mark">*</span>
+          </label>
+          <select
+            id="gender"
+            class="form-control"
+            [class.is-invalid]="f['gender'].invalid && f['gender'].touched"
+            formControlName="gender"
+          >
+            <option value="" disabled>Select gender</option>
+            <option *ngFor="let option of genderOptions" [value]="option">
+              {{ option }}
+            </option>
+          </select>
+          <div class="invalid-feedback" *ngIf="f['gender'].invalid && f['gender'].touched">
+            Gender is required.
+          </div>
+        </div>
+
+        <!-- Contact Number -->
+        <div class="form-group">
+          <label class="form-label" for="contactNumber">
+            Contact Number <span class="required-mark">*</span>
+          </label>
+          <input
+            id="contactNumber"
+            type="tel"
+            class="form-control"
+            [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched"
+            formControlName="contactNumber"
+            placeholder="Enter contact number"
+          />
+          <div class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">
+            Contact number is required.
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            class="form-control"
+            [class.is-invalid]="f['email'].invalid && f['email'].touched"
+            formControlName="email"
+            placeholder="Enter email address"
+          />
+          <div class="invalid-feedback" *ngIf="f['email'].errors?.['email'] && f['email'].touched">
+            Please enter a valid email address.
+          </div>
+        </div>
+
+        <!-- Blood Type -->
+        <div class="form-group">
+          <label class="form-label" for="bloodType">Blood Type</label>
+          <select
+            id="bloodType"
+            class="form-control"
+            formControlName="bloodType"
+          >
+            <option value="">Select blood type</option>
+            <option *ngFor="let option of bloodTypeOptions" [value]="option">
+              {{ option }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Address (full width) -->
+        <div class="form-group form-group--full">
+          <label class="form-label" for="address">Address</label>
+          <textarea
+            id="address"
+            class="form-control"
+            formControlName="address"
+            placeholder="Enter full address"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <!-- Emergency Contact Name -->
+        <div class="form-group">
+          <label class="form-label" for="emergencyContactName">
+            Emergency Contact Name
+          </label>
+          <input
+            id="emergencyContactName"
+            type="text"
+            class="form-control"
+            formControlName="emergencyContactName"
+            placeholder="Enter emergency contact name"
+          />
+        </div>
+
+        <!-- Emergency Contact Number -->
+        <div class="form-group">
+          <label class="form-label" for="emergencyContactNumber">
+            Emergency Contact Number
+          </label>
+          <input
+            id="emergencyContactNumber"
+            type="tel"
+            class="form-control"
+            formControlName="emergencyContactNumber"
+            placeholder="Enter emergency contact number"
+          />
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="cancel()"
+          [disabled]="isSaving"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="isSaving"
+        >
+          <span *ngIf="isSaving">Saving...</span>
+          <span *ngIf="!isSaving">{{ isEditMode ? 'Save Changes' : 'Create Patient' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

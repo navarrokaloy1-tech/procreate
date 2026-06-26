@@ -1,0 +1,115 @@
+<div class="page-header page-actions">
+  <h1>Patients</h1>
+  <button class="btn btn-primary" (click)="newPatient()">+ New Patient</button>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="page-actions" style="margin-bottom: 16px;">
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search by name or code..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
+
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading patients...</p>
+    </div>
+
+    <ng-container *ngIf="!isLoading">
+      <table class="data-table" *ngIf="patients.length > 0; else emptyState">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Full Name</th>
+            <th>Date of Birth</th>
+            <th>Gender</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let patient of patients">
+            <td>
+              <span class="badge">{{ patient.patientCode }}</span>
+            </td>
+            <td>{{ getPatientFullName(patient) }}</td>
+            <td>{{ patient.dateOfBirth | date: 'MMM d, yyyy' }}</td>
+            <td>{{ patient.gender }}</td>
+            <td>{{ patient.contactNumber }}</td>
+            <td>{{ patient.email }}</td>
+            <td>
+              <div class="action-btns">
+                <button
+                  class="btn btn-sm btn-secondary"
+                  (click)="editPatient(patient.id)"
+                >
+                  Edit
+                </button>
+                <button
+                  class="btn btn-sm btn-danger"
+                  (click)="deletePatient(patient.id)"
+                >
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <p>No patients found.</p>
+          <p *ngIf="searchTerm">
+            Try adjusting your search term or
+            <a href="javascript:void(0)" (click)="onSearch('')">clear the search</a>.
+          </p>
+          <button class="btn btn-primary" (click)="newPatient()">
+            Add First Patient
+          </button>
+        </div>
+      </ng-template>
+
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="page-btn"
+          [disabled]="pageIndex === 0"
+          (click)="onPageChange(pageIndex - 1)"
+        >
+          &laquo; Prev
+        </button>
+
+        <ng-container *ngFor="let page of pages">
+          <span *ngIf="page < 0" class="page-ellipsis">&hellip;</span>
+          <button
+            *ngIf="page >= 0"
+            class="page-btn"
+            [class.active]="page === pageIndex"
+            (click)="onPageChange(page)"
+          >
+            {{ page + 1 }}
+          </button>
+        </ng-container>
+
+        <button
+          class="page-btn"
+          [disabled]="pageIndex === totalPages - 1"
+          (click)="onPageChange(pageIndex + 1)"
+        >
+          Next &raquo;
+        </button>
+      </div>
+
+      <div class="pagination-info" *ngIf="totalCount > 0">
+        Showing {{ pageIndex * pageSize + 1 }}–{{ (pageIndex + 1) * pageSize > totalCount ? totalCount : (pageIndex + 1) * pageSize }}
+        of {{ totalCount }} patients
+      </div>
+    </ng-container>
+  </div>
+</div>

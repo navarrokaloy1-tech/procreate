@@ -1,0 +1,66 @@
+<div class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon">🧪</div>
+        <h1 class="logo-title">Pro-Create</h1>
+        <p class="logo-subtitle">Laboratory &amp; Clinic Management</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <h2 class="form-title">Sign in to your account</h2>
+
+        <div class="alert alert-danger" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="usernameControl?.invalid && usernameControl?.touched"
+            formControlName="username"
+            placeholder="Enter your username"
+            autocomplete="username"
+          />
+          <div class="invalid-feedback" *ngIf="usernameControl?.invalid && usernameControl?.touched">
+            Username is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            class="form-control"
+            [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
+            formControlName="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+          <div class="invalid-feedback" *ngIf="passwordControl?.invalid && passwordControl?.touched">
+            <span *ngIf="passwordControl?.errors?.['required']">Password is required.</span>
+            <span *ngIf="passwordControl?.errors?.['minlength']">Password must be at least 4 characters.</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" [disabled]="isLoading">
+          <span class="spinner" *ngIf="isLoading"></span>
+          <span>{{ isLoading ? 'Signing in...' : 'Sign In' }}</span>
+        </button>
+      </form>
+
+      <div class="login-patient-cta">
+        <p>Are you a patient?</p>
+        <a routerLink="/register" class="btn-patient-register">Self-Register &amp; Get Queue Number →</a>
+      </div>
+
+      <div class="login-footer">
+        <p>Pro-Create &copy; 2024 &mdash; Clinic Management System</p>
+      </div>
+    </div>
+  </div>
+</div>

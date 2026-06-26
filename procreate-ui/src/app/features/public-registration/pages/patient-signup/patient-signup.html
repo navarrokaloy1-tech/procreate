@@ -1,0 +1,128 @@
+<div class="kiosk">
+  <div class="kiosk__brand">
+    <span class="kiosk__logo">🧪</span>
+    <div>
+      <h1 class="kiosk__title">Pro-Create</h1>
+      <p class="kiosk__subtitle">Patient Self-Registration</p>
+    </div>
+  </div>
+
+  <!-- ============ FORM STATE ============ -->
+  <div class="kiosk__card" *ngIf="!registered">
+    <div class="kiosk__welcome">
+      <h2>Welcome! Please register</h2>
+      <p>Fill in your details below and tap <strong>Get My Queue Number</strong>. A staff member will call your number shortly.</p>
+    </div>
+
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <form [formGroup]="signupForm" (ngSubmit)="submit()" novalidate>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">First Name <span class="req">*</span></label>
+          <input class="form-control" formControlName="firstName"
+                 [class.is-invalid]="f['firstName'].invalid && f['firstName'].touched" placeholder="Juan" />
+          <small class="invalid-feedback" *ngIf="f['firstName'].invalid && f['firstName'].touched">First name is required.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Last Name <span class="req">*</span></label>
+          <input class="form-control" formControlName="lastName"
+                 [class.is-invalid]="f['lastName'].invalid && f['lastName'].touched" placeholder="Dela Cruz" />
+          <small class="invalid-feedback" *ngIf="f['lastName'].invalid && f['lastName'].touched">Last name is required.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Middle Name</label>
+          <input class="form-control" formControlName="middleName" placeholder="Optional" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Date of Birth <span class="req">*</span></label>
+          <input type="date" class="form-control" formControlName="dateOfBirth"
+                 [class.is-invalid]="f['dateOfBirth'].invalid && f['dateOfBirth'].touched" />
+          <small class="invalid-feedback" *ngIf="f['dateOfBirth'].invalid && f['dateOfBirth'].touched">Date of birth is required.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Gender <span class="req">*</span></label>
+          <select class="form-control" formControlName="gender"
+                  [class.is-invalid]="f['gender'].invalid && f['gender'].touched">
+            <option value="" disabled>Select…</option>
+            <option *ngFor="let g of genderOptions" [value]="g">{{ g }}</option>
+          </select>
+          <small class="invalid-feedback" *ngIf="f['gender'].invalid && f['gender'].touched">Please select a gender.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mobile Number <span class="req">*</span></label>
+          <input class="form-control" formControlName="contactNumber"
+                 [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched" placeholder="09XX XXX XXXX" />
+          <small class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">Mobile number is required.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" formControlName="email"
+                 [class.is-invalid]="f['email'].invalid && f['email'].touched" placeholder="you@email.com" />
+          <small class="invalid-feedback" *ngIf="f['email'].invalid && f['email'].touched">Enter a valid email.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Blood Type</label>
+          <select class="form-control" formControlName="bloodType">
+            <option value="">Unknown</option>
+            <option *ngFor="let b of bloodTypeOptions" [value]="b">{{ b }}</option>
+          </select>
+        </div>
+
+        <div class="form-group form-group--full">
+          <label class="form-label">Home Address</label>
+          <input class="form-control" formControlName="address" placeholder="House No., Street, Barangay, City" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Emergency Contact Name</label>
+          <input class="form-control" formControlName="emergencyContactName" placeholder="Optional" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Emergency Contact Number</label>
+          <input class="form-control" formControlName="emergencyContactNumber" placeholder="Optional" />
+        </div>
+      </div>
+
+      <button type="submit" class="btn-kiosk" [disabled]="isSubmitting">
+        <span class="spinner" *ngIf="isSubmitting"></span>
+        {{ isSubmitting ? 'Registering…' : 'Get My Queue Number' }}
+      </button>
+    </form>
+
+    <p class="kiosk__staff-link">
+      Staff member? <a routerLink="/login">Go to staff login →</a>
+    </p>
+  </div>
+
+  <!-- ============ TICKET / QUEUE NUMBER STATE ============ -->
+  <div class="ticket" *ngIf="registered">
+    <div class="ticket__check">✓</div>
+    <h2 class="ticket__heading">You're registered!</h2>
+    <p class="ticket__name">{{ fullName }}</p>
+
+    <div class="ticket__number-box">
+      <span class="ticket__label">YOUR QUEUE NUMBER</span>
+      <span class="ticket__number">{{ queueNumber }}</span>
+      <span class="ticket__code">Ref: {{ registered.patientCode }}</span>
+    </div>
+
+    <p class="ticket__time" *ngIf="registeredAt">Registered: {{ registeredAt | date: 'MMM d, y · h:mm a' }}</p>
+    <p class="ticket__instruction">
+      Please take a seat and wait for your number to be called at the counter.
+    </p>
+
+    <div class="ticket__actions">
+      <button class="btn-kiosk btn-kiosk--outline" (click)="printTicket()">🖨 Print Ticket</button>
+      <button class="btn-kiosk" (click)="registerAnother()">Register Another Patient</button>
+    </div>
+  </div>
+</div>

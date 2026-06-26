@@ -1,0 +1,119 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1>
+      Encode Results
+      <span *ngIf="order" class="order-code-badge">{{ order.orderCode }}</span>
+    </h1>
+  </div>
+  <button class="btn btn-secondary" (click)="cancel()">
+    &larr; Back
+  </button>
+</div>
+
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading order details...</p>
+</div>
+
+<ng-container *ngIf="!isLoading && order">
+  <div class="order-info-card">
+    <div class="info-item">
+      <label>Patient</label>
+      <span>{{ order.patientName }}</span>
+    </div>
+    <div class="info-item">
+      <label>Test Name</label>
+      <span>{{ order.testName }}</span>
+    </div>
+    <div class="info-item">
+      <label>Order Code</label>
+      <span>{{ order.orderCode }}</span>
+    </div>
+    <div class="info-item">
+      <label>Status</label>
+      <span>
+        <span class="badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Unit</th>
+            <th>Reference Range</th>
+            <th>Value</th>
+            <th>Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let param of order.parameters">
+            <td class="param-name">{{ param.parameterName }}</td>
+            <td class="param-unit">{{ param.unit || '—' }}</td>
+            <td class="param-range">{{ getReferenceRangeDisplay(param) }}</td>
+            <td class="param-value">
+              <input
+                type="text"
+                class="value-input"
+                [value]="resultValues[param.id]"
+                (input)="onValueChange(param.id, $any($event.target).value)"
+                [readonly]="order.status === 'Released'"
+                placeholder="Enter value"
+              />
+            </td>
+            <td class="param-flag">
+              <span [ngClass]="getFlagClass(getFlag(param))">
+                {{ getFlag(param) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="order.parameters.length === 0" class="empty-state">
+        <p>No parameters defined for this test.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="remarks-section">
+    <label class="remarks-label">Remarks / Notes</label>
+    <textarea
+      class="remarks-textarea"
+      rows="3"
+      placeholder="Enter any additional remarks or notes..."
+      [(ngModel)]="remarks"
+      [readonly]="order.status === 'Released'"
+    ></textarea>
+  </div>
+
+  <div class="result-actions">
+    <button class="btn btn-secondary" (click)="cancel()">
+      Cancel
+    </button>
+    <button
+      class="btn btn-primary"
+      (click)="saveResults()"
+      [disabled]="isSaving || order.status === 'Released'"
+    >
+      {{ isSaving ? 'Saving...' : 'Save Results' }}
+    </button>
+    <button
+      class="btn btn-success"
+      (click)="releaseResults()"
+      [disabled]="isReleasing || order.status !== 'Resulted'"
+    >
+      {{ isReleasing ? 'Releasing...' : 'Release Results' }}
+    </button>
+  </div>
+</ng-container>
+
+<ng-container *ngIf="!isLoading && !order">
+  <div class="empty-state">
+    <p>Order not found.</p>
+    <button class="btn btn-secondary" (click)="cancel()">Go Back</button>
+  </div>
+</ng-container>

@@ -1,0 +1,103 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Visits</h1>
+    <button class="btn btn-primary" (click)="navigateToNew()">+ New Visit</button>
+  </div>
+
+  <div class="filter-tabs-container">
+    <div class="filter-tabs">
+      <button
+        *ngFor="let filter of statusFilters"
+        class="filter-tab"
+        [class.active]="activeFilter === filter"
+        (click)="onFilterChange(filter)"
+      >
+        {{ filter }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading visits...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="card">
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Visit Code</th>
+            <th>Patient</th>
+            <th>Date</th>
+            <th>Tests</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="visits.length === 0">
+            <td colspan="7" class="empty-state">No visits found.</td>
+          </tr>
+          <tr *ngFor="let visit of visits">
+            <td class="visit-code">{{ visit.visitCode }}</td>
+            <td>{{ visit.patientName }}</td>
+            <td>{{ visit.visitDate | date: 'MMM d, yyyy' }}</td>
+            <td class="text-center">{{ visit.testsCount }}</td>
+            <td>&#8369;{{ visit.totalAmount | number: '1.2-2' }}</td>
+            <td>
+              <span [ngClass]="getStatusClass(visit.status)">{{ visit.status }}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-outline" (click)="navigateToVisit(visit.id)">
+                  View
+                </button>
+                <button
+                  *ngIf="visit.status === 'Registered'"
+                  class="btn btn-sm btn-warning"
+                  (click)="updateStatus(visit.id, 'Processing')"
+                >
+                  Mark Processing
+                </button>
+                <button
+                  *ngIf="visit.status === 'Processing'"
+                  class="btn btn-sm btn-success"
+                  (click)="updateStatus(visit.id, 'Completed')"
+                >
+                  Mark Complete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="pagination-btn"
+        [disabled]="pageIndex === 0"
+        (click)="onPageChange(pageIndex - 1)"
+      >
+        &laquo; Prev
+      </button>
+      <button
+        *ngFor="let page of pages"
+        class="pagination-btn"
+        [class.active]="pageIndex === page"
+        (click)="onPageChange(page)"
+      >
+        {{ page + 1 }}
+      </button>
+      <button
+        class="pagination-btn"
+        [disabled]="pageIndex === totalPages - 1"
+        (click)="onPageChange(pageIndex + 1)"
+      >
+        Next &raquo;
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+# .NET / C# API
+procreate-api/bin/
+procreate-api/obj/
+procreate-api/*.db
+procreate-api/*.db-shm
+procreate-api/*.db-wal
+
+# Angular UI build output
+procreate-ui/dist/
+procreate-ui/.angular/
+
+# Node modules (covered by procreate-ui/.gitignore but explicit here too)
+node_modules/
+
+# IDE / OS
+.vs/
+*.user
+.DS_Store
+Thumbs.db

@@ -1,0 +1,131 @@
+<div class="dashboard-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <span class="page-date">{{ currentDate | date:'EEEE, MMMM d, yyyy' }}</span>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card stat-card--blue">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Total Patients</div>
+        <div class="stat-card__value">{{ stats?.totalPatients ?? '—' }}</div>
+        <div class="stat-card__change">Registered patients</div>
+      </div>
+      <div class="stat-card__icon">👤</div>
+    </div>
+
+    <div class="stat-card stat-card--green">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Today's Visits</div>
+        <div class="stat-card__value">{{ stats?.todayVisits ?? '—' }}</div>
+        <div class="stat-card__change">Visits today</div>
+      </div>
+      <div class="stat-card__icon">🏥</div>
+    </div>
+
+    <div class="stat-card stat-card--orange">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Pending Results</div>
+        <div class="stat-card__value">{{ stats?.pendingResults ?? '—' }}</div>
+        <div class="stat-card__change">Awaiting results</div>
+      </div>
+      <div class="stat-card__icon">🧪</div>
+    </div>
+
+    <div class="stat-card stat-card--teal">
+      <div class="stat-card__content">
+        <div class="stat-card__label">Today's Revenue</div>
+        <div class="stat-card__value">{{ stats?.todayRevenue | currency:'PHP' }}</div>
+        <div class="stat-card__change">Collected today</div>
+      </div>
+      <div class="stat-card__icon">💰</div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <!-- Recent Visits Section -->
+  <ng-container *ngIf="!isLoading">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="section-title">Recent Visits</h2>
+      </div>
+
+      <!-- Visits Table -->
+      <div class="card-body" *ngIf="recentVisits.length > 0; else emptyState">
+        <div class="table-responsive">
+          <table class="visits-table">
+            <thead>
+              <tr>
+                <th>Visit Code</th>
+                <th>Patient</th>
+                <th>Date</th>
+                <th>Tests</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let visit of recentVisits">
+                <td class="visit-code">{{ visit.visitCode }}</td>
+                <td class="patient-name">{{ visit.patientName }}</td>
+                <td>{{ visit.visitDate | date:'MMM d, yyyy' }}</td>
+                <td class="text-center">{{ visit.testsCount }}</td>
+                <td>{{ visit.totalAmount | currency:'PHP' }}</td>
+                <td>
+                  <span class="badge" [class]="getStatusClass(visit.status)">
+                    {{ visit.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <span class="empty-state__icon">📋</span>
+          <p class="empty-state__message">No recent visits found.</p>
+        </div>
+      </ng-template>
+    </div>
+  </ng-container>
+
+  <!-- Charts Section -->
+  <div class="charts-section" *ngIf="!isLoading">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="section-title">Visit Trend (Last 7 Days)</h2>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart">
+          <div class="bar" style="height: 55%;"></div>
+          <div class="bar" style="height: 70%;"></div>
+          <div class="bar" style="height: 45%;"></div>
+          <div class="bar" style="height: 90%;"></div>
+          <div class="bar" style="height: 60%;"></div>
+          <div class="bar" style="height: 80%;"></div>
+          <div class="bar" style="height: 65%;"></div>
+        </div>
+        <div class="chart-labels">
+          <div class="chart-label">Mon</div>
+          <div class="chart-label">Tue</div>
+          <div class="chart-label">Wed</div>
+          <div class="chart-label">Thu</div>
+          <div class="chart-label">Fri</div>
+          <div class="chart-label">Sat</div>
+          <div class="chart-label">Sun</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

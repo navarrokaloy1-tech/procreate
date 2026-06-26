@@ -1,0 +1,177 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="btn btn-back" type="button" (click)="cancel()">&#8592; Back</button>
+      <h1 class="page-title">New Visit</h1>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <form [formGroup]="visitForm" (ngSubmit)="onSubmit()">
+    <div class="visit-form-layout">
+
+      <!-- LEFT COLUMN -->
+      <div class="form-left">
+
+        <!-- Patient & Visit Info -->
+        <div class="card form-section">
+          <h2 class="section-title">Patient Information</h2>
+
+          <div class="form-group patient-search-wrapper">
+            <label class="form-label">Patient <span class="required">*</span></label>
+            <div class="patient-search-container">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Search by name or patient code..."
+                [(ngModel)]="patientSearch"
+                [ngModelOptions]="{ standalone: true }"
+                (input)="searchPatients()"
+                autocomplete="off"
+              />
+              <div class="patient-search-dropdown" *ngIf="patientOptions.length > 0">
+                <div
+                  class="patient-option"
+                  *ngFor="let patient of patientOptions"
+                  (click)="selectPatient(patient)"
+                >
+                  <span class="patient-name">{{ patient.firstName }} {{ patient.lastName }}</span>
+                  <span class="patient-code">{{ patient.patientCode }}</span>
+                </div>
+              </div>
+            </div>
+            <div
+              class="form-error"
+              *ngIf="visitForm.get('patientId')?.invalid && visitForm.get('patientId')?.touched"
+            >
+              Patient is required.
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Referring Physician</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Dr. Juan dela Cruz"
+                formControlName="referringPhysician"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purpose of Visit</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="e.g. Annual check-up"
+                formControlName="purposeOfVisit"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="Additional notes..."
+              formControlName="notes"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Test Selection -->
+        <div class="card form-section">
+          <h2 class="section-title">Select Tests</h2>
+
+          <div *ngIf="isLoadingTests" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading tests...</p>
+          </div>
+
+          <div *ngIf="!isLoadingTests" class="test-categories">
+            <div class="test-category" *ngFor="let category of testCategories">
+              <div class="category-header">
+                {{ category.name }}
+                <span class="category-count">{{ category.tests.length }} tests</span>
+              </div>
+              <div
+                class="test-item"
+                *ngFor="let test of category.tests"
+                [class.selected]="isTestSelected(test.id)"
+                (click)="toggleTest(test.id)"
+              >
+                <input
+                  type="checkbox"
+                  class="test-checkbox"
+                  [checked]="isTestSelected(test.id)"
+                  (click)="$event.stopPropagation()"
+                  (change)="toggleTest(test.id)"
+                />
+                <span class="test-item__name">{{ test.name }}</span>
+                <span class="test-item__price">&#8369;{{ test.price | number: '1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="testCategories.length === 0" class="empty-state">
+              No tests available.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Visit Summary -->
+      <div class="form-right">
+        <div class="card visit-summary">
+          <h2 class="section-title">Visit Summary</h2>
+
+          <div *ngIf="selectedTestItems.length === 0" class="summary-empty">
+            No tests selected yet.
+          </div>
+
+          <div *ngIf="selectedTestItems.length > 0">
+            <div class="summary-items">
+              <div class="summary-item" *ngFor="let test of selectedTestItems">
+                <span class="summary-item__name">{{ test.name }}</span>
+                <span class="summary-item__price">&#8369;{{ test.price | number: '1.2-2' }}</span>
+              </div>
+            </div>
+            <div class="summary-subtotal">
+              <span>Subtotal</span>
+              <span>&#8369;{{ totalAmount | number: '1.2-2' }}</span>
+            </div>
+          </div>
+
+          <div class="summary-total">
+            <span>Total</span>
+            <span>&#8369;{{ totalAmount | number: '1.2-2' }}</span>
+          </div>
+
+          <div class="summary-actions">
+            <button
+              type="submit"
+              class="btn btn-primary btn-block"
+              [disabled]="isSaving"
+            >
+              <span *ngIf="isSaving">Saving...</span>
+              <span *ngIf="!isSaving">Save Visit</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-block"
+              (click)="cancel()"
+              [disabled]="isSaving"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </form>
+</div>

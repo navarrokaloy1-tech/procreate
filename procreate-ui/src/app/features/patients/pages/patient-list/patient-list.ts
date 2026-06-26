@@ -1,0 +1,149 @@
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Router } from '@angular/router';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { ApiService } from '../../../../core/services/api';
+
+export interface Patient {
+  id: number;
+  patientCode: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  dateOfBirth: string;
+  gender: string;
+  contactNumber: string;
+  email: string;
+  address: string;
+  bloodType: string;
+}
+
+@Component({
+  selector: 'app-patient-list',
+  standalone: false,
+  templateUrl: './patient-list.html',
+  styleUrl: './patient-list.scss',
+})
+export class PatientListComponent implements OnInit, OnDestroy {
+  patients: Patient[] = [];
+  totalCount = 0;
+  pageIndex = 0;
+  pageSize = 10;
+  searchTerm = '';
+  isLoading = false;
+
+  private searchSubject = new Subject<string>();
+  private subscriptions = new Subscription();
+
+  constructor(private apiService: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    const searchSub = this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe((term) => {
+        this.searchTerm = term;
+        this.pageIndex = 0;
+        this.loadPatients();
+        this.cdr.markForCheck();
+      });
+
+    this.subscriptions.add(searchSub);
+    this.loadPatients();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  loadPatients(): void {
+    this.isLoading = true;
+    this.apiService
+      .get<{ data: Patient[]; total: number }>('patients', {
+        search: this.searchTerm,
+        page: this.pageIndex + 1,
+        pageSize: this.pageSize,
+      })
+      .subscribe({
+        next: (response) => {
+          this.patients = response.data;
+          this.totalCount = response.total;
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  onSearch(term: string): void {
+    this.searchSubject.next(term);
+  }
+
+  onPageChange(page: number): void {
+    this.pageIndex = page;
+    this.loadPatients();
+  }
+
+  deletePatient(id: number): void {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this patient? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    this.apiService.delete<void>('patients/' + id).subscribe({
+      next: () => {
+        this.loadPatients();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        window.alert('Failed to delete patient. Please try again.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  editPatient(id: number): void {
+    this.router.navigate(['/app/patients', id, 'edit']);
+  }
+
+  newPatient(): void {
+    this.router.navigate(['/app/patients/new']);
+  }
+
+  getPatientFullName(p: Patient): string {
+    const parts = [p.firstName, p.middleName, p.lastName].filter(
+      (part) => part && part.trim()
+    );
+    return parts.join(' ');
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.totalCount / this.pageSize);
+  }
+
+  get pages(): number[] {
+    const total = this.totalPages;
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+
+    const current = this.pageIndex;
+    const pages: number[] = [];
+
+    pages.push(0);
+    if (current > 3) pages.push(-1); // ellipsis marker
+
+    const start = Math.max(1, current - 1);
+    const end = Math.min(total - 2, current + 1);
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (current < total - 4) pages.push(-2); // ellipsis marker
+    pages.push(total - 1);
+
+    return pages;
+  }
+}

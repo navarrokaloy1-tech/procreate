@@ -1,0 +1,187 @@
+<div class="page-header page-actions">
+  <div class="header-left">
+    <h1>
+      Create Bill
+      <span class="visit-code-badge" *ngIf="visit">{{ visit.visitCode }}</span>
+    </h1>
+  </div>
+  <button class="btn btn-secondary" (click)="cancel()">&larr; Back</button>
+</div>
+
+<div *ngIf="isLoading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Loading visit information...</p>
+</div>
+
+<ng-container *ngIf="!isLoading && visit">
+  <div class="billing-layout">
+    <!-- LEFT: Patient & Tests Info -->
+    <div class="billing-left">
+      <!-- Patient Info -->
+      <div class="patient-info-card">
+        <div class="info-item">
+          <label>Patient Name</label>
+          <span>{{ visit.patientName }}</span>
+        </div>
+        <div class="info-item">
+          <label>Patient Code</label>
+          <span>{{ visit.patientCode }}</span>
+        </div>
+        <div class="info-item">
+          <label>Visit Date</label>
+          <span>{{ visit.visitDate | date: 'MMM d, yyyy' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Visit Code</label>
+          <span>{{ visit.visitCode }}</span>
+        </div>
+      </div>
+
+      <!-- Tests Table -->
+      <div class="card">
+        <div class="card-body">
+          <h3 class="section-title">Tests Ordered</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Test Name</th>
+                <th style="text-align: right;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let test of visit.tests">
+                <td>{{ test.testName }}</td>
+                <td style="text-align: right;">₱{{ test.price | number: '1.2-2' }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td><strong>Subtotal</strong></td>
+                <td style="text-align: right;"><strong>₱{{ subtotal | number: '1.2-2' }}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Payment Details -->
+    <div class="billing-right">
+      <div class="payment-card">
+        <h3 class="section-title">Payment Details</h3>
+
+        <form [formGroup]="billForm" (ngSubmit)="onSubmit()">
+          <!-- Subtotal -->
+          <div class="payment-row">
+            <span>Subtotal</span>
+            <span>₱{{ subtotal | number: '1.2-2' }}</span>
+          </div>
+
+          <!-- Discount -->
+          <div class="payment-row">
+            <label for="discountAmount">Discount (₱)</label>
+            <input
+              id="discountAmount"
+              type="number"
+              class="payment-input"
+              formControlName="discountAmount"
+              min="0"
+              placeholder="0.00"
+            />
+          </div>
+
+          <hr class="payment-divider" />
+
+          <!-- Total -->
+          <div class="payment-row payment-total">
+            <span>Total</span>
+            <span>₱{{ totalAmount | number: '1.2-2' }}</span>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="paymentMethod">Payment Method</label>
+            <select
+              id="paymentMethod"
+              class="form-control"
+              formControlName="paymentMethod"
+            >
+              <option *ngFor="let method of paymentMethods" [value]="method">
+                {{ method }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Amount Paid -->
+          <div class="form-group">
+            <label class="form-label" for="amountPaid">Amount Paid (₱)</label>
+            <input
+              id="amountPaid"
+              type="number"
+              class="form-control"
+              formControlName="amountPaid"
+              min="0"
+              placeholder="0.00"
+              [class.is-invalid]="billForm.get('amountPaid')?.invalid && billForm.get('amountPaid')?.touched"
+            />
+            <div
+              class="invalid-feedback"
+              *ngIf="billForm.get('amountPaid')?.invalid && billForm.get('amountPaid')?.touched"
+            >
+              Amount paid is required.
+            </div>
+          </div>
+
+          <!-- Change -->
+          <div
+            class="payment-change"
+            [ngClass]="{
+              'payment-change--positive': change > 0,
+              'payment-change--negative': amountPaid > 0 && amountPaid < totalAmount
+            }"
+            *ngIf="amountPaid > 0"
+          >
+            <div *ngIf="change > 0">
+              Change: ₱{{ change | number: '1.2-2' }}
+            </div>
+            <div *ngIf="amountPaid < totalAmount && amountPaid > 0">
+              Balance: ₱{{ (totalAmount - amountPaid) | number: '1.2-2' }}
+            </div>
+            <div *ngIf="amountPaid >= totalAmount && change === 0">
+              Exact payment
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="form-label" for="notes">Notes (optional)</label>
+            <textarea
+              id="notes"
+              class="form-control"
+              formControlName="notes"
+              rows="3"
+              placeholder="Add any billing notes..."
+            ></textarea>
+          </div>
+
+          <!-- Alerts -->
+          <div class="alert alert-danger" *ngIf="errorMessage">
+            {{ errorMessage }}
+          </div>
+          <div class="alert alert-success" *ngIf="successMessage">
+            {{ successMessage }}
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            class="btn btn-primary btn-block"
+            [disabled]="isSaving"
+          >
+            {{ isSaving ? 'Processing...' : '💳 Pay Now' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</ng-container>
