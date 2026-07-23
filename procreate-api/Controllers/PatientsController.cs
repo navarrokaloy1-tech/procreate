@@ -18,8 +18,19 @@ public class PatientsController : ControllerBase
     {
         var query = _db.Patients.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.FirstName.Contains(search) || p.LastName.Contains(search) ||
-                                     p.PatientCode.Contains(search) || p.ContactNumber.Contains(search));
+        {
+            // Tokenized search: each word must match some field, so multi-word /
+            // "LastName, FirstName" queries (as shown in the UI dropdown) still match.
+            var tokens = search.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var token in tokens)
+            {
+                var term = token;
+                query = query.Where(p =>
+                    p.FirstName.Contains(term) || p.LastName.Contains(term) ||
+                    p.MiddleName.Contains(term) || p.PatientCode.Contains(term) ||
+                    p.ContactNumber.Contains(term) || p.Email.Contains(term));
+            }
+        }
 
         var total = await query.CountAsync();
         var patients = await query.OrderByDescending(p => p.CreatedAt)
@@ -65,6 +76,11 @@ public class PatientsController : ControllerBase
         patient.BloodType = updated.BloodType;
         patient.EmergencyContactName = updated.EmergencyContactName;
         patient.EmergencyContactNumber = updated.EmergencyContactNumber;
+        patient.CivilStatus = updated.CivilStatus;
+        patient.Nationality = updated.Nationality;
+        patient.Occupation = updated.Occupation;
+        patient.EmergencyContactRelationship = updated.EmergencyContactRelationship;
+        patient.PhotoUrl = updated.PhotoUrl;
         await _db.SaveChangesAsync();
         return Ok(patient);
     }

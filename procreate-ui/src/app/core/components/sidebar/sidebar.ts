@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth';
 
 interface NavItem {
   label: string;
-  route: string;
+  route?: string;
   icon: string;
+  children?: NavItem[];
+  expanded?: boolean;
 }
 
 @Component({
@@ -14,25 +17,51 @@ interface NavItem {
   styleUrls: ['./sidebar.scss']
 })
 export class SidebarComponent implements OnInit {
-  navItems: NavItem[] = [
-    { label: 'Dashboard',   route: '/app/dashboard',   icon: '📊' },
-    { label: 'Patients',    route: '/app/patients',    icon: '👤' },
-    { label: 'Visits',      route: '/app/visits',      icon: '🏥' },
-    { label: 'Lab Results', route: '/app/lab-results', icon: '🧪' },
-    { label: 'Billing',     route: '/app/billing',     icon: '💰' },
-    { label: 'Reports',     route: '/app/reports',     icon: '📈' }
-  ];
+  navItems: NavItem[] = [];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private auth: AuthService) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    const role = this.auth.currentUser?.role ?? '';
 
-  isActive(route: string): boolean {
+    if (role === 'Cashier') {
+      this.navItems = [
+        { label: 'Cashiers', route: '/app/cashier', icon: 'cashier' },
+        { label: 'Orders', route: '/app/orders', icon: 'orders' }
+      ];
+    } else {
+      // Admin / staff: expanded "Cashiers" group + Orders
+      this.navItems = [
+        {
+          label: 'Cashiers',
+          icon: 'cashier',
+          expanded: true,
+          children: [
+            { label: 'Patients', route: '/app/patients', icon: 'patients' },
+            { label: 'Results', route: '/app/lab-results', icon: 'results' },
+            { label: 'Patient Services', route: '/app/visits', icon: 'services' }
+          ]
+        },
+        { label: 'Orders', route: '/app/orders', icon: 'orders' }
+      ];
+    }
+  }
+
+  toggle(item: NavItem): void {
+    if (item.children) item.expanded = !item.expanded;
+  }
+
+  isActive(route?: string): boolean {
+    if (!route) return false;
     return this.router.isActive(route, {
       paths: 'subset',
       queryParams: 'ignored',
       fragment: 'ignored',
       matrixParams: 'ignored'
     });
+  }
+
+  isGroupActive(item: NavItem): boolean {
+    return !!item.children?.some(c => this.isActive(c.route));
   }
 }

@@ -1,4 +1,4 @@
-.page-actions {
+﻿.page-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -17,8 +17,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #C49A6C;
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
   }
 }
 
@@ -52,9 +52,9 @@
   }
 
   &.active {
-    background: #007bff;
+    background: #C49A6C;
     color: white;
-    border-color: #007bff;
+    border-color: #C49A6C;
   }
 
   &:disabled {
@@ -102,7 +102,7 @@
   }
 
   a {
-    color: #007bff;
+    color: #C49A6C;
     text-decoration: underline;
     cursor: pointer;
   }

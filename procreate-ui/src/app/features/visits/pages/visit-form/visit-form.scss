@@ -1,4 +1,4 @@
-.visit-form-layout {
+﻿.visit-form-layout {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 20px;
@@ -71,8 +71,8 @@
   box-sizing: border-box;
 
   &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #C49A6C;
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
   }
 
   &::placeholder {
@@ -167,7 +167,7 @@ textarea.form-control {
     width: 30px;
     height: 30px;
     border: 3px solid #e9ecef;
-    border-top-color: #007bff;
+    border-top-color: #C49A6C;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-bottom: 10px;
@@ -239,7 +239,7 @@ textarea.form-control {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #007bff;
+  accent-color: #C49A6C;
   flex-shrink: 0;
 }
 
@@ -252,7 +252,7 @@ textarea.form-control {
 .test-item__price {
   margin-left: auto;
   font-size: 13px;
-  color: #007bff;
+  color: #C49A6C;
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -318,7 +318,7 @@ textarea.form-control {
   padding-top: 12px;
   font-size: 18px;
   font-weight: 700;
-  color: #007bff;
+  color: #C49A6C;
   border-top: 2px solid #e8ecf0;
   margin-top: 8px;
 }

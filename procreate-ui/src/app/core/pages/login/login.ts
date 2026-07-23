@@ -28,8 +28,13 @@ export class LoginComponent implements OnInit {
     });
     // redirect if already logged in
     if (this.authService.isLoggedIn) {
-      this.router.navigate(['/app/dashboard']);
+      this.router.navigate([this.landingRoute()]);
     }
+  }
+
+  /** Cashiers land on the Patient Orders screen; everyone else on the dashboard. */
+  private landingRoute(): string {
+    return this.authService.currentUser?.role === 'Cashier' ? '/app/cashier' : '/app/dashboard';
   }
 
   onSubmit(): void {
@@ -42,7 +47,7 @@ export class LoginComponent implements OnInit {
     const { username, password } = this.loginForm.value;
     this.authService.login(username, password).subscribe({
       next: () => {
-        this.router.navigate(['/app/dashboard']);
+        this.router.navigate([this.landingRoute()]);
         this.cdr.markForCheck();
       },
       error: (err) => {

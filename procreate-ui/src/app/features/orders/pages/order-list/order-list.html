@@ -1,0 +1,53 @@
+<div class="orders-page">
+  <h1 class="page-title">Orders</h1>
+
+  <section class="card">
+    <div class="orders-toolbar">
+      <div class="search-box">
+        <span class="search-box__icon"><app-icon name="search" [size]="18"></app-icon></span>
+        <input type="text" placeholder="Search by order code or patient" (input)="onSearch($any($event.target).value)" />
+      </div>
+      <div class="status-tabs">
+        <button type="button" *ngFor="let s of statuses" [class.active]="status === s" (click)="filterStatus(s)">
+          {{ s || 'All' }}
+        </button>
+      </div>
+    </div>
+
+    <table class="orders-table">
+      <thead>
+        <tr>
+          <th>Order Code</th>
+          <th>Patient</th>
+          <th class="ta-center">Items</th>
+          <th class="ta-right">Total</th>
+          <th>Date</th>
+          <th class="ta-right">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let o of orders">
+          <td class="mono">{{ o.orderCode }}</td>
+          <td>
+            <div class="cell-patient">
+              <span class="cell-patient__name">{{ o.patientName }}</span>
+              <span class="cell-patient__code">{{ o.patientCode }}</span>
+            </div>
+          </td>
+          <td class="ta-center">{{ o.itemsCount }}</td>
+          <td class="ta-right">₱{{ o.total | number:'1.2-2' }}</td>
+          <td>{{ o.createdAt | date:'MMM d, y h:mm a' }}</td>
+          <td class="ta-right"><span class="badge" [ngClass]="statusClass(o.status)">{{ o.status }}</span></td>
+        </tr>
+        <tr *ngIf="!orders.length && !isLoading">
+          <td colspan="6" class="empty">No orders found.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pager" *ngIf="totalPages > 1">
+      <button type="button" *ngFor="let i of pageArray"
+        [class.active]="i === page" (click)="goPage(i)">{{ i + 1 }}</button>
+    </div>
+  </section>
+</div>

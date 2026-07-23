@@ -1,0 +1,594 @@
+:host {
+  display: block;
+}
+
+$card-bg: #FBF7F0;
+$card-border: #E7DAC7;
+$field-bg: #F4ECDE;
+
+.patient-orders {
+  max-width: 1180px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 22px 0 12px;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 22px;
+  align-items: start;
+}
+
+.orders-main { min-width: 0; }
+
+// ---------- Cards ----------
+.card {
+  background: $card-bg;
+  border: 1px solid $card-border;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(93, 74, 58, 0.04);
+
+  &__heading {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 14px;
+  }
+}
+
+.search-card { margin-bottom: 4px; }
+
+// ---------- Inputs / fields ----------
+.field {
+  width: 100%;
+  background: $field-bg;
+  border: 1px solid $card-border;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+
+  &::placeholder { color: var(--text-muted); }
+  &:focus { outline: none; border-color: var(--primary); background: #fff; }
+
+  &--icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+
+    input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: var(--text-primary);
+      &:focus { outline: none; }
+      &::placeholder { color: var(--text-muted); }
+    }
+  }
+}
+
+textarea.field { resize: vertical; min-height: 78px; }
+
+.misc-fields { display: flex; flex-direction: column; gap: 12px; }
+
+// ---------- Search box + dropdown ----------
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: $field-bg;
+  border: 1px solid $card-border;
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text-muted);
+
+  &.open { border-color: var(--primary); }
+
+  &__icon, &__caret { display: inline-flex; align-items: center; }
+
+  &__input, input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    &:focus { outline: none; }
+    &::placeholder { color: var(--text-muted); }
+  }
+
+  &--plain { background: #fff; }
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid $card-border;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(93, 74, 58, 0.15);
+  overflow: hidden;
+  z-index: 20;
+
+  &__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f0e9de;
+    cursor: pointer;
+    text-align: left;
+
+    &:first-child { background: #efe7db; }
+    &:hover { background: #F4ECDE; }
+  }
+
+  &__name { font-size: 14px; font-weight: 600; color: var(--text-primary); text-decoration: underline; }
+  &__go { color: var(--text-secondary); display: inline-flex; }
+  &__hint { padding: 10px 14px; font-size: 12.5px; color: var(--text-muted); }
+  &__loading, &__empty { padding: 14px; font-size: 13.5px; color: var(--text-muted); text-align: center; }
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-top: 14px;
+}
+
+.search-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+
+  &__label { text-decoration: underline; color: var(--primary-dark); }
+  &:hover { color: var(--primary-dark); }
+}
+
+// ---------- Patient card ----------
+.patient-card {
+  position: relative;
+
+  &__close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  &__editicon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #2D1B0E;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  &__name { font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary); }
+  &__code { font-size: 13px; color: var(--text-secondary); margin: 2px 0 0; }
+
+  &__body {
+    display: flex;
+    gap: 18px;
+    padding-bottom: 18px;
+  }
+}
+
+.patient-avatar {
+  width: 92px; height: 92px;
+  border-radius: 12px;
+  background: $field-bg;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  overflow: hidden;
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+
+.patient-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 14px;
+}
+
+.pfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label { font-size: 11.5px; color: var(--text-secondary); }
+  input {
+    background: $field-bg;
+    border: 1px solid $card-border;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13.5px;
+    color: var(--text-primary);
+    &:focus { outline: none; border-color: var(--primary); background: #fff; }
+    &[readonly] { background: #f0e9de; }
+  }
+}
+
+// ---------- History ----------
+.history {
+  border: 1px solid $card-border;
+  border-radius: 12px;
+  overflow: hidden;
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--primary);
+    color: #fff;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      font-weight: 700;
+      border-bottom: 1px solid #f0e9de;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f4ede2;
+      vertical-align: middle;
+    }
+  }
+
+  &__product { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); }
+
+  &__updates {
+    display: flex; flex-direction: column;
+    span { color: var(--text-primary); }
+    small { color: var(--text-muted); font-size: 11.5px; }
+  }
+
+  &__empty { text-align: center; color: var(--text-muted); padding: 20px; }
+
+  &__pager {
+    display: flex; gap: 6px; padding: 12px 16px;
+    button {
+      width: 26px; height: 26px;
+      border: 1px solid $card-border;
+      background: $field-bg;
+      border-radius: 6px;
+      font-size: 12px; cursor: pointer;
+      color: var(--text-primary);
+      &.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    }
+  }
+}
+
+.ta-right { text-align: right; }
+
+// ---------- Badges ----------
+.badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+
+  &--ordered { background: #1FA971; }
+  &--cancelled { background: #E24C4C; }
+  &--draft { background: #5b5b5b; }
+  &--completed { background: #1FA971; }
+}
+
+// ---------- Summary panel ----------
+.orders-side { position: sticky; top: 0; }
+
+.summary-card {
+  &__head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  &__patient { font-size: 13.5px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
+}
+
+.btn-add-product {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--primary);
+  color: #fff; border: none;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
+  &:hover { background: var(--primary-dark); }
+}
+
+.summary-body {
+  min-height: 150px;
+  border-bottom: 1px dashed $card-border;
+  padding: 8px 0 12px;
+  margin-bottom: 14px;
+}
+
+.summary-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 60px 0;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+
+  th {
+    font-size: 11.5px; color: var(--text-secondary);
+    text-align: left; padding-bottom: 8px;
+    border-bottom: 1px dashed $card-border;
+  }
+  td { padding: 9px 0; border-bottom: 1px dashed #eee3d3; }
+
+  tfoot td {
+    border-bottom: none;
+    padding-top: 12px;
+    font-weight: 800;
+  }
+}
+
+.summary-total-label { color: var(--text-primary); }
+.summary-total-val { font-size: 16px; }
+
+.summary-item {
+  display: flex; align-items: center; gap: 8px;
+  &__name { color: var(--text-primary); }
+  &__remove { background: none; border: none; color: var(--text-muted); cursor: pointer; opacity: 0; transition: opacity .15s; }
+}
+.summary-table tr:hover .summary-item__remove { opacity: 1; }
+
+.qty {
+  display: inline-flex; align-items: center; gap: 8px;
+  button {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 1px solid $card-border; background: $field-bg;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-primary);
+    &:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+  }
+  span { min-width: 16px; text-align: center; font-weight: 700; }
+}
+
+.summary-actions {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.btn-complete {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: var(--success-green);
+  color: #fff; border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px; font-weight: 800; letter-spacing: .5px;
+  cursor: pointer;
+  transition: background .15s;
+  &:hover:not(:disabled) { background: var(--success-green-dark); }
+  &:disabled { background: #DBD7E4; color: #9E9AAC; cursor: not-allowed; }
+}
+
+.btn-draft {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: #5b5b5b;
+  color: #fff; border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px; font-weight: 800; letter-spacing: .5px;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: #444; }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.btn-secondary {
+  background: #fff;
+  border: 1px solid $card-border;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  color: var(--text-primary);
+  &:hover { background: var(--light); }
+}
+
+// ---------- Modals ----------
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(45, 27, 14, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 1050;
+}
+
+.modal {
+  background: #FBF7F0;
+  border-radius: 16px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.3);
+}
+
+.register-modal { max-width: 640px; }
+.addproduct-modal { max-width: 520px; }
+
+.register-modal__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid $card-border;
+}
+.register-modal__title {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 20px; font-weight: 800; color: var(--text-primary);
+}
+.modal-x { background: none; border: none; cursor: pointer; color: var(--text-secondary); }
+
+.register-modal__body {
+  display: flex; gap: 20px;
+  padding: 22px;
+  overflow-y: auto;
+}
+
+.reg-photo {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  flex-shrink: 0;
+
+  &__box {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: $field-bg;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); overflow: hidden;
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+  &__upload {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; color: var(--text-secondary); cursor: pointer;
+    &:hover { color: var(--primary-dark); }
+  }
+}
+
+.reg-form {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.reg-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  &:has(.field:nth-child(2):last-child) { grid-template-columns: repeat(2, 1fr); }
+}
+
+.field--phone {
+  display: flex; align-items: center;
+  background: $field-bg;
+  border: 1px solid $card-border;
+  border-radius: 10px;
+  padding: 0 14px;
+  .phone-prefix { font-size: 14px; color: var(--text-primary); padding-right: 10px; border-right: 1px solid $card-border; }
+  input { flex: 1; border: none; background: transparent; padding: 12px 10px; font-size: 14px; &:focus { outline: none; } }
+}
+
+select.field { appearance: none; background-image: none; }
+
+.reg-subhead {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  margin: 6px 0 0;
+}
+
+.reg-error {
+  color: #E24C4C; font-size: 13px; font-weight: 600;
+}
+
+.reg-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 6px;
+  .btn-complete { width: auto; padding: 12px 22px; }
+}
+
+// ---------- Add Product modal ----------
+.addproduct-modal__body {
+  padding: 18px 22px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.product-list {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+
+  &__empty { text-align: center; color: var(--text-muted); padding: 24px; }
+}
+
+.product-row {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  background: $field-bg;
+  border: 1px solid $card-border;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer; text-align: left;
+  transition: all .15s;
+  &:hover { border-color: var(--primary); background: #fff; }
+
+  &__info { display: flex; flex-direction: column; gap: 2px; }
+  &__name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  &__meta { font-size: 12px; color: var(--text-muted); }
+  &__right { display: flex; align-items: center; gap: 12px; }
+  &__price { font-size: 14px; font-weight: 700; color: var(--primary-dark); }
+  &__add {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+}
+
+.addproduct-modal__footer {
+  display: flex; justify-content: flex-end;
+  .btn-complete { width: auto; padding: 11px 24px; }
+}
+
+// ---------- Toast ----------
+.toast {
+  position: fixed;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  background: #2D1B0E;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  z-index: 1100;
+}
+
+@media (max-width: 900px) {
+  .orders-grid { grid-template-columns: 1fr; }
+  .patient-fields { grid-template-columns: repeat(2, 1fr); }
+  .reg-row { grid-template-columns: 1fr; }
+}

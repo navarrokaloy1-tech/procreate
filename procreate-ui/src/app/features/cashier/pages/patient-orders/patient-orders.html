@@ -1,0 +1,295 @@
+<div class="patient-orders">
+  <h1 class="page-title">Patient Orders</h1>
+
+  <div class="orders-grid">
+    <!-- ================= LEFT COLUMN ================= -->
+    <div class="orders-main">
+
+      <!-- Search Patient (no patient selected) -->
+      <section class="card search-card" *ngIf="!patient">
+        <h3 class="card__heading">Search Patient</h3>
+        <div class="search-box" [class.open]="showDropdown && searchResults.length">
+          <span class="search-box__icon"><app-icon name="search" [size]="18"></app-icon></span>
+          <input
+            type="text"
+            class="search-box__input"
+            placeholder="Search by name, retrieval code, or plan number"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearch($event)"
+            (focus)="showDropdown = searchResults.length > 0"
+          />
+          <span class="search-box__caret"><app-icon name="chevron-down" [size]="18"></app-icon></span>
+
+          <div class="search-dropdown" *ngIf="showDropdown && searchQuery">
+            <div class="search-dropdown__loading" *ngIf="searching">Searching…</div>
+            <ng-container *ngIf="!searching">
+              <button type="button" class="search-dropdown__item" *ngFor="let p of searchResults" (click)="selectPatient(p)">
+                <span class="search-dropdown__name">{{ patientFullName(p) }} ({{ p.patientCode }})</span>
+                <span class="search-dropdown__go"><app-icon name="edit" [size]="18"></app-icon></span>
+              </button>
+              <div class="search-dropdown__empty" *ngIf="!searchResults.length">No matching patient found.</div>
+            </ng-container>
+            <div class="search-dropdown__hint">LastName, FirstName Middle Initial (Patient No.)</div>
+          </div>
+        </div>
+
+        <div class="search-actions">
+          <a class="search-action" (click)="openRegister()">
+            <app-icon name="user-plus" [size]="18"></app-icon>
+            <span class="search-action__label">REGISTER NEW PATIENT</span>
+          </a>
+          <a class="search-action">
+            <app-icon name="qr" [size]="18"></app-icon>
+            <span>SCAN QR CODE</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Selected patient card -->
+      <section class="card patient-card" *ngIf="patient">
+        <button type="button" class="patient-card__close" (click)="clearPatient()">
+          <app-icon name="x" [size]="18"></app-icon>
+        </button>
+        <div class="patient-card__head">
+          <span class="patient-card__editicon"><app-icon name="edit" [size]="20"></app-icon></span>
+          <div>
+            <h3 class="patient-card__name">{{ patientFullName(patient) }}</h3>
+            <p class="patient-card__code">{{ patient.patientCode }}</p>
+          </div>
+        </div>
+
+        <div class="patient-card__body">
+          <div class="patient-avatar">
+            <img *ngIf="patient.photoUrl" [src]="patient.photoUrl" alt="" />
+            <app-icon *ngIf="!patient.photoUrl" name="patients" [size]="42"></app-icon>
+          </div>
+          <div class="patient-fields">
+            <div class="pfield"><label>First name</label><input type="text" [(ngModel)]="patient.firstName" /></div>
+            <div class="pfield"><label>Middle name</label><input type="text" [(ngModel)]="patient.middleName" /></div>
+            <div class="pfield"><label>Last name</label><input type="text" [(ngModel)]="patient.lastName" /></div>
+            <div class="pfield"><label>Email</label><input type="text" [(ngModel)]="patient.email" /></div>
+            <div class="pfield"><label>Sex</label><input type="text" [(ngModel)]="patient.gender" /></div>
+            <div class="pfield"><label>Birthday</label><input type="text" [value]="patient.dateOfBirth | date:'MM/dd/yyyy'" readonly /></div>
+            <div class="pfield"><label>Phone number</label><input type="text" [(ngModel)]="patient.contactNumber" /></div>
+            <div class="pfield"><label>Age</label><input type="text" [value]="age(patient.dateOfBirth)" readonly /></div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="history">
+          <div class="history__bar">
+            <span>History</span>
+            <app-icon name="chevron-down" [size]="18"></app-icon>
+          </div>
+          <table class="history__table">
+            <thead>
+              <tr><th>Product</th><th>Updates</th><th class="ta-right">Status</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of history">
+                <td>
+                  <span class="history__product"><app-icon name="orders" [size]="16"></app-icon> {{ h.productName }}</span>
+                </td>
+                <td>
+                  <div class="history__updates">
+                    <span>{{ h.updatedAt | date:'MMMM d, y h:mm a' }}</span>
+                    <small>{{ relativeTime(h.updatedAt) }}</small>
+                  </div>
+                </td>
+                <td class="ta-right">
+                  <span class="badge" [ngClass]="statusClass(h.status)">{{ h.status }}</span>
+                </td>
+              </tr>
+              <tr *ngIf="!history.length">
+                <td colspan="3" class="history__empty">No history yet.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="history__pager" *ngIf="historyPages > 1">
+            <button type="button" *ngFor="let i of historyPageArray"
+              [class.active]="i === historyPage" (click)="goHistoryPage(i)">{{ i + 1 }}</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Checkout / Miscellaneous -->
+      <h2 class="section-title">Checkout</h2>
+      <section class="card misc-card">
+        <h3 class="card__heading">Miscellaneous</h3>
+        <div class="misc-fields">
+          <input class="field" type="text" placeholder="Referrer" [(ngModel)]="misc.referrer" />
+          <div class="field field--icon">
+            <app-icon name="search" [size]="16"></app-icon>
+            <input type="text" placeholder="Tags" [(ngModel)]="misc.tags" />
+            <app-icon name="chevron-down" [size]="16"></app-icon>
+          </div>
+          <div class="field field--icon">
+            <app-icon name="search" [size]="16"></app-icon>
+            <input type="text" placeholder="Branches" [(ngModel)]="misc.branch" />
+            <app-icon name="chevron-down" [size]="16"></app-icon>
+          </div>
+          <input class="field" type="text" placeholder="Contact Number" [(ngModel)]="misc.contactNumber" />
+          <input class="field" type="text" placeholder="Contact Email" [(ngModel)]="misc.contactEmail" />
+          <textarea class="field" placeholder="Notes" rows="3" [(ngModel)]="misc.notes"></textarea>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= RIGHT COLUMN (Summary) ================= -->
+    <aside class="orders-side">
+      <section class="card summary-card">
+        <div class="summary-card__head">
+          <h3 class="card__heading">Summary</h3>
+          <button type="button" class="btn-add-product" (click)="openAddProduct()">
+            <app-icon name="plus" [size]="16"></app-icon> Add Product
+          </button>
+        </div>
+        <p class="summary-card__patient" *ngIf="patient">{{ patientFullName(patient) }}</p>
+
+        <div class="summary-body">
+          <div class="summary-empty" *ngIf="!items.length">Nothing to display</div>
+
+          <table class="summary-table" *ngIf="items.length">
+            <thead>
+              <tr><th></th><th class="ta-right">Qty.</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of items">
+                <td>
+                  <div class="summary-item">
+                    <span class="summary-item__name">{{ item.product.name }}</span>
+                    <button type="button" class="summary-item__remove" (click)="removeItem(item)">
+                      <app-icon name="trash" [size]="14"></app-icon>
+                    </button>
+                  </div>
+                </td>
+                <td class="ta-right">
+                  <div class="qty">
+                    <button type="button" (click)="decQty(item)"><app-icon name="minus" [size]="12"></app-icon></button>
+                    <span>{{ item.quantity }}</span>
+                    <button type="button" (click)="incQty(item)"><app-icon name="plus" [size]="12"></app-icon></button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr><td class="summary-total-label">Total:</td><td class="ta-right summary-total-val">{{ totalQty }}</td></tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="summary-actions">
+          <button type="button" class="btn-draft" *ngIf="patient" [disabled]="!items.length || saving" (click)="saveDraft()">
+            SAVE DRAFT <app-icon name="cart" [size]="18"></app-icon>
+          </button>
+          <button type="button" class="btn-complete" [disabled]="!canComplete || saving" (click)="complete()">
+            COMPLETE <app-icon name="cart" [size]="18"></app-icon>
+          </button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ================= Register New Patient modal ================= -->
+  <div class="modal-backdrop" *ngIf="showRegister" (click)="closeRegister()">
+    <div class="modal register-modal" (click)="$event.stopPropagation()">
+      <div class="register-modal__header">
+        <span class="register-modal__title"><app-icon name="user-plus" [size]="24"></app-icon> Register New Patient</span>
+        <button type="button" class="modal-x" (click)="closeRegister()"><app-icon name="x" [size]="20"></app-icon></button>
+      </div>
+      <div class="register-modal__body">
+        <div class="reg-photo">
+          <div class="reg-photo__box">
+            <img *ngIf="reg.photoUrl" [src]="reg.photoUrl" alt="" />
+            <app-icon *ngIf="!reg.photoUrl" name="patients" [size]="54"></app-icon>
+          </div>
+          <label class="reg-photo__upload">
+            Upload photo <app-icon name="camera" [size]="14"></app-icon>
+            <input type="file" accept="image/*" (change)="onPhotoSelected($event)" hidden />
+          </label>
+        </div>
+
+        <div class="reg-form">
+          <input class="field" placeholder="First name *" [(ngModel)]="reg.firstName" />
+          <input class="field" placeholder="Middle name" [(ngModel)]="reg.middleName" />
+          <input class="field" placeholder="Last name *" [(ngModel)]="reg.lastName" />
+          <div class="field field--phone">
+            <span class="phone-prefix">🇵🇭 +63</span>
+            <input type="text" placeholder="Phone Number" [(ngModel)]="reg.phone" />
+          </div>
+          <div class="reg-row">
+            <input class="field" type="date" placeholder="Birthday *" [(ngModel)]="reg.birthday" />
+            <input class="field" placeholder="Email" [(ngModel)]="reg.email" />
+            <select class="field" [(ngModel)]="reg.civilStatus">
+              <option value="" disabled selected>Civil Status *</option>
+              <option>Single</option><option>Married</option><option>Widowed</option>
+              <option>Separated</option><option>Divorced</option>
+            </select>
+          </div>
+          <div class="reg-row">
+            <select class="field" [(ngModel)]="reg.gender">
+              <option value="" disabled selected>Sex</option>
+              <option>Male</option><option>Female</option>
+            </select>
+            <input class="field" placeholder="Nationality" [(ngModel)]="reg.nationality" />
+            <input class="field" placeholder="Occupation" [(ngModel)]="reg.occupation" />
+          </div>
+          <input class="field" placeholder="Address" [(ngModel)]="reg.address" />
+
+          <h4 class="reg-subhead">Emergency Contact</h4>
+          <div class="reg-row">
+            <input class="field" placeholder="Contact Name *" [(ngModel)]="reg.emergencyContactName" />
+            <input class="field" placeholder="Relationship *" [(ngModel)]="reg.emergencyContactRelationship" />
+          </div>
+          <div class="field field--phone">
+            <span class="phone-prefix">🇵🇭 +63</span>
+            <input type="text" placeholder="Phone Number" [(ngModel)]="reg.emergencyPhone" />
+          </div>
+
+          <div class="reg-error" *ngIf="registerError">{{ registerError }}</div>
+          <div class="reg-actions">
+            <button type="button" class="btn-secondary" (click)="closeRegister()">Cancel</button>
+            <button type="button" class="btn-complete" [disabled]="registerSaving" (click)="submitRegister()">
+              {{ registerSaving ? 'Saving...' : 'Register Patient' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Add Product modal ================= -->
+  <div class="modal-backdrop" *ngIf="showAddProduct" (click)="closeAddProduct()">
+    <div class="modal addproduct-modal" (click)="$event.stopPropagation()">
+      <div class="register-modal__header">
+        <span class="register-modal__title"><app-icon name="cart" [size]="22"></app-icon> Add Product</span>
+        <button type="button" class="modal-x" (click)="closeAddProduct()"><app-icon name="x" [size]="20"></app-icon></button>
+      </div>
+      <div class="addproduct-modal__body">
+        <div class="search-box search-box--plain">
+          <span class="search-box__icon"><app-icon name="search" [size]="18"></app-icon></span>
+          <input type="text" placeholder="Search products" [ngModel]="productQuery" (ngModelChange)="onProductSearch($event)" />
+        </div>
+        <div class="product-list">
+          <button type="button" class="product-row" *ngFor="let p of products" (click)="addProduct(p)">
+            <div class="product-row__info">
+              <span class="product-row__name">{{ p.name }}</span>
+              <span class="product-row__meta">{{ p.code }} · {{ p.category }}</span>
+            </div>
+            <div class="product-row__right">
+              <span class="product-row__price">₱{{ p.price | number:'1.2-2' }}</span>
+              <span class="product-row__add"><app-icon name="plus" [size]="16"></app-icon></span>
+            </div>
+          </button>
+          <div class="product-list__empty" *ngIf="!products.length">No products found.</div>
+        </div>
+        <div class="addproduct-modal__footer">
+          <button type="button" class="btn-complete" (click)="closeAddProduct()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" *ngIf="toast">{{ toast }}</div>
+</div>

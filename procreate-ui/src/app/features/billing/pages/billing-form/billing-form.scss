@@ -1,4 +1,4 @@
-.page-actions {
+﻿.page-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -18,7 +18,7 @@
   display: inline-block;
   padding: 3px 10px;
   background: #e7f1ff;
-  color: #0056b3;
+  color: #A67C52;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
@@ -113,8 +113,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #C49A6C;
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
   }
 }
 
@@ -127,7 +127,7 @@
 .payment-total {
   font-size: 20px;
   font-weight: 700;
-  color: #007bff;
+  color: #C49A6C;
   border-top: 2px solid #e8ecf0;
   padding-top: 12px;
   margin-top: 4px;
@@ -176,8 +176,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #C49A6C;
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
   }
 
   &.is-invalid {

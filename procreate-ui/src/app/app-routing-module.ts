@@ -22,6 +22,16 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       {
+        path: 'cashier',
+        loadChildren: () =>
+          import('./features/cashier/cashier-module').then(m => m.CashierModule)
+      },
+      {
+        path: 'orders',
+        loadChildren: () =>
+          import('./features/orders/orders-module').then(m => m.OrdersModule)
+      },
+      {
         path: 'dashboard',
         loadChildren: () =>
           import('./features/dashboard/dashboard-module').then(m => m.DashboardModule)

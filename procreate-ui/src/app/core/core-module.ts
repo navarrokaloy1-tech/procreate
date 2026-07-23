@@ -7,6 +7,7 @@ import { LayoutComponent } from './components/layout/layout';
 import { SidebarComponent } from './components/sidebar/sidebar';
 import { HeaderComponent } from './components/header/header';
 import { LoginComponent } from './pages/login/login';
+import { IconComponent } from './components/icon/icon';
 
 @NgModule({
   declarations: [
@@ -19,13 +20,15 @@ import { LoginComponent } from './pages/login/login';
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
-    HttpClientModule
+    HttpClientModule,
+    IconComponent
   ],
   exports: [
     LayoutComponent,
     SidebarComponent,
     HeaderComponent,
-    LoginComponent
+    LoginComponent,
+    IconComponent
   ]
 })
 export class CoreModule { }

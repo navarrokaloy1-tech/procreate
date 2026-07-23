@@ -16,19 +16,44 @@ public class AppDbContext : DbContext
     public DbSet<LabResult> LabResults => Set<LabResult>();
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>().HasData(new User
-        {
-            Id = 1,
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-            FullName = "System Administrator",
-            Role = "Admin",
-            Email = "admin@procreate.ai",
-            IsActive = true
-        });
+        modelBuilder.Entity<User>().HasData(
+            new User
+            {
+                Id = 1,
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                FullName = "System Administrator",
+                Role = "Admin",
+                Email = "admin@procreate.ai",
+                IsActive = true
+            },
+            new User
+            {
+                Id = 2,
+                Username = "cashier",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("cashier123"),
+                FullName = "John Doe",
+                Role = "Cashier",
+                Email = "cashier@procreate.ai",
+                IsActive = true
+            });
+
+        modelBuilder.Entity<Product>().HasData(
+            new Product { Id = 1, Code = "PRD-1001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true },
+            new Product { Id = 2, Code = "PRD-1002", Name = "Transvaginal Ultrasound", Category = "Imaging", Price = 1500, IsActive = true },
+            new Product { Id = 3, Code = "PRD-1003", Name = "Follicle Monitoring", Category = "Fertility", Price = 1200, IsActive = true },
+            new Product { Id = 4, Code = "PRD-1004", Name = "Hormone Panel (FSH/LH/E2)", Category = "Laboratory", Price = 2800, IsActive = true },
+            new Product { Id = 5, Code = "PRD-1005", Name = "Semen Analysis", Category = "Fertility", Price = 900, IsActive = true },
+            new Product { Id = 6, Code = "PRD-1006", Name = "OB-GYN Consultation", Category = "Consultation", Price = 800, IsActive = true },
+            new Product { Id = 7, Code = "PRD-1007", Name = "Pap Smear", Category = "Laboratory", Price = 650, IsActive = true },
+            new Product { Id = 8, Code = "PRD-1008", Name = "Pelvic Ultrasound", Category = "Imaging", Price = 1300, IsActive = true }
+        );
 
         modelBuilder.Entity<TestCategory>().HasData(
             new TestCategory { Id = 1, Name = "Hematology", Description = "Blood count and related tests" },

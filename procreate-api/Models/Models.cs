@@ -15,6 +15,11 @@ public class Patient
     public string BloodType { get; set; } = string.Empty;
     public string EmergencyContactName { get; set; } = string.Empty;
     public string EmergencyContactNumber { get; set; } = string.Empty;
+    public string? CivilStatus { get; set; }
+    public string? Nationality { get; set; }
+    public string? Occupation { get; set; }
+    public string? EmergencyContactRelationship { get; set; }
+    public string? PhotoUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<Visit> Visits { get; set; } = new();
 }
@@ -123,4 +128,46 @@ public class User
     public string Role { get; set; } = "Staff";
     public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class Order
+{
+    public int Id { get; set; }
+    public string OrderCode { get; set; } = string.Empty;
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public string Status { get; set; } = "Draft"; // Draft | Ordered | Cancelled | Completed
+    public string Referrer { get; set; } = string.Empty;
+    public string Tags { get; set; } = string.Empty;
+    public string Branch { get; set; } = string.Empty;
+    public string ContactNumber { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public decimal SubTotal { get; set; }
+    public decimal Total { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public List<OrderItem> Items { get; set; } = new();
+}
+
+public class OrderItem
+{
+    public int Id { get; set; }
+    public int OrderId { get; set; }
+    public Order Order { get; set; } = null!;
+    public int ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public int Quantity { get; set; } = 1;
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
 }

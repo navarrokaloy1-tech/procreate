@@ -1,4 +1,4 @@
-.page-actions {
+﻿.page-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -76,9 +76,9 @@
   }
 
   &.active {
-    background: #007bff;
+    background: #C49A6C;
     color: white;
-    border-color: #007bff;
+    border-color: #C49A6C;
   }
 
   &:disabled {

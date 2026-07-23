@@ -116,5 +116,61 @@ public static class DataSeeder
         db.LabOrders.Add(new LabOrder { VisitId = v3.Id, LabTestId = cbc.Id, Status = "Ordered", SpecimenBarcode = $"SPX-{Stamp(3)}-005" });
 
         db.SaveChanges();
+
+        // ---------- Cashier Orders (Product/Order domain) ----------
+        SeedOrders(db, juan, today);
+    }
+
+    /// <summary>
+    /// Seeds a few sample cashier orders for a patient so the Patient Orders
+    /// History table is populated out of the box. Mirrors the Ordered/Cancelled/Draft
+    /// statuses shown in the cashier screenshots.
+    /// </summary>
+    private static void SeedOrders(AppDbContext db, Patient patient, DateTime today)
+    {
+        if (db.Orders.Any()) return;
+
+        var products = db.Products.OrderBy(p => p.Id).ToList();
+        if (products.Count == 0) return;
+
+        string Stamp() => today.ToString("yyyyMMdd");
+
+        Order MakeOrder(int seq, string status, DateTime createdAt, params (Product product, int qty)[] lines)
+        {
+            var order = new Order
+            {
+                OrderCode = $"OR-{Stamp()}-{seq:D4}",
+                PatientId = patient.Id,
+                Status = status,
+                Referrer = "Dr. Tan",
+                Branch = "Main Branch",
+                ContactNumber = patient.ContactNumber,
+                ContactEmail = patient.Email,
+                CreatedAt = createdAt,
+                UpdatedAt = createdAt
+            };
+            foreach (var (product, qty) in lines)
+            {
+                order.Items.Add(new OrderItem
+                {
+                    ProductId = product.Id,
+                    Quantity = qty,
+                    UnitPrice = product.Price,
+                    LineTotal = product.Price * qty
+                });
+            }
+            order.SubTotal = order.Items.Sum(i => i.LineTotal);
+            order.Total = order.SubTotal;
+            return order;
+        }
+
+        var orders = new[]
+        {
+            MakeOrder(1, "Ordered",   today.AddDays(-3), (products[0], 1)),
+            MakeOrder(2, "Cancelled", today.AddDays(-2), (products[1], 3)),
+            MakeOrder(3, "Draft",     today.AddHours(-6), (products[2], 5))
+        };
+        db.Orders.AddRange(orders);
+        db.SaveChanges();
     }
 }

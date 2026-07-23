@@ -1,22 +1,66 @@
 <div class="sidebar">
   <div class="sidebar__logo">
-    <h2>Pro-Create</h2>
-    <p>Laboratory &amp; Clinic</p>
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 2 L8 14 H14 L4 30 L26 14 H18 L28 2 Z" fill="#2D1B0E"/>
+      </svg>
+      <div class="brand__text">
+        <h2>Pro-Create</h2>
+        <p>Fertility, OB-GYN<br />and Diagnostic Center</p>
+      </div>
+    </div>
   </div>
 
   <nav class="sidebar__nav">
-    <a
-      *ngFor="let item of navItems"
-      [routerLink]="item.route"
-      class="nav-item"
-      [class.active]="isActive(item.route)"
-    >
-      <span class="nav-item__icon">{{ item.icon }}</span>
-      <span class="nav-item__label">{{ item.label }}</span>
-    </a>
+    <ng-container *ngFor="let item of navItems">
+      <!-- Group with children (admin) -->
+      <ng-container *ngIf="item.children; else leaf">
+        <div
+          class="nav-item nav-item--group"
+          [class.active]="isGroupActive(item)"
+          (click)="toggle(item)"
+        >
+          <span class="nav-item__icon"><app-icon [name]="item.icon" [size]="20"></app-icon></span>
+          <span class="nav-item__label">{{ item.label }}</span>
+          <span class="nav-item__caret">
+            <app-icon [name]="item.expanded ? 'chevron-up' : 'chevron-down'" [size]="16"></app-icon>
+          </span>
+        </div>
+        <div class="nav-children" *ngIf="item.expanded">
+          <a
+            *ngFor="let child of item.children"
+            [routerLink]="child.route"
+            class="nav-item nav-item--child"
+            [class.active]="isActive(child.route)"
+          >
+            <span class="nav-item__icon"><app-icon [name]="child.icon" [size]="18"></app-icon></span>
+            <span class="nav-item__label">{{ child.label }}</span>
+          </a>
+        </div>
+      </ng-container>
+
+      <!-- Leaf link (cashier + Orders) -->
+      <ng-template #leaf>
+        <a
+          [routerLink]="item.route"
+          class="nav-item"
+          [class.active]="isActive(item.route)"
+        >
+          <span class="nav-item__icon"><app-icon [name]="item.icon" [size]="20"></app-icon></span>
+          <span class="nav-item__label">{{ item.label }}</span>
+        </a>
+      </ng-template>
+    </ng-container>
   </nav>
 
   <div class="sidebar__footer">
-    v1.0.0
+    <a class="nav-item nav-item--footer">
+      <span class="nav-item__icon"><app-icon name="settings" [size]="18"></app-icon></span>
+      <span class="nav-item__label">Settings</span>
+    </a>
+    <a class="nav-item nav-item--footer">
+      <span class="nav-item__icon"><app-icon name="help" [size]="18"></app-icon></span>
+      <span class="nav-item__label">Help</span>
+    </a>
   </div>
 </div>

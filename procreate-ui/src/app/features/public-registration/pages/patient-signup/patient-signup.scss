@@ -1,7 +1,7 @@
-:host {
+﻿:host {
   display: block;
   min-height: 100vh;
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  background: linear-gradient(135deg, #C49A6C 0%, #A67C52 100%);
   padding: 32px 16px;
 }
 
@@ -68,7 +68,7 @@
     color: #6c757d;
 
     a {
-      color: #007bff;
+      color: #C49A6C;
       text-decoration: none;
       font-weight: 600;
     }
@@ -112,8 +112,8 @@
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    border-color: #C49A6C;
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
   }
 
   &.is-invalid {
@@ -143,7 +143,7 @@
   padding: 15px;
   border: none;
   border-radius: 10px;
-  background: #007bff;
+  background: #C49A6C;
   color: #fff;
   font-size: 17px;
   font-weight: 700;
@@ -155,7 +155,7 @@
   transition: background 0.15s, transform 0.05s;
 
   &:hover:not(:disabled) {
-    background: #0056b3;
+    background: #A67C52;
   }
 
   &:active:not(:disabled) {
@@ -169,8 +169,8 @@
 
   &--outline {
     background: #fff;
-    color: #007bff;
-    border: 2px solid #007bff;
+    color: #C49A6C;
+    border: 2px solid #C49A6C;
 
     &:hover:not(:disabled) {
       background: #e8f4ff;
@@ -234,7 +234,7 @@
     align-items: center;
     gap: 6px;
     background: #e8f4ff;
-    border: 2px dashed #007bff;
+    border: 2px dashed #C49A6C;
     border-radius: 14px;
     padding: 22px;
     margin-bottom: 20px;
@@ -243,14 +243,14 @@
   &__label {
     font-size: 12px;
     letter-spacing: 2px;
-    color: #0056b3;
+    color: #A67C52;
     font-weight: 700;
   }
 
   &__number {
     font-size: 64px;
     font-weight: 800;
-    color: #007bff;
+    color: #C49A6C;
     line-height: 1;
     letter-spacing: 2px;
   }

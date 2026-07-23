@@ -1,4 +1,4 @@
-.dashboard-page {
+﻿.dashboard-page {
   padding: 24px;
 }
 
@@ -50,7 +50,7 @@
   border-left: 4px solid transparent;
 
   &--blue {
-    border-left-color: #007bff;
+    border-left-color: #C49A6C;
   }
 
   &--green {
@@ -183,7 +183,7 @@
 
       &.visit-code {
         font-weight: 600;
-        color: #007bff;
+        color: #C49A6C;
         font-family: monospace;
       }
 
@@ -267,7 +267,7 @@
 
 .bar {
   flex: 1;
-  background: #007bff;
+  background: #C49A6C;
   border-radius: 4px 4px 0 0;
   opacity: 0.8;
   transition: height 0.3s;

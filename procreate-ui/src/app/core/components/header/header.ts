@@ -10,6 +10,7 @@ import { AuthService, AuthUser } from '../../services/auth';
 })
 export class HeaderComponent implements OnInit {
   currentUser$!: Observable<AuthUser | null>;
+  menuOpen = false;
 
   constructor(private authService: AuthService) {}
 
@@ -17,7 +18,16 @@ export class HeaderComponent implements OnInit {
     this.currentUser$ = this.authService.user$;
   }
 
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
+  }
+
   logout(): void {
+    this.menuOpen = false;
     this.authService.logout();
   }
 }

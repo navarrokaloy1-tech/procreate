@@ -4,9 +4,9 @@
 
 // CSS Custom Properties
 :root {
-  --primary: #007BFF;
-  --primary-dark: #0056b3;
-  --primary-light: #e8f4ff;
+  --primary: #C49A6C;
+  --primary-dark: #A67C52;
+  --primary-light: #F5EDE0;
   --secondary: #6c757d;
   --success: #28a745;
   --success-light: #d4edda;
@@ -16,19 +16,21 @@
   --danger-light: #f8d7da;
   --info: #17a2b8;
   --info-light: #d1ecf1;
-  --light: #f8f9fa;
-  --dark: #343a40;
+  --light: #FAF5EE;
+  --dark: #3d2b1f;
   --white: #ffffff;
-  --body-bg: #f0f2f5;
+  --body-bg: #F5EFE6;
   --card-bg: #ffffff;
-  --border-color: #dee2e6;
-  --text-primary: #212529;
-  --text-secondary: #6c757d;
-  --text-muted: #adb5bd;
-  --sidebar-bg: #1a2035;
-  --sidebar-text: #c8ccd4;
-  --sidebar-active: #007BFF;
-  --header-bg: #ffffff;
+  --border-color: #E8DDD0;
+  --text-primary: #2D1B0E;
+  --text-secondary: #7A6652;
+  --text-muted: #B8A898;
+  --sidebar-bg: #F3ECE1;
+  --sidebar-text: #5A4A3A;
+  --sidebar-active: #C49A6C;
+  --header-bg: #F7F1E8;
+  --success-green: #1FA971;
+  --success-green-dark: #178a5c;
   --header-height: 64px;
   --sidebar-width: 260px;
   --border-radius: 8px;
@@ -215,7 +217,7 @@ small {
       transition: background-color var(--transition);
 
       &:hover {
-        background-color: rgba(0, 123, 255, 0.03);
+        background-color: rgba(196, 154, 108, 0.06);
       }
 
       &:last-child {
@@ -413,7 +415,7 @@ small {
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
   }
 
   &:disabled,
@@ -667,7 +669,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+      box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
     }
   }
 
