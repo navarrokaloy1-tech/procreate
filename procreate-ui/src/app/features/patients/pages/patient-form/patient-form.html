@@ -279,23 +279,66 @@
             <div class="form-group">
               <label class="form-label" for="city">City / Municipality</label>
               <!--
-                A combobox, not a select: the suggestion list covers cities and
-                provincial capitals, but any municipality can be typed.
+                Custom combobox rather than <datalist>: the native popup cannot
+                be styled and follows the OS theme, so it did not match the
+                region/province selects. Still typeable for municipalities that
+                are not in the list.
               -->
-              <input
-                id="city"
-                type="text"
-                class="form-control"
-                formControlName="city"
-                list="citySuggestions"
-                autocomplete="off"
-                [placeholder]="cities.length
-                  ? 'Select or type city / municipality'
-                  : 'City / Municipality'"
-              />
-              <datalist id="citySuggestions">
-                <option *ngFor="let option of cities" [value]="option.name"></option>
-              </datalist>
+              <div class="combobox" [class.combobox--open]="cityPanelOpen">
+                <input
+                  id="city"
+                  type="text"
+                  class="form-control combobox__input"
+                  formControlName="city"
+                  autocomplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-controls="cityOptions"
+                  [attr.aria-expanded]="cityPanelOpen"
+                  [placeholder]="cities.length
+                    ? 'Select or type city / municipality'
+                    : 'City / Municipality'"
+                  (focus)="openCityPanel()"
+                  (input)="onCityInput()"
+                  (keydown)="onCityKeydown($event)"
+                  (blur)="closeCityPanel()"
+                />
+
+                <button
+                  type="button"
+                  class="combobox__toggle"
+                  tabindex="-1"
+                  aria-label="Show city suggestions"
+                  *ngIf="cities.length"
+                  (mousedown)="$event.preventDefault(); toggleCityPanel()"
+                >
+                  <app-icon name="chevron-down" [size]="15"></app-icon>
+                </button>
+
+                <ul
+                  class="combobox__panel"
+                  id="cityOptions"
+                  role="listbox"
+                  *ngIf="cityPanelOpen && filteredCities.length"
+                >
+                  <li
+                    *ngFor="let option of filteredCities; let i = index"
+                    role="option"
+                    [attr.aria-selected]="i === cityHighlight"
+                  >
+                    <!-- mousedown, not click: blur would close the panel first. -->
+                    <button
+                      type="button"
+                      class="combobox__option"
+                      [class.highlight]="i === cityHighlight"
+                      (mousedown)="$event.preventDefault(); pickCity(option.name)"
+                    >
+                      {{ option.name }}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
               <small class="field-hint" *ngIf="cities.length">
                 {{ cities.length }} suggestion{{ cities.length === 1 ? '' : 's' }} &mdash;
                 type freely if your municipality is not listed.

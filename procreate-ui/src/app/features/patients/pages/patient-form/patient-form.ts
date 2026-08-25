@@ -345,7 +345,90 @@ export class PatientFormComponent implements OnChanges {
 
   onProvinceChange(province: string): void {
     this.patientForm.patchValue({ city: '' });
+    this.closeCityPanel();
     this.loadCities(this.patientForm.get('country')?.value ?? '', province);
+  }
+
+  // ----------------------------------------------------------
+  // City combobox
+  // ----------------------------------------------------------
+  // A hand-rolled dropdown rather than <datalist>: the native popup is drawn
+  // by the browser, ignores our styling, and follows the OS colour scheme, so
+  // it looked nothing like the region/province selects. This keeps the field
+  // typeable (municipalities missing from the list can still be entered) while
+  // matching the rest of the form.
+
+  cityPanelOpen = false;
+  cityHighlight = -1;
+
+  /** Suggestions filtered by what has been typed so far. */
+  get filteredCities(): CityOption[] {
+    const term = (this.patientForm.get('city')?.value ?? '').trim().toLowerCase();
+    if (!term) return this.cities;
+
+    return this.cities.filter((c) => c.name.toLowerCase().includes(term));
+  }
+
+  openCityPanel(): void {
+    if (!this.cities.length) return;
+    this.cityPanelOpen = true;
+    this.cityHighlight = -1;
+  }
+
+  closeCityPanel(): void {
+    this.cityPanelOpen = false;
+    this.cityHighlight = -1;
+  }
+
+  toggleCityPanel(): void {
+    if (this.cityPanelOpen) this.closeCityPanel();
+    else this.openCityPanel();
+  }
+
+  onCityInput(): void {
+    // Reopen as the user narrows the list, but never fight an empty result set.
+    this.cityPanelOpen = this.filteredCities.length > 0;
+    this.cityHighlight = -1;
+  }
+
+  pickCity(name: string): void {
+    this.patientForm.patchValue({ city: name });
+    this.closeCityPanel();
+  }
+
+  onCityKeydown(event: KeyboardEvent): void {
+    const options = this.filteredCities;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        if (!this.cityPanelOpen) this.openCityPanel();
+        else if (options.length) this.cityHighlight = (this.cityHighlight + 1) % options.length;
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        if (options.length) {
+          this.cityHighlight =
+            this.cityHighlight <= 0 ? options.length - 1 : this.cityHighlight - 1;
+        }
+        break;
+
+      case 'Enter':
+        // Only intercept when actively choosing, so Enter still submits.
+        if (this.cityPanelOpen && this.cityHighlight >= 0 && options[this.cityHighlight]) {
+          event.preventDefault();
+          this.pickCity(options[this.cityHighlight].name);
+        }
+        break;
+
+      case 'Escape':
+        if (this.cityPanelOpen) {
+          event.stopPropagation();
+          this.closeCityPanel();
+        }
+        break;
+    }
   }
 
   /** True when a tab holds a field that has failed validation and been touched. */
