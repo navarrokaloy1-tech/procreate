@@ -99,7 +99,7 @@ public class PsgcLocationService : ILocationService
             }
 
             return provinces
-                .Select(p => new Province(p.Name))
+                .Select(p => new Province(Tidy(p.Name)))
                 .OrderBy(p => p.Name, StringComparer.CurrentCulture)
                 .ToList();
         }, ct);
@@ -162,17 +162,35 @@ public class PsgcLocationService : ILocationService
             .ToList();
     }
 
+    /// <summary>Particles that convention keeps lowercase inside a place name.</summary>
+    private static readonly HashSet<string> Particles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "de", "del", "de la", "dela", "las", "los", "y", "ng", "sa",
+    };
+
     /// <summary>
-    /// PSGC spells chartered cities "City of Tabuk" / "Tabuk City". Normalise to
-    /// the bare place name so the dropdown reads the way people write addresses.
+    /// PSGC spells chartered cities "City of Tabuk" and title-cases every word,
+    /// giving "Davao De Oro". Normalise to how the names are actually written.
     /// </summary>
     private static string Tidy(string name)
     {
         const string prefix = "City of ";
-        if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            return name[prefix.Length..].Trim();
+        var trimmed = name.Trim();
 
-        return name.Trim();
+        if (trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[prefix.Length..].Trim();
+
+        var words = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        for (var i = 1; i < words.Length; i++)
+        {
+            // Never lowercase the final word: "Davao Del Norte" -> "Davao del
+            // Norte", but a place genuinely ending in a particle keeps it.
+            if (i < words.Length - 1 && Particles.Contains(words[i]))
+                words[i] = words[i].ToLowerInvariant();
+        }
+
+        return string.Join(' ', words);
     }
 
     /// <summary>

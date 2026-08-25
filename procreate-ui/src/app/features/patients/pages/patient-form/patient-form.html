@@ -199,145 +199,78 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" for="country">Country</label>
-              <select
-                id="country"
-                class="form-control"
+              <app-combo-select
+                inputId="country"
                 formControlName="country"
-                (change)="onCountryChange($any($event.target).value)"
-              >
-                <option value="">Select country</option>
-                <option *ngFor="let option of countries" [value]="option.name">
-                  {{ option.name }}
-                </option>
-              </select>
+                placeholder="Select country"
+                [options]="countryOptions"
+              ></app-combo-select>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="region">Region</label>
-
-              <!-- Dropdown when we hold regions for the country... -->
-              <select
-                *ngIf="!regionIsFreeText; else regionFreeText"
+              <!-- Free text for countries we hold no reference data for. -->
+              <input
+                *ngIf="regionIsFreeText; else regionPicker"
                 id="region"
+                type="text"
                 class="form-control"
                 formControlName="region"
-                [attr.disabled]="!hasCountry || isLoadingRegions ? '' : null"
-                (change)="onRegionChange($any($event.target).value)"
-              >
-                <option value="">
-                  {{ !hasCountry ? 'Select a country first' : (isLoadingRegions ? 'Loading...' : 'Select region') }}
-                </option>
-                <option *ngFor="let option of regions" [value]="option.name">
-                  {{ option.name }}
-                </option>
-              </select>
-
-              <!-- ...free text when we do not, so other countries still work. -->
-              <ng-template #regionFreeText>
-                <input
-                  id="region"
-                  type="text"
-                  class="form-control"
+                placeholder="State / Province / Region"
+              />
+              <ng-template #regionPicker>
+                <app-combo-select
+                  inputId="region"
                   formControlName="region"
-                  placeholder="State / Province / Region"
-                />
+                  placeholder="Select region"
+                  disabledText="Select a country first"
+                  [options]="regionOptions"
+                  [loading]="isLoadingRegions"
+                  [locked]="!hasCountry"
+                ></app-combo-select>
               </ng-template>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="province">Province</label>
-
-              <select
-                *ngIf="!provinceIsFreeText; else provinceFreeText"
+              <input
+                *ngIf="provinceIsFreeText; else provincePicker"
                 id="province"
+                type="text"
                 class="form-control"
                 formControlName="province"
-                [attr.disabled]="!selectedRegion || isLoadingProvinces ? '' : null"
-                (change)="onProvinceChange($any($event.target).value)"
-              >
-                <option value="">
-                  {{ !selectedRegion
-                      ? 'Select a region first'
-                      : (isLoadingProvinces ? 'Loading...' : 'Select province') }}
-                </option>
-                <option *ngFor="let option of provinces" [value]="option.name">
-                  {{ option.name }}
-                </option>
-              </select>
-
-              <ng-template #provinceFreeText>
-                <input
-                  id="province"
-                  type="text"
-                  class="form-control"
+                placeholder="Province"
+              />
+              <ng-template #provincePicker>
+                <app-combo-select
+                  inputId="province"
                   formControlName="province"
-                  placeholder="Province"
-                />
+                  placeholder="Select province"
+                  disabledText="Select a region first"
+                  [options]="provinceOptions"
+                  [loading]="isLoadingProvinces"
+                  [locked]="!selectedRegion"
+                ></app-combo-select>
               </ng-template>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="city">City / Municipality</label>
               <!--
-                Custom combobox rather than <datalist>: the native popup cannot
-                be styled and follows the OS theme, so it did not match the
-                region/province selects. Still typeable for municipalities that
-                are not in the list.
+                allowFreeText: the option list is only a suggestion. PSGC has
+                every municipality, but the offline fallback does not, so a
+                missing name must still be typeable.
               -->
-              <div class="combobox" [class.combobox--open]="cityPanelOpen">
-                <input
-                  id="city"
-                  type="text"
-                  class="form-control combobox__input"
-                  formControlName="city"
-                  autocomplete="off"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-controls="cityOptions"
-                  [attr.aria-expanded]="cityPanelOpen"
-                  [placeholder]="cities.length
-                    ? 'Select or type city / municipality'
-                    : 'City / Municipality'"
-                  (focus)="openCityPanel()"
-                  (input)="onCityInput()"
-                  (keydown)="onCityKeydown($event)"
-                  (blur)="closeCityPanel()"
-                />
-
-                <button
-                  type="button"
-                  class="combobox__toggle"
-                  tabindex="-1"
-                  aria-label="Show city suggestions"
-                  *ngIf="cities.length"
-                  (mousedown)="$event.preventDefault(); toggleCityPanel()"
-                >
-                  <app-icon name="chevron-down" [size]="15"></app-icon>
-                </button>
-
-                <ul
-                  class="combobox__panel"
-                  id="cityOptions"
-                  role="listbox"
-                  *ngIf="cityPanelOpen && filteredCities.length"
-                >
-                  <li
-                    *ngFor="let option of filteredCities; let i = index"
-                    role="option"
-                    [attr.aria-selected]="i === cityHighlight"
-                  >
-                    <!-- mousedown, not click: blur would close the panel first. -->
-                    <button
-                      type="button"
-                      class="combobox__option"
-                      [class.highlight]="i === cityHighlight"
-                      (mousedown)="$event.preventDefault(); pickCity(option.name)"
-                    >
-                      {{ option.name }}
-                    </button>
-                  </li>
-                </ul>
-              </div>
+              <app-combo-select
+                inputId="city"
+                formControlName="city"
+                [allowFreeText]="true"
+                [placeholder]="cities.length
+                  ? 'Select or type city / municipality'
+                  : 'City / Municipality'"
+                [options]="cityOptions"
+                [loading]="isLoadingCities"
+              ></app-combo-select>
 
               <small class="field-hint" *ngIf="cities.length">
                 {{ cities.length }} suggestion{{ cities.length === 1 ? '' : 's' }} &mdash;

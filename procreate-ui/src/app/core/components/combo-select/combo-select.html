@@ -1,0 +1,50 @@
+<div class="combo" [class.combo--open]="isOpen" [class.combo--disabled]="!isInteractive">
+  <input
+    #field
+    type="text"
+    class="form-control combo__field"
+    role="combobox"
+    autocomplete="off"
+    aria-haspopup="listbox"
+    [id]="inputId"
+    [value]="displayValue"
+    [placeholder]="placeholderText"
+    [readOnly]="!allowFreeText"
+    [disabled]="!isInteractive"
+    [attr.aria-expanded]="isOpen"
+    [attr.aria-autocomplete]="allowFreeText ? 'list' : 'none'"
+    (mousedown)="allowFreeText ? null : toggle()"
+    (focus)="allowFreeText ? open() : null"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
+  />
+
+  <button
+    type="button"
+    class="combo__caret"
+    tabindex="-1"
+    aria-label="Toggle options"
+    [disabled]="!isInteractive"
+    (mousedown)="$event.preventDefault(); toggle()"
+  >
+    <app-icon [name]="loading ? 'clock' : 'chevron-down'" [size]="15"></app-icon>
+  </button>
+
+  <ul class="combo__panel" role="listbox" *ngIf="isOpen && visibleOptions.length">
+    <li *ngFor="let option of visibleOptions; let i = index; trackBy: trackByValue">
+      <!-- mousedown, not click: the field's blur would close the panel first. -->
+      <button
+        type="button"
+        class="combo__option"
+        role="option"
+        [class.highlight]="i === highlight"
+        [class.selected]="option.value === value"
+        [attr.aria-selected]="option.value === value"
+        (mousedown)="$event.preventDefault(); select(option)"
+      >
+        {{ option.label }}
+      </button>
+    </li>
+  </ul>
+</div>

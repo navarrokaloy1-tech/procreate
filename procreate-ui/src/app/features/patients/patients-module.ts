@@ -6,6 +6,7 @@ import { PatientsRoutingModule } from './patients-routing-module';
 import { PatientListComponent } from './pages/patient-list/patient-list';
 import { PatientFormComponent } from './pages/patient-form/patient-form';
 import { IconComponent } from '../../core/components/icon/icon';
+import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
 
 @NgModule({
   declarations: [PatientListComponent, PatientFormComponent],
@@ -15,6 +16,7 @@ import { IconComponent } from '../../core/components/icon/icon';
     ReactiveFormsModule,
     FormsModule,
     IconComponent,
+    ComboSelectComponent,
   ],
 })
 export class PatientsModule {}

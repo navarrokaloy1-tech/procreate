@@ -1,0 +1,111 @@
+:host {
+  display: block;
+}
+
+.combo {
+  position: relative;
+
+  &__field {
+    // Room for the caret, matching select.form-control's padding.
+    padding-right: 2.5rem;
+    cursor: pointer;
+
+    &:read-only {
+      // Read-only here means "pick from the list", not "inert" — keep the
+      // normal control colours rather than the muted read-only treatment.
+      background-color: var(--white);
+    }
+
+    &:disabled {
+      background-color: var(--light);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+  }
+
+  // Free-text fields take a caret rather than the pointer, so it is obvious
+  // they can be typed into.
+  &:not(&--disabled) &__field[aria-autocomplete='list'] {
+    cursor: text;
+  }
+
+  &__caret {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    width: 2.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--transition), transform var(--transition);
+
+    &:hover:not(:disabled) {
+      color: var(--primary-dark);
+    }
+
+    &:disabled {
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+  }
+
+  &--open &__caret .app-icon {
+    transform: rotate(180deg);
+  }
+
+  &__panel {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+
+    li {
+      list-style: none;
+    }
+  }
+
+  &__option {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: none;
+    background: transparent;
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background-color var(--transition), color var(--transition);
+
+    &:hover,
+    &.highlight {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    &.selected {
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+  }
+}

@@ -64,86 +64,8 @@ textarea.form-control {
   color: var(--text-muted);
 }
 
-// ------------------------------------------------------------
-// City combobox
-// ------------------------------------------------------------
-// Styled to read as a sibling of the region/province selects: same control
-// chrome, same caret, same panel treatment as the app's other menus.
-
-.combobox {
-  position: relative;
-
-  &__input {
-    // Room for the caret button, matching select.form-control's padding.
-    padding-right: 2.5rem;
-  }
-
-  &__toggle {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    bottom: 1px;
-    width: 2.2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    border-radius: 0 var(--border-radius) var(--border-radius) 0;
-    color: var(--text-secondary);
-    cursor: pointer;
-
-    &:hover {
-      color: var(--primary-dark);
-    }
-  }
-
-  &--open &__toggle .app-icon {
-    transform: rotate(180deg);
-  }
-
-  &__panel {
-    position: absolute;
-    z-index: 30;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    max-height: 230px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    overflow-y: auto;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
-
-    li {
-      list-style: none;
-    }
-  }
-
-  &__option {
-    display: block;
-    width: 100%;
-    padding: 0.45rem 0.6rem;
-    border: none;
-    background: transparent;
-    border-radius: var(--border-radius-sm);
-    font-family: inherit;
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-    text-align: left;
-    cursor: pointer;
-    transition: background-color var(--transition);
-
-    &:hover,
-    &.highlight {
-      background: var(--primary-light);
-      color: var(--primary-dark);
-    }
-  }
-}
+// The address pickers now use the shared <app-combo-select>, which carries its
+// own styling — see core/components/combo-select.
 
 .loading-state {
   display: flex;

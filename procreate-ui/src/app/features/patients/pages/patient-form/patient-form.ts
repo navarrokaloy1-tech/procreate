@@ -4,11 +4,15 @@ import {
   EventEmitter,
   Input,
   OnChanges,
+  OnDestroy,
+  OnInit,
   Output,
   SimpleChanges,
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ComboOption } from '../../../../core/components/combo-select/combo-select';
 import { Patient } from '../patient-list/patient-list';
 
 interface CountryOption { code: string; name: string; }
@@ -26,7 +30,7 @@ interface CityOption { name: string; }
   templateUrl: './patient-form.html',
   styleUrl: './patient-form.scss',
 })
-export class PatientFormComponent implements OnChanges {
+export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
   /** Controls visibility. The host owns this so it can animate/stack modals. */
   @Input() open = false;
   /** Null opens a blank registration sheet; an id loads that patient for editing. */
@@ -53,6 +57,13 @@ export class PatientFormComponent implements OnChanges {
   isLoadingRegions = false;
   isLoadingProvinces = false;
   isLoadingCities = false;
+
+  /**
+   * Suppresses the cascade while the form is being populated programmatically,
+   * so loading a patient does not immediately clear their stored region/city.
+   */
+  private isPopulating = false;
+  private subs = new Subscription();
 
   /**
    * Tabbed sections. `controls` lets a tab flag itself when one of its own
@@ -99,6 +110,42 @@ export class PatientFormComponent implements OnChanges {
 
   activeTab = 'personal';
 
+  /**
+   * Pristine values for every control. Used both to build the form and to
+   * re-arm it on open — sending null for one of these would be rejected by
+   * the API, whose string properties are non-nullable.
+   */
+  private static readonly BLANK = {
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    suffix: '',
+    dateOfBirth: '',
+    gender: '',
+    civilStatus: '',
+    occupation: '',
+    nationality: 'Filipino',
+    contactNumber: '',
+    landline: '',
+    email: '',
+    address: '',
+    country: 'Philippines',
+    region: '',
+    province: '',
+    city: '',
+    zipCode: '',
+    bloodType: '',
+    philHealthNumber: '',
+    seniorCitizenId: '',
+    pwdId: '',
+    hmoProvider: '',
+    hmoAccountNumber: '',
+    emergencyContactName: '',
+    emergencyContactRelationship: '',
+    emergencyContactNumber: '',
+    emergencyContactNotes: '',
+  };
+
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
@@ -107,15 +154,38 @@ export class PatientFormComponent implements OnChanges {
     this.patientForm = this.buildForm();
   }
 
+  ngOnInit(): void {
+    // The pickers write straight to the form, so the cascade reacts to value
+    // changes rather than to (change) handlers on the controls.
+    this.subs.add(
+      this.patientForm.get('country')!.valueChanges
+        .pipe(distinctUntilChanged())
+        .subscribe((value) => this.handleCountryChange(value ?? ''))
+    );
+
+    this.subs.add(
+      this.patientForm.get('region')!.valueChanges
+        .pipe(distinctUntilChanged())
+        .subscribe((value) => this.handleRegionChange(value ?? ''))
+    );
+
+    this.subs.add(
+      this.patientForm.get('province')!.valueChanges
+        .pipe(distinctUntilChanged())
+        .subscribe((value) => this.handleProvinceChange(value ?? ''))
+    );
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     // Re-arm each time the host opens the sheet, so a previous edit never
     // leaks into the next registration.
     if (changes['open'] && this.open) {
       this.activeTab = 'personal';
       this.errorMessage = '';
-      // Reset to blank strings, not null: the API's non-nullable string
-      // properties reject null under nullable reference types.
+
+      this.isPopulating = true;
       this.patientForm.reset(PatientFormComponent.BLANK);
+      this.isPopulating = false;
 
       this.loadCountries();
 
@@ -129,45 +199,9 @@ export class PatientFormComponent implements OnChanges {
     }
   }
 
-  /**
-   * Pristine values for every control. Used both to build the form and to
-   * re-arm it on open — sending null for one of these would be rejected by
-   * the API, whose string properties are non-nullable.
-   */
-  private static readonly BLANK = {
-    // Personal
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    suffix: '',
-    dateOfBirth: '',
-    gender: '',
-    civilStatus: '',
-    occupation: '',
-    nationality: 'Filipino',
-    // Contact
-    contactNumber: '',
-    landline: '',
-    email: '',
-    address: '',
-    country: 'Philippines',
-    region: '',
-    province: '',
-    city: '',
-    zipCode: '',
-    // Medical & insurance
-    bloodType: '',
-    philHealthNumber: '',
-    seniorCitizenId: '',
-    pwdId: '',
-    hmoProvider: '',
-    hmoAccountNumber: '',
-    // Emergency
-    emergencyContactName: '',
-    emergencyContactRelationship: '',
-    emergencyContactNumber: '',
-    emergencyContactNotes: '',
-  };
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+  }
 
   private buildForm(): FormGroup {
     const blank = PatientFormComponent.BLANK;
@@ -216,24 +250,47 @@ export class PatientFormComponent implements OnChanges {
     this.activeTab = id;
   }
 
+  /** True when a tab holds a field that has failed validation and been touched. */
+  tabHasError(tab: { controls: string[] }): boolean {
+    return tab.controls.some((name) => {
+      const control = this.patientForm.get(name);
+      return !!control && control.invalid && control.touched;
+    });
+  }
+
+  private revealFirstInvalidTab(): void {
+    const target = this.tabs.find((tab) =>
+      tab.controls.some((name) => this.patientForm.get(name)?.invalid)
+    );
+    if (target) this.activeTab = target.id;
+  }
+
   // ----------------------------------------------------------
-  // Cascading address dropdowns
+  // Address pickers
   // ----------------------------------------------------------
 
-  /**
-   * When a country has no reference data we show a free-text box instead of an
-   * empty dropdown, so addresses outside the Philippines are still enterable.
-   */
+  get countryOptions(): ComboOption[] {
+    return this.countries.map((c) => ({ value: c.name, label: c.name }));
+  }
+
+  get regionOptions(): ComboOption[] {
+    return this.regions.map((r) => ({ value: r.name, label: r.name }));
+  }
+
+  get provinceOptions(): ComboOption[] {
+    return this.provinces.map((p) => ({ value: p.name, label: p.name }));
+  }
+
+  get cityOptions(): ComboOption[] {
+    return this.cities.map((c) => ({ value: c.name, label: c.name }));
+  }
+
   get hasCountry(): boolean {
     return !!this.patientForm.get('country')?.value;
   }
 
   get selectedRegion(): string {
     return this.patientForm.get('region')?.value ?? '';
-  }
-
-  get selectedProvince(): string {
-    return this.patientForm.get('province')?.value ?? '';
   }
 
   /**
@@ -246,6 +303,37 @@ export class PatientFormComponent implements OnChanges {
 
   get provinceIsFreeText(): boolean {
     return this.regionIsFreeText;
+  }
+
+  private handleCountryChange(country: string): void {
+    if (this.isPopulating) return;
+
+    // Clear every dependent level: a Philippine region is meaningless once the
+    // country becomes Japan.
+    this.setQuietly({ region: '', province: '', city: '' });
+    this.provinces = [];
+    this.cities = [];
+    this.loadRegions(country);
+  }
+
+  private handleRegionChange(region: string): void {
+    if (this.isPopulating) return;
+
+    this.setQuietly({ province: '', city: '' });
+    this.cities = [];
+    this.loadProvinces(this.patientForm.get('country')?.value ?? '', region);
+  }
+
+  private handleProvinceChange(province: string): void {
+    if (this.isPopulating) return;
+
+    this.setQuietly({ city: '' });
+    this.loadCities(this.patientForm.get('country')?.value ?? '', province);
+  }
+
+  /** Clears dependent fields without re-entering the cascade. */
+  private setQuietly(values: Record<string, string>): void {
+    this.patientForm.patchValue(values, { emitEvent: false });
   }
 
   private loadCountries(): void {
@@ -328,123 +416,9 @@ export class PatientFormComponent implements OnChanges {
     });
   }
 
-  onCountryChange(country: string): void {
-    // Clear every dependent level: a Philippine region is meaningless once the
-    // country becomes Japan.
-    this.patientForm.patchValue({ region: '', province: '', city: '' });
-    this.provinces = [];
-    this.cities = [];
-    this.loadRegions(country);
-  }
-
-  onRegionChange(region: string): void {
-    this.patientForm.patchValue({ province: '', city: '' });
-    this.cities = [];
-    this.loadProvinces(this.patientForm.get('country')?.value ?? '', region);
-  }
-
-  onProvinceChange(province: string): void {
-    this.patientForm.patchValue({ city: '' });
-    this.closeCityPanel();
-    this.loadCities(this.patientForm.get('country')?.value ?? '', province);
-  }
-
   // ----------------------------------------------------------
-  // City combobox
+  // Load / save
   // ----------------------------------------------------------
-  // A hand-rolled dropdown rather than <datalist>: the native popup is drawn
-  // by the browser, ignores our styling, and follows the OS colour scheme, so
-  // it looked nothing like the region/province selects. This keeps the field
-  // typeable (municipalities missing from the list can still be entered) while
-  // matching the rest of the form.
-
-  cityPanelOpen = false;
-  cityHighlight = -1;
-
-  /** Suggestions filtered by what has been typed so far. */
-  get filteredCities(): CityOption[] {
-    const term = (this.patientForm.get('city')?.value ?? '').trim().toLowerCase();
-    if (!term) return this.cities;
-
-    return this.cities.filter((c) => c.name.toLowerCase().includes(term));
-  }
-
-  openCityPanel(): void {
-    if (!this.cities.length) return;
-    this.cityPanelOpen = true;
-    this.cityHighlight = -1;
-  }
-
-  closeCityPanel(): void {
-    this.cityPanelOpen = false;
-    this.cityHighlight = -1;
-  }
-
-  toggleCityPanel(): void {
-    if (this.cityPanelOpen) this.closeCityPanel();
-    else this.openCityPanel();
-  }
-
-  onCityInput(): void {
-    // Reopen as the user narrows the list, but never fight an empty result set.
-    this.cityPanelOpen = this.filteredCities.length > 0;
-    this.cityHighlight = -1;
-  }
-
-  pickCity(name: string): void {
-    this.patientForm.patchValue({ city: name });
-    this.closeCityPanel();
-  }
-
-  onCityKeydown(event: KeyboardEvent): void {
-    const options = this.filteredCities;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        if (!this.cityPanelOpen) this.openCityPanel();
-        else if (options.length) this.cityHighlight = (this.cityHighlight + 1) % options.length;
-        break;
-
-      case 'ArrowUp':
-        event.preventDefault();
-        if (options.length) {
-          this.cityHighlight =
-            this.cityHighlight <= 0 ? options.length - 1 : this.cityHighlight - 1;
-        }
-        break;
-
-      case 'Enter':
-        // Only intercept when actively choosing, so Enter still submits.
-        if (this.cityPanelOpen && this.cityHighlight >= 0 && options[this.cityHighlight]) {
-          event.preventDefault();
-          this.pickCity(options[this.cityHighlight].name);
-        }
-        break;
-
-      case 'Escape':
-        if (this.cityPanelOpen) {
-          event.stopPropagation();
-          this.closeCityPanel();
-        }
-        break;
-    }
-  }
-
-  /** True when a tab holds a field that has failed validation and been touched. */
-  tabHasError(tab: { controls: string[] }): boolean {
-    return tab.controls.some((name) => {
-      const control = this.patientForm.get(name);
-      return !!control && control.invalid && control.touched;
-    });
-  }
-
-  private revealFirstInvalidTab(): void {
-    const target = this.tabs.find((tab) =>
-      tab.controls.some((name) => this.patientForm.get(name)?.invalid)
-    );
-    if (target) this.activeTab = target.id;
-  }
 
   loadPatient(id: number): void {
     this.isLoading = true;
@@ -462,10 +436,12 @@ export class PatientFormComponent implements OnChanges {
           ? patient.dateOfBirth.substring(0, 10)
           : '';
 
+        this.isPopulating = true;
         this.patientForm.patchValue(patch);
+        this.isPopulating = false;
 
         // Repopulate the cascade for the stored address, preserving the saved
-        // region/city rather than clearing them.
+        // region/province/city rather than clearing them.
         const country = String(patch['country'] ?? '');
         const region = String(patch['region'] ?? '');
         const province = String(patch['province'] ?? '');
