@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
@@ -16,6 +15,25 @@ export interface Patient {
   email: string;
   address: string;
   bloodType: string;
+  suffix?: string;
+  civilStatus?: string;
+  occupation?: string;
+  nationality?: string;
+  landline?: string;
+  country?: string;
+  region?: string;
+  province?: string;
+  city?: string;
+  zipCode?: string;
+  philHealthNumber?: string;
+  seniorCitizenId?: string;
+  pwdId?: string;
+  hmoProvider?: string;
+  hmoAccountNumber?: string;
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactNumber?: string;
+  emergencyContactNotes?: string;
 }
 
 @Component({
@@ -33,12 +51,16 @@ export class PatientListComponent implements OnInit, OnDestroy {
   genderFilter = '';
   isLoading = false;
 
+  /** Registration/edit sheet state; null id means a new patient. */
+  isFormOpen = false;
+  formPatientId: number | null = null;
+
   readonly pageSizeOptions = [15, 25, 50, 100];
 
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
 
-  constructor(private apiService: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     const searchSub = this.searchSubject
@@ -128,15 +150,26 @@ export class PatientListComponent implements OnInit, OnDestroy {
   }
 
   viewPatient(id: number): void {
-    this.router.navigate(['/app/patients', id, 'edit']);
+    this.editPatient(id);
   }
 
   editPatient(id: number): void {
-    this.router.navigate(['/app/patients', id, 'edit']);
+    this.formPatientId = id;
+    this.isFormOpen = true;
   }
 
   newPatient(): void {
-    this.router.navigate(['/app/patients/new']);
+    this.formPatientId = null;
+    this.isFormOpen = true;
+  }
+
+  onFormSaved(): void {
+    this.isFormOpen = false;
+    this.loadPatients();
+  }
+
+  onFormCancelled(): void {
+    this.isFormOpen = false;
   }
 
   getPatientFullName(p: Patient): string {

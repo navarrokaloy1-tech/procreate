@@ -235,3 +235,10 @@
     </div>
   </ng-container>
 </div>
+
+<app-patient-form
+  [open]="isFormOpen"
+  [patientId]="formPatientId"
+  (saved)="onFormSaved()"
+  (cancelled)="onFormCancelled()"
+></app-patient-form>

@@ -1,38 +1,67 @@
-// The tab bar sits over the hero, so the form card butts up against it.
-.form-card {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  margin-top: 12px;
+// Dimmed scrim behind the sheet. Tinted with the theme's darkest brown rather
+// than neutral black so it sits in the warm palette.
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: rgba(45, 27, 14, 0.45);
+  backdrop-filter: blur(2px);
+  animation: patient-modal-fade 0.15s ease-out;
 }
 
-.hero-tabs {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+.modal-sheet {
+  animation: patient-modal-rise 0.18s ease-out;
+}
+
+@keyframes patient-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes patient-modal-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: none; }
 }
 
 // Two-up field grid, collapsing on narrow viewports.
 .form-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 24px;
+  gap: 0 20px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 640px) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-select.form-control {
-  appearance: auto;
+// A single control that should occupy only the left column.
+.form-group--half {
+  max-width: calc(50% - 10px);
+
+  @media (max-width: 640px) {
+    max-width: none;
+  }
 }
 
 textarea.form-control {
   resize: vertical;
-  min-height: 80px;
+  min-height: 76px;
 }
 
 .required-mark {
   color: var(--danger);
   margin-left: 2px;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
 .loading-state {
@@ -55,15 +84,13 @@ textarea.form-control {
 }
 
 @keyframes patient-form-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .alert {
   padding: 12px 16px;
+  margin-bottom: 16px;
   border-radius: var(--border-radius);
-  margin-bottom: 20px;
   font-size: var(--font-size-base);
 
   &.alert-danger {
@@ -71,10 +98,11 @@ textarea.form-control {
     border: 1px solid #f5c6cb;
     color: #721c24;
   }
+}
 
-  &.alert-success {
-    background-color: var(--success-light);
-    border: 1px solid #c3e6cb;
-    color: #155724;
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-sheet {
+    animation: none;
   }
 }

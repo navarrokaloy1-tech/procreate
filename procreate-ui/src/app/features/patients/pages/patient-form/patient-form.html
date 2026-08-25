@@ -1,163 +1,167 @@
-<section class="page-hero page-hero--compact">
-  <div class="page-hero__row">
-    <div class="page-hero__title-group">
-      <button
-        type="button"
-        class="page-hero__back"
-        (click)="cancel()"
-        aria-label="Back to patients"
-      >
-        <app-icon name="arrow-left" [size]="18"></app-icon>
-      </button>
-      <div class="page-hero__heading">
-        <h1>{{ isEditMode ? 'Edit Patient' : 'Register New Patient' }}</h1>
-        <p class="page-hero__subtitle">
-          {{ isEditMode ? 'Update the patient record' : 'Create a new patient record' }}
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div *ngIf="isLoading" class="card hero-overlap">
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <p>Loading patient data...</p>
-  </div>
-</div>
-
-<ng-container *ngIf="!isLoading">
-  <div class="hero-tabs">
-    <button
-      *ngFor="let tab of tabs"
-      type="button"
-      class="hero-tabs__tab"
-      [class.active]="activeTab === tab.id"
-      [class.invalid]="tabHasError(tab)"
-      (click)="selectTab(tab.id)"
-    >
-      <app-icon [name]="tab.icon" [size]="16"></app-icon>
-      {{ tab.label }}
-    </button>
-  </div>
-
+<!-- Dimmed backdrop; clicking it dismisses the sheet. -->
+<div class="modal-backdrop" *ngIf="open" (click)="cancel()">
   <form
-    class="card form-card"
+    class="modal-sheet modal-sheet--wide"
     [formGroup]="patientForm"
     (ngSubmit)="onSubmit()"
+    (click)="$event.stopPropagation()"
     novalidate
   >
-    <div class="card-body">
+    <div class="modal-sheet__head">
+      <h3 class="modal-sheet__title">
+        <app-icon name="patients" [size]="19"></app-icon>
+        {{ isEditMode ? 'Edit Patient' : 'Register New Patient' }}
+      </h3>
+      <button type="button" class="modal-sheet__close" (click)="cancel()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__tabs">
+      <button
+        *ngFor="let tab of tabs"
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="activeTab === tab.id"
+        [class.invalid]="tabHasError(tab)"
+        (click)="selectTab(tab.id)"
+      >
+        <app-icon [name]="tab.icon" [size]="15"></app-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
       <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
-      <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
-      <!-- Personal Info -->
-      <div class="form-row" *ngIf="activeTab === 'personal'">
-        <div class="form-group">
-          <label class="form-label" for="firstName">
-            First Name <span class="required-mark">*</span>
-          </label>
-          <input
-            id="firstName"
-            type="text"
-            class="form-control"
-            [class.is-invalid]="f['firstName'].invalid && f['firstName'].touched"
-            formControlName="firstName"
-            placeholder="Juan"
-          />
-          <div class="invalid-feedback" *ngIf="f['firstName'].invalid && f['firstName'].touched">
-            First name is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="middleName">Middle Name</label>
-          <input
-            id="middleName"
-            type="text"
-            class="form-control"
-            formControlName="middleName"
-            placeholder="Dela"
-          />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="lastName">
-            Last Name <span class="required-mark">*</span>
-          </label>
-          <input
-            id="lastName"
-            type="text"
-            class="form-control"
-            [class.is-invalid]="f['lastName'].invalid && f['lastName'].touched"
-            formControlName="lastName"
-            placeholder="Cruz"
-          />
-          <div class="invalid-feedback" *ngIf="f['lastName'].invalid && f['lastName'].touched">
-            Last name is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="dateOfBirth">
-            Date of Birth <span class="required-mark">*</span>
-          </label>
-          <input
-            id="dateOfBirth"
-            type="date"
-            class="form-control"
-            [class.is-invalid]="f['dateOfBirth'].invalid && f['dateOfBirth'].touched"
-            formControlName="dateOfBirth"
-          />
-          <div class="invalid-feedback" *ngIf="f['dateOfBirth'].invalid && f['dateOfBirth'].touched">
-            Date of birth is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="gender">
-            Gender <span class="required-mark">*</span>
-          </label>
-          <select
-            id="gender"
-            class="form-control"
-            [class.is-invalid]="f['gender'].invalid && f['gender'].touched"
-            formControlName="gender"
-          >
-            <option value="" disabled>Select gender</option>
-            <option *ngFor="let option of genderOptions" [value]="option">{{ option }}</option>
-          </select>
-          <div class="invalid-feedback" *ngIf="f['gender'].invalid && f['gender'].touched">
-            Gender is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="bloodType">Blood Type</label>
-          <select id="bloodType" class="form-control" formControlName="bloodType">
-            <option value="">Select blood type</option>
-            <option *ngFor="let option of bloodTypeOptions" [value]="option">{{ option }}</option>
-          </select>
-        </div>
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading patient data...</p>
       </div>
 
-      <!-- Contact & Address -->
-      <ng-container *ngIf="activeTab === 'contact'">
-        <div class="form-row">
+      <ng-container *ngIf="!isLoading">
+        <!-- Personal Info -->
+        <div class="form-row" *ngIf="activeTab === 'personal'">
           <div class="form-group">
-            <label class="form-label" for="contactNumber">
-              Mobile Number <span class="required-mark">*</span>
+            <label class="form-label" for="firstName">
+              First Name <span class="required-mark">*</span>
             </label>
             <input
-              id="contactNumber"
-              type="tel"
+              id="firstName"
+              type="text"
               class="form-control"
-              [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched"
-              formControlName="contactNumber"
-              placeholder="09171234567"
+              [class.is-invalid]="f['firstName'].invalid && f['firstName'].touched"
+              formControlName="firstName"
+              placeholder="Juan"
             />
-            <div class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">
-              Contact number is required.
+            <div class="invalid-feedback" *ngIf="f['firstName'].invalid && f['firstName'].touched">
+              First name is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="middleName">Middle Name</label>
+            <input id="middleName" type="text" class="form-control" formControlName="middleName" placeholder="Dela" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="lastName">
+              Last Name <span class="required-mark">*</span>
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="f['lastName'].invalid && f['lastName'].touched"
+              formControlName="lastName"
+              placeholder="Cruz"
+            />
+            <div class="invalid-feedback" *ngIf="f['lastName'].invalid && f['lastName'].touched">
+              Last name is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="suffix">Suffix</label>
+            <input id="suffix" type="text" class="form-control" formControlName="suffix" placeholder="Jr., Sr., III" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dateOfBirth">
+              Date of Birth <span class="required-mark">*</span>
+            </label>
+            <input
+              id="dateOfBirth"
+              type="date"
+              class="form-control"
+              [class.is-invalid]="f['dateOfBirth'].invalid && f['dateOfBirth'].touched"
+              formControlName="dateOfBirth"
+            />
+            <div class="invalid-feedback" *ngIf="f['dateOfBirth'].invalid && f['dateOfBirth'].touched">
+              Date of birth is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="gender">
+              Gender <span class="required-mark">*</span>
+            </label>
+            <select
+              id="gender"
+              class="form-control"
+              [class.is-invalid]="f['gender'].invalid && f['gender'].touched"
+              formControlName="gender"
+            >
+              <option value="">Select gender</option>
+              <option *ngFor="let option of genderOptions" [value]="option">{{ option }}</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="f['gender'].invalid && f['gender'].touched">
+              Gender is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="civilStatus">Civil Status</label>
+            <select id="civilStatus" class="form-control" formControlName="civilStatus">
+              <option value="">Select status</option>
+              <option *ngFor="let option of civilStatusOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="occupation">Occupation</label>
+            <input id="occupation" type="text" class="form-control" formControlName="occupation" placeholder="e.g., Teacher" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nationality">Nationality</label>
+            <input id="nationality" type="text" class="form-control" formControlName="nationality" />
+          </div>
+        </div>
+
+        <!-- Contact & Address -->
+        <ng-container *ngIf="activeTab === 'contact'">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="contactNumber">
+                Mobile Number <span class="required-mark">*</span>
+              </label>
+              <input
+                id="contactNumber"
+                type="tel"
+                class="form-control"
+                [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched"
+                formControlName="contactNumber"
+                placeholder="09171234567"
+              />
+              <div class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">
+                Mobile number is required.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="landline">Landline</label>
+              <input id="landline" type="tel" class="form-control" formControlName="landline" placeholder="(02) 8123-4567" />
             </div>
           </div>
 
@@ -175,48 +179,256 @@
               Please enter a valid email address.
             </div>
           </div>
-        </div>
 
-        <p class="form-section">
-          <span class="form-section__dot"></span>
-          Present Address
-        </p>
+          <p class="form-section">
+            <span class="form-section__dot"></span>
+            Present Address
+          </p>
 
-        <div class="form-group">
-          <label class="form-label" for="address">Street Address / House No. / Subdivision</label>
-          <textarea
-            id="address"
-            class="form-control"
-            formControlName="address"
-            placeholder="e.g., 123 Main St., Brgy. Example Subdivision"
-            rows="3"
-          ></textarea>
-        </div>
-      </ng-container>
+          <div class="form-group">
+            <label class="form-label" for="address">Street Address / House No. / Subdivision</label>
+            <textarea
+              id="address"
+              class="form-control"
+              formControlName="address"
+              placeholder="e.g., 123 Main St., Brgy. Example Subdivision"
+              rows="2"
+            ></textarea>
+          </div>
 
-      <!-- Emergency Contact -->
-      <ng-container *ngIf="activeTab === 'emergency'">
-        <div class="form-group">
-          <label class="form-label" for="emergencyContactName">Contact Person Name</label>
-          <input
-            id="emergencyContactName"
-            type="text"
-            class="form-control"
-            formControlName="emergencyContactName"
-            placeholder="Full name"
-          />
-        </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="country">Country</label>
+              <select
+                id="country"
+                class="form-control"
+                formControlName="country"
+                (change)="onCountryChange($any($event.target).value)"
+              >
+                <option value="">Select country</option>
+                <option *ngFor="let option of countries" [value]="option.name">
+                  {{ option.name }}
+                </option>
+              </select>
+            </div>
 
-        <div class="form-group">
-          <label class="form-label" for="emergencyContactNumber">Contact Number</label>
-          <input
-            id="emergencyContactNumber"
-            type="tel"
-            class="form-control"
-            formControlName="emergencyContactNumber"
-            placeholder="09171234567"
-          />
-        </div>
+            <div class="form-group">
+              <label class="form-label" for="region">Region</label>
+
+              <!-- Dropdown when we hold regions for the country... -->
+              <select
+                *ngIf="!regionIsFreeText; else regionFreeText"
+                id="region"
+                class="form-control"
+                formControlName="region"
+                [attr.disabled]="!hasCountry || isLoadingRegions ? '' : null"
+                (change)="onRegionChange($any($event.target).value)"
+              >
+                <option value="">
+                  {{ !hasCountry ? 'Select a country first' : (isLoadingRegions ? 'Loading...' : 'Select region') }}
+                </option>
+                <option *ngFor="let option of regions" [value]="option.name">
+                  {{ option.name }}
+                </option>
+              </select>
+
+              <!-- ...free text when we do not, so other countries still work. -->
+              <ng-template #regionFreeText>
+                <input
+                  id="region"
+                  type="text"
+                  class="form-control"
+                  formControlName="region"
+                  placeholder="State / Province / Region"
+                />
+              </ng-template>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="province">Province</label>
+
+              <select
+                *ngIf="!provinceIsFreeText; else provinceFreeText"
+                id="province"
+                class="form-control"
+                formControlName="province"
+                [attr.disabled]="!selectedRegion || isLoadingProvinces ? '' : null"
+                (change)="onProvinceChange($any($event.target).value)"
+              >
+                <option value="">
+                  {{ !selectedRegion
+                      ? 'Select a region first'
+                      : (isLoadingProvinces ? 'Loading...' : 'Select province') }}
+                </option>
+                <option *ngFor="let option of provinces" [value]="option.name">
+                  {{ option.name }}
+                </option>
+              </select>
+
+              <ng-template #provinceFreeText>
+                <input
+                  id="province"
+                  type="text"
+                  class="form-control"
+                  formControlName="province"
+                  placeholder="Province"
+                />
+              </ng-template>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="city">City / Municipality</label>
+              <!--
+                A combobox, not a select: the suggestion list covers cities and
+                provincial capitals, but any municipality can be typed.
+              -->
+              <input
+                id="city"
+                type="text"
+                class="form-control"
+                formControlName="city"
+                list="citySuggestions"
+                autocomplete="off"
+                [placeholder]="cities.length
+                  ? 'Select or type city / municipality'
+                  : 'City / Municipality'"
+              />
+              <datalist id="citySuggestions">
+                <option *ngFor="let option of cities" [value]="option.name"></option>
+              </datalist>
+              <small class="field-hint" *ngIf="cities.length">
+                {{ cities.length }} suggestion{{ cities.length === 1 ? '' : 's' }} &mdash;
+                type freely if your municipality is not listed.
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="zipCode">Zip Code</label>
+              <input
+                id="zipCode"
+                type="text"
+                class="form-control"
+                formControlName="zipCode"
+                placeholder="e.g., 1600"
+                inputmode="numeric"
+                maxlength="10"
+              />
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Medical & Insurance -->
+        <ng-container *ngIf="activeTab === 'medical'">
+          <div class="form-group form-group--half">
+            <label class="form-label" for="bloodType">Blood Type</label>
+            <select id="bloodType" class="form-control" formControlName="bloodType">
+              <option value="">Select blood type</option>
+              <option *ngFor="let option of bloodTypeOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="philHealthNumber">PhilHealth Number</label>
+              <input
+                id="philHealthNumber"
+                type="text"
+                class="form-control"
+                formControlName="philHealthNumber"
+                placeholder="12-123456789-1"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="seniorCitizenId">Senior Citizen ID</label>
+              <input
+                id="seniorCitizenId"
+                type="text"
+                class="form-control"
+                formControlName="seniorCitizenId"
+                placeholder="For 20% discount"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="pwdId">PWD ID</label>
+              <input id="pwdId" type="text" class="form-control" formControlName="pwdId" placeholder="For 20% discount" />
+            </div>
+
+            <div class="form-group"></div>
+
+            <div class="form-group">
+              <label class="form-label" for="hmoProvider">HMO Provider</label>
+              <input
+                id="hmoProvider"
+                type="text"
+                class="form-control"
+                formControlName="hmoProvider"
+                placeholder="e.g., Maxicare, Medicard"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="hmoAccountNumber">HMO Account Number</label>
+              <input
+                id="hmoAccountNumber"
+                type="text"
+                class="form-control"
+                formControlName="hmoAccountNumber"
+                placeholder="Policy/Account number"
+              />
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Emergency Contact -->
+        <ng-container *ngIf="activeTab === 'emergency'">
+          <div class="form-group">
+            <label class="form-label" for="emergencyContactName">Contact Person Name</label>
+            <input
+              id="emergencyContactName"
+              type="text"
+              class="form-control"
+              formControlName="emergencyContactName"
+              placeholder="Full name"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="emergencyContactRelationship">Relationship</label>
+              <input
+                id="emergencyContactRelationship"
+                type="text"
+                class="form-control"
+                formControlName="emergencyContactRelationship"
+                placeholder="e.g., Spouse, Parent"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="emergencyContactNumber">Contact Number</label>
+              <input
+                id="emergencyContactNumber"
+                type="tel"
+                class="form-control"
+                formControlName="emergencyContactNumber"
+                placeholder="09171234567"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="emergencyContactNotes">Additional Notes</label>
+            <textarea
+              id="emergencyContactNotes"
+              class="form-control"
+              formControlName="emergencyContactNotes"
+              placeholder="Any additional information..."
+              rows="3"
+            ></textarea>
+          </div>
+        </ng-container>
       </ng-container>
     </div>
 
@@ -225,11 +437,11 @@
       <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">
         Cancel
       </button>
-      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving || isLoading">
         <app-icon name="save" [size]="16"></app-icon>
         <span *ngIf="isSaving">Saving...</span>
         <span *ngIf="!isSaving">{{ isEditMode ? 'Save Changes' : 'Register Patient' }}</span>
       </button>
     </div>
   </form>
-</ng-container>
+</div>

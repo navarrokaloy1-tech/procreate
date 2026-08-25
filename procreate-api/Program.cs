@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Lis;
+using ProCreateApi.Services.Locations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,6 +15,18 @@ builder.Services.AddSingleton<Hl7Builder>();
 builder.Services.AddSingleton<MllpClient>();
 builder.Services.AddScoped<ILisService, LisService>();
 builder.Services.AddHostedService<MllpServer>();
+
+// Address reference data (PSGC) with in-memory caching and an offline fallback.
+var psgcOptions = builder.Configuration.GetSection("Psgc").Get<PsgcOptions>() ?? new PsgcOptions();
+builder.Services.AddSingleton(psgcOptions);
+builder.Services.AddSingleton<PsgcStatus>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<ILocationService, PsgcLocationService>(client =>
+{
+    // Trailing slash matters: relative paths are resolved against it.
+    client.BaseAddress = new Uri(psgcOptions.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(psgcOptions.TimeoutSeconds + 2);
+});
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()

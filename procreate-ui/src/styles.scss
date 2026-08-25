@@ -443,10 +443,21 @@ small {
 }
 
 select.form-control {
+  // Suppress the native control arrow — this rule draws its own. Without this
+  // the browser chevron and the background triangle both render, giving a
+  // doubled arrow.
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236c757d' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   padding-right: 2.5rem;
+
+  // Edge/IE render their own expand button on top of the background image.
+  &::-ms-expand {
+    display: none;
+  }
 }
 
 textarea.form-control {
@@ -2376,16 +2387,20 @@ textarea.form-control {
     flex: 0 0 auto;
     background: var(--light);
     border-radius: var(--border-radius);
+    // Only scrolls once the viewport is genuinely too narrow for the labels;
+    // at the sheet's normal width every tab fits.
     overflow-x: auto;
   }
 
   &__tab {
-    flex: 1 1 0;
+    // Grow to share the bar, but never shrink below the label — shrinking is
+    // what forced a scrollbar when four tabs shared a 680px sheet.
+    flex: 1 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    padding: 0.55rem 0.8rem;
+    padding: 0.55rem 0.7rem;
     border: none;
     background: transparent;
     border-radius: var(--border-radius-sm);

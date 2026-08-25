@@ -18,8 +18,27 @@ public class Patient
     public string? CivilStatus { get; set; }
     public string? Nationality { get; set; }
     public string? Occupation { get; set; }
+    public string? Suffix { get; set; }
+    public string? Landline { get; set; }
+
+    // Structured address. Address holds the street line; Region/City store the
+    // display name rather than a code so the record stays readable on its own.
+    public string? Country { get; set; }
+    public string? Region { get; set; }
+    public string? Province { get; set; }
+    public string? City { get; set; }
+    public string? ZipCode { get; set; }
     public string? EmergencyContactRelationship { get; set; }
+    public string? EmergencyContactNotes { get; set; }
     public string? PhotoUrl { get; set; }
+
+    // Insurance / statutory discount identifiers. Senior citizen and PWD IDs
+    // both entitle the holder to a 20% discount at billing time.
+    public string? PhilHealthNumber { get; set; }
+    public string? SeniorCitizenId { get; set; }
+    public string? PwdId { get; set; }
+    public string? HmoProvider { get; set; }
+    public string? HmoAccountNumber { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<Visit> Visits { get; set; } = new();
     // LIS integration fields
