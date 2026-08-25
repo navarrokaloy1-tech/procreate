@@ -1,0 +1,416 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="stethoscope" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Doctor Management</h1>
+        <p class="page-hero__subtitle">
+          {{ totalCount }} registered {{ totalCount === 1 ? 'doctor' : 'doctors' }}
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openCreate()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Doctor
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <label class="toolbar__grow search-field">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by name, PRC license, or contact..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search doctors"
+      />
+    </label>
+
+    <span class="select-field">
+      <select
+        [ngModel]="statusFilter"
+        (ngModelChange)="onStatusChange($event)"
+        name="statusFilter"
+        aria-label="Filter by status"
+      >
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+
+    <span class="select-field">
+      <select
+        [ngModel]="specialtyFilter"
+        (ngModelChange)="onSpecialtyChange($event)"
+        name="specialtyFilter"
+        aria-label="Filter by specialty"
+      >
+        <option value="">All Specialties</option>
+        <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+
+    <button
+      type="button"
+      class="tool-btn"
+      (click)="clearFilters()"
+      title="Clear search and filters"
+      aria-label="Clear search and filters"
+    >
+      <app-icon name="filter" [size]="17"></app-icon>
+    </button>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading doctors...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="doctors.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Doctor</th>
+            <th>Contact</th>
+            <th>PRC License</th>
+            <th>Fee</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let doctor of doctors">
+            <td>
+              <div class="cell-user">
+                <span class="avatar">{{ initials(doctor.fullName) }}</span>
+                <span class="cell-user__body">
+                  <span class="cell-user__name">{{ doctor.fullName }}</span>
+                  <span class="cell-user__sub">{{ doctor.specialty }}</span>
+                </span>
+              </div>
+            </td>
+
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value cell-icon" *ngIf="doctor.email">
+                  <app-icon name="mail" [size]="14"></app-icon>
+                  {{ doctor.email }}
+                </span>
+                <span class="cell-stack__sub">{{ doctor.contactNumber || '—' }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="cell-code" *ngIf="doctor.prcLicenseNumber; else noLicense">
+                {{ doctor.prcLicenseNumber }}
+              </span>
+              <ng-template #noLicense><span class="cell-empty">—</span></ng-template>
+            </td>
+
+            <td>
+              <span class="cell-price">
+                <span class="cell-price__value">₱{{ doctor.consultationFee | number: '1.2-2' }}</span>
+                <span class="cell-price__sub">Consultation</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="pill" [class.pill--success]="doctor.isActive" [class.pill--neutral]="!doctor.isActive">
+                <span class="pill__dot"></span>
+                {{ doctor.isActive ? 'Active' : 'Inactive' }}
+              </span>
+              <span class="tag tag--primary doctor-login" *ngIf="doctor.hasLogin" title="Has a system login">
+                Login
+              </span>
+            </td>
+
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="openEdit(doctor)"
+                  title="Edit doctor"
+                  aria-label="Edit doctor"
+                >
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(doctor)"
+                  title="Remove doctor"
+                  aria-label="Remove doctor"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="stethoscope" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No doctors found</h3>
+        <p class="empty-rich__text">
+          {{ searchTerm || specialtyFilter || statusFilter
+            ? 'No records match the current search or filters.'
+            : 'Add the clinic\'s first practitioner to start booking appointments.' }}
+        </p>
+        <button type="button" class="btn btn-primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="16"></app-icon>
+          Add Doctor
+        </button>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="select-field select-field--sm">
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            name="pageSize"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <span class="table-footer__range">
+          <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> · {{ totalCount }} total
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+          <button
+            *ngFor="let page of pages"
+            type="button"
+            class="pager__btn"
+            [class.active]="page === pageIndex"
+            (click)="onPageChange(page)"
+          >
+            {{ page + 1 }}
+          </button>
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Add / edit doctor sheet -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <h3 class="modal-sheet__title">
+        <app-icon name="stethoscope" [size]="19"></app-icon>
+        {{ editingId ? 'Edit Doctor' : 'Add New Doctor' }}
+      </h3>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__tabs">
+      <button
+        *ngFor="let tab of tabs"
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="activeTab === tab.id"
+        (click)="selectTab(tab.id)"
+      >
+        <app-icon [name]="tab.icon" [size]="15"></app-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <!-- Personal Info -->
+      <ng-container *ngIf="activeTab === 'personal'">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="dFirst">First Name <span class="required-mark">*</span></label>
+            <input id="dFirst" type="text" class="form-control" placeholder="First name" [(ngModel)]="form.firstName" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dMiddle">Middle Name</label>
+            <input id="dMiddle" type="text" class="form-control" placeholder="Middle name" [(ngModel)]="form.middleName" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dLast">Last Name <span class="required-mark">*</span></label>
+            <input id="dLast" type="text" class="form-control" placeholder="Last name" [(ngModel)]="form.lastName" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dSuffix">Suffix</label>
+            <input id="dSuffix" type="text" class="form-control" placeholder="MD, Jr., Sr." [(ngModel)]="form.suffix" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dGender">Gender</label>
+            <select id="dGender" class="form-control" [(ngModel)]="form.gender">
+              <option value="">Select gender</option>
+              <option *ngFor="let option of genderOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dStatus">Status</label>
+            <select id="dStatus" class="form-control" [(ngModel)]="form.isActive">
+              <option [ngValue]="true">Active</option>
+              <option [ngValue]="false">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dEmail">Email</label>
+            <input id="dEmail" type="email" class="form-control" placeholder="doctor@clinic.com" [(ngModel)]="form.email" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dContact">Contact Number</label>
+            <input id="dContact" type="tel" class="form-control" placeholder="09171234567" [(ngModel)]="form.contactNumber" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Licenses -->
+      <ng-container *ngIf="activeTab === 'licenses'">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="dPrc">PRC License Number</label>
+            <input id="dPrc" type="text" class="form-control" placeholder="Enter PRC License No." [(ngModel)]="form.prcLicenseNumber" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dPrcExp">PRC License Expiry</label>
+            <input id="dPrcExp" type="date" class="form-control" [(ngModel)]="form.prcLicenseExpiry" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dPtr">PTR Number</label>
+            <input id="dPtr" type="text" class="form-control" placeholder="Enter PTR No." [(ngModel)]="form.ptrNumber" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dS2">S2 License Number</label>
+            <input id="dS2" type="text" class="form-control" placeholder="Enter S2 License No." [(ngModel)]="form.s2LicenseNumber" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dTin">TIN Number</label>
+            <input id="dTin" type="text" class="form-control" placeholder="Enter TIN" [(ngModel)]="form.tinNumber" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Practice -->
+      <ng-container *ngIf="activeTab === 'practice'">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="dSpecialty">Specialty <span class="required-mark">*</span></label>
+            <select id="dSpecialty" class="form-control" [(ngModel)]="form.specialty">
+              <option value="">Select specialty</option>
+              <option *ngFor="let option of specialtyOptions" [value]="option">{{ option }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dSub">Sub-Specialty</label>
+            <input id="dSub" type="text" class="form-control" placeholder="e.g. Reproductive Endocrinology" [(ngModel)]="form.subSpecialty" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dFee">Consultation Fee (₱)</label>
+            <input id="dFee" type="number" min="0" step="0.01" class="form-control" [(ngModel)]="form.consultationFee" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dFollow">Follow-up Fee (₱)</label>
+            <input id="dFollow" type="number" min="0" step="0.01" class="form-control" [(ngModel)]="form.followUpFee" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dSpecialist">Specialist Fee (₱)</label>
+            <input id="dSpecialist" type="number" min="0" step="0.01" class="form-control" [(ngModel)]="form.specialistFee" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dBio">Bio / About</label>
+          <textarea
+            id="dBio"
+            class="form-control"
+            rows="3"
+            placeholder="Professional background, education, certifications..."
+            [(ngModel)]="form.bio"
+          ></textarea>
+        </div>
+      </ng-container>
+
+      <!-- Schedule -->
+      <ng-container *ngIf="activeTab === 'schedule'">
+        <p class="form-section">
+          <span class="form-section__dot"></span>
+          Weekly Schedule
+        </p>
+        <p class="text-muted mb-3">
+          Appointments outside these hours are rejected when booking.
+        </p>
+
+        <div class="schedule-row" *ngFor="let row of schedule">
+          <label class="schedule-row__day">
+            <input type="checkbox" [(ngModel)]="row.isAvailable" />
+            <span>{{ dayNames[row.dayOfWeek] }}</span>
+          </label>
+          <input
+            type="time"
+            class="form-control"
+            [(ngModel)]="row.startTime"
+            [disabled]="!row.isAvailable"
+            [attr.aria-label]="dayNames[row.dayOfWeek] + ' start time'"
+          />
+          <span class="schedule-row__to">to</span>
+          <input
+            type="time"
+            class="form-control"
+            [(ngModel)]="row.endTime"
+            [disabled]="!row.isAvailable"
+            [attr.aria-label]="dayNames[row.dayOfWeek] + ' end time'"
+          />
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save Doctor' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,35 +1,43 @@
 <header class="header">
-  <div class="header__left" *ngIf="currentUser$ | async as user">
-    <span class="header__welcome">Welcome</span>
+  <nav class="breadcrumb" *ngIf="crumb$ | async as crumb">
+    <button type="button" class="breadcrumb__toggle" aria-label="Toggle navigation">
+      <app-icon name="panel-left" [size]="18"></app-icon>
+    </button>
+    <span class="breadcrumb__crumb">{{ crumb.section }}</span>
+    <span class="breadcrumb__sep"><app-icon name="chevron-right" [size]="14"></app-icon></span>
+    <span class="breadcrumb__current">{{ crumb.page }}</span>
+  </nav>
+
+  <div class="header__right" *ngIf="currentUser$ | async as user">
+    <button type="button" class="header__icon-btn" aria-label="Support">
+      <app-icon name="headset" [size]="20"></app-icon>
+    </button>
+
     <div class="user-pill" [class.open]="menuOpen">
-      <button type="button" class="user-pill__btn" (click)="toggleMenu()">
-        <span class="user-pill__avatar">{{ user.fullName.charAt(0) }}</span>
-        <span class="user-pill__name">{{ user.fullName }}</span>
-        <span class="user-pill__caret"><app-icon name="chevron-down" [size]="16"></app-icon></span>
+      <button
+        type="button"
+        class="user-pill__btn"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        [attr.aria-label]="'Account menu for ' + user.fullName"
+      >
+        <span class="avatar avatar--dark">
+          {{ initials(user.fullName) }}
+          <span class="avatar__dot"></span>
+        </span>
       </button>
-      <div class="user-menu" *ngIf="menuOpen">
+
+      <div class="menu-panel" *ngIf="menuOpen">
         <div class="user-menu__info">
           <strong>{{ user.fullName }}</strong>
           <small>{{ user.role }}</small>
         </div>
-        <button type="button" class="user-menu__item" (click)="logout()">
+        <div class="menu-panel__divider"></div>
+        <button type="button" class="menu-panel__item" (click)="logout()">
           <app-icon name="logout" [size]="16"></app-icon>
           <span>Logout</span>
         </button>
       </div>
     </div>
-  </div>
-
-  <div class="header__right">
-    <button type="button" class="icon-btn" aria-label="Notifications">
-      <app-icon name="bell" [size]="20"></app-icon>
-      <span class="icon-btn__badge">1</span>
-    </button>
-    <button type="button" class="icon-btn" aria-label="Search">
-      <app-icon name="search" [size]="20"></app-icon>
-    </button>
-    <button type="button" class="icon-btn" aria-label="Menu">
-      <app-icon name="menu" [size]="20"></app-icon>
-    </button>
   </div>
 </header>

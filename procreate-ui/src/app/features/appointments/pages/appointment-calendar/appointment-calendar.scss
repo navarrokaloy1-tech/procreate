@@ -1,0 +1,363 @@
+.appointments-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// ------------------------------------------------------------
+// Month grid
+// ------------------------------------------------------------
+
+.calendar-head {
+  &__month {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.calendar {
+  padding: 12px 16px 16px;
+
+  &__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 6px;
+
+    span {
+      text-align: center;
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  }
+
+  &__week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+
+    & + & {
+      margin-top: 6px;
+    }
+  }
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 84px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background-color var(--transition);
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  &__number {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__slots {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  // Time chips carry the appointment's status colour on the left edge.
+  &__slot {
+    display: block;
+    padding: 1px 4px;
+    border-left: 3px solid var(--secondary);
+    border-radius: 2px;
+    background: var(--light);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &--void {
+      text-decoration: line-through;
+      opacity: 0.65;
+    }
+  }
+
+  &__more {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  &--muted {
+    background: var(--body-bg);
+
+    .day__number {
+      color: var(--text-muted);
+    }
+  }
+
+  &--today {
+    border-color: var(--primary);
+
+    .day__number {
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+  }
+
+  &--selected {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 2px rgba(196, 154, 108, 0.35);
+  }
+}
+
+// ------------------------------------------------------------
+// Selected-day panel
+// ------------------------------------------------------------
+
+.day-panel {
+  &__divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--light);
+
+    span {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      color: var(--primary-dark);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 460px;
+    overflow-y: auto;
+  }
+
+  &__archived {
+    justify-content: flex-start;
+  }
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+
+  &__title {
+    margin: 0 0 8px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--secondary);
+  }
+}
+
+.slot-card {
+  padding: 11px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--white);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  &__time {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+
+    .app-icon { color: var(--text-muted); }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 3px;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+
+    .app-icon { color: var(--text-muted); flex: 0 0 auto; }
+
+    strong { color: var(--text-primary); font-weight: 600; }
+
+    &--accent { color: var(--primary-dark); }
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+// ------------------------------------------------------------
+// Status colours
+// ------------------------------------------------------------
+// Eight distinct statuses mapped onto eight tokens already in the palette —
+// no new colours introduced.
+
+@mixin status-colour($colour) {
+  &.legend__dot { background: $colour; }
+  &.day__slot { border-left-color: $colour; }
+  &.pill { background: var(--light); color: $colour; }
+}
+
+.status--scheduled  { @include status-colour(var(--info)); }
+.status--confirmed  { @include status-colour(var(--success-green)); }
+.status--checkedin  { @include status-colour(var(--primary)); }
+.status--inprogress { @include status-colour(#856404); }
+.status--completed  { @include status-colour(var(--success)); }
+.status--pending    { @include status-colour(var(--primary-dark)); }
+.status--cancelled  { @include status-colour(var(--danger)); }
+.status--noshow     { @include status-colour(var(--secondary)); }
+
+// ------------------------------------------------------------
+// Modal bits
+// ------------------------------------------------------------
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.patient-picker {
+  position: relative;
+
+  &__results {
+    position: absolute;
+    z-index: 20;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    margin: 4px 0 0;
+    padding: 4px;
+    list-style: none;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+
+    button {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border: none;
+      background: transparent;
+      border-radius: var(--border-radius-sm);
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover { background: var(--light); }
+
+      strong { font-size: var(--font-size-base); color: var(--text-primary); }
+      small { font-size: var(--font-size-sm); color: var(--text-muted); }
+    }
+  }
+}
+
+.required-mark {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.alert.alert-danger {
+  margin: 12px 16px;
+  padding: 11px 14px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
+}
+
+.modal-sheet__body .alert.alert-danger {
+  margin: 0 0 14px;
+}
+
+select.form-control {
+  appearance: auto;
+}
+
+textarea.form-control {
+  resize: vertical;
+}

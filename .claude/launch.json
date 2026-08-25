@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dashlabs-ui",
+      "name": "procreate-ui",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
-      "cwd": "dashlabs-ui",
+      "cwd": "procreate-ui",
       "port": 4200,
       "autoPort": false
     }

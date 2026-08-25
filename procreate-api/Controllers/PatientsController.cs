@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Lis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,13 +11,20 @@ namespace ProCreateApi.Controllers;
 public class PatientsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly ILisService _lis;
 
-    public PatientsController(AppDbContext db) => _db = db;
+    public PatientsController(AppDbContext db, ILisService lis) { _db = db; _lis = lis; }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? gender, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var query = _db.Patients.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(gender))
+        {
+            query = query.Where(p => p.Gender == gender);
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             // Tokenized search: each word must match some field, so multi-word /
@@ -56,6 +64,7 @@ public class PatientsController : ControllerBase
         patient.CreatedAt = DateTime.UtcNow;
         _db.Patients.Add(patient);
         await _db.SaveChangesAsync();
+        _ = _lis.SendPatientAsync(patient, isUpdate: false);
         return CreatedAtAction(nameof(GetById), new { id = patient.Id }, patient);
     }
 
@@ -82,6 +91,7 @@ public class PatientsController : ControllerBase
         patient.EmergencyContactRelationship = updated.EmergencyContactRelationship;
         patient.PhotoUrl = updated.PhotoUrl;
         await _db.SaveChangesAsync();
+        _ = _lis.SendPatientAsync(patient, isUpdate: true);
         return Ok(patient);
     }
 

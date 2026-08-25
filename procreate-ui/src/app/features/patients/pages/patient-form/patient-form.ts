@@ -23,6 +23,33 @@ export class PatientFormComponent implements OnInit {
   genderOptions = ['Male', 'Female', 'Other'];
   bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];
 
+  /**
+   * The form is grouped into tabbed sections. `controls` lets a tab flag
+   * itself when one of its own fields is invalid and already touched.
+   */
+  readonly tabs = [
+    {
+      id: 'personal',
+      label: 'Personal Info',
+      icon: 'user',
+      controls: ['firstName', 'middleName', 'lastName', 'dateOfBirth', 'gender', 'bloodType'],
+    },
+    {
+      id: 'contact',
+      label: 'Contact & Address',
+      icon: 'phone',
+      controls: ['contactNumber', 'email', 'address'],
+    },
+    {
+      id: 'emergency',
+      label: 'Emergency Contact',
+      icon: 'alert-triangle',
+      controls: ['emergencyContactName', 'emergencyContactNumber'],
+    },
+  ];
+
+  activeTab = 'personal';
+
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -58,6 +85,26 @@ export class PatientFormComponent implements OnInit {
     return this.patientForm.controls;
   }
 
+  selectTab(id: string): void {
+    this.activeTab = id;
+  }
+
+  /** True when a tab holds a field that has failed validation and been touched. */
+  tabHasError(tab: { controls: string[] }): boolean {
+    return tab.controls.some((name) => {
+      const control = this.patientForm.get(name);
+      return !!control && control.invalid && control.touched;
+    });
+  }
+
+  /** Jump to the first tab holding an invalid field, so errors are never hidden. */
+  private revealFirstInvalidTab(): void {
+    const target = this.tabs.find((tab) =>
+      tab.controls.some((name) => this.patientForm.get(name)?.invalid)
+    );
+    if (target) this.activeTab = target.id;
+  }
+
   loadPatient(id: number): void {
     this.isLoading = true;
     this.errorMessage = '';
@@ -91,6 +138,7 @@ export class PatientFormComponent implements OnInit {
   onSubmit(): void {
     if (this.patientForm.invalid) {
       this.patientForm.markAllAsTouched();
+      this.revealFirstInvalidTab();
       return;
     }
 

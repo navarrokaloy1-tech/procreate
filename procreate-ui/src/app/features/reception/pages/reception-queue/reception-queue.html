@@ -1,0 +1,169 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="monitor" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Reception Queue</h1>
+        <p class="page-hero__subtitle">Manage walk-in patients and information inquiries</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <span class="btn btn-hero-ghost queue-stat">
+        <app-icon name="clock" [size]="16"></app-icon>
+        {{ waiting }} Waiting
+      </span>
+      <span class="btn btn-hero-ghost queue-stat">
+        <app-icon name="users" [size]="16"></app-icon>
+        {{ called }} Called
+      </span>
+      <button type="button" class="btn btn-hero" (click)="callNext()" [disabled]="waiting === 0">
+        Call Next
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="card-body">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <label class="form-label" for="queueName">Patient Name / Identifier</label>
+    <div class="queue-add">
+      <span class="search-field">
+        <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+        <input
+          id="queueName"
+          type="text"
+          placeholder="Enter name for queue number..."
+          [(ngModel)]="newName"
+          (keyup.enter)="addToQueue()"
+          [disabled]="isSaving"
+        />
+      </span>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="addToQueue()"
+        [disabled]="!newName.trim() || isSaving"
+      >
+        <app-icon name="plus" [size]="16"></app-icon>
+        {{ isSaving ? 'Adding...' : 'Add to Queue & Print' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="card queue-card">
+  <div class="card-header">
+    <h3 class="info-card__title">
+      <app-icon name="calendar" [size]="17"></app-icon>
+      QUEUE FOR TODAY
+    </h3>
+    <span class="text-muted">{{ queueDate | date: 'MMMM d, y' }}</span>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading queue...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="entries.length > 0; else emptyQueue">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th># Number</th>
+            <th>Patient Name</th>
+            <th>Added At</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of entries">
+            <td>
+              <span class="queue-number">{{ entry.queueNumber }}</span>
+            </td>
+            <td>
+              <span class="cell-user__name">{{ entry.patientName }}</span>
+            </td>
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value">{{ entry.addedAt | date: 'shortTime' }}</span>
+                <span class="cell-stack__sub" *ngIf="entry.calledAt">
+                  Called {{ entry.calledAt | date: 'shortTime' }}
+                </span>
+              </span>
+            </td>
+            <td>
+              <span [class]="statusPill(entry.status)">{{ entry.status }}</span>
+            </td>
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  *ngIf="entry.status === 'Waiting'"
+                  (click)="setStatus(entry, 'Called')"
+                  title="Call this number"
+                  aria-label="Call this number"
+                >
+                  <app-icon name="monitor" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  *ngIf="entry.status === 'Called'"
+                  (click)="setStatus(entry, 'Served')"
+                  title="Mark as served"
+                  aria-label="Mark as served"
+                >
+                  <app-icon name="check" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="printSlip(entry)"
+                  title="Reprint slip"
+                  aria-label="Reprint slip"
+                >
+                  <app-icon name="printer" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(entry)"
+                  title="Remove from queue"
+                  aria-label="Remove from queue"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyQueue>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="monitor" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">Queue is empty</h3>
+        <p class="empty-rich__text">Add a walk-in above to issue the first number for today.</p>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<!-- Printed ticket. Hidden on screen; the only thing visible when printing. -->
+<div class="print-only queue-slip" *ngIf="slipEntry">
+  <p class="queue-slip__clinic">Pro-Create</p>
+  <p class="queue-slip__sub">Fertility, OB-GYN and Diagnostic Center</p>
+  <hr />
+  <p class="queue-slip__label">YOUR QUEUE NUMBER</p>
+  <p class="queue-slip__number">{{ slipEntry.queueNumber }}</p>
+  <p class="queue-slip__name">{{ slipEntry.patientName }}</p>
+  <hr />
+  <p class="queue-slip__meta">{{ slipEntry.addedAt | date: 'MMM d, y' }} &middot; {{ slipEntry.addedAt | date: 'shortTime' }}</p>
+  <p class="queue-slip__note">Please wait for your number to be called.</p>
+</div>

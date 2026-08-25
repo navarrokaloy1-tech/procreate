@@ -140,7 +140,7 @@
       <section class="card summary-card">
         <div class="summary-card__head">
           <h3 class="card__heading">Summary</h3>
-          <button type="button" class="btn-add-product" (click)="openAddProduct()">
+          <button type="button" class="btn-add-product" *ngIf="patient" (click)="openAddProduct()">
             <app-icon name="plus" [size]="16"></app-icon> Add Product
           </button>
         </div>

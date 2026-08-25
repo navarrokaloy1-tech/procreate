@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Lis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ namespace ProCreateApi.Controllers;
 public class VisitsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public VisitsController(AppDbContext db) => _db = db;
+    private readonly ILisService _lis;
+    public VisitsController(AppDbContext db, ILisService lis) { _db = db; _lis = lis; }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -102,6 +104,15 @@ public class VisitsController : ControllerBase
         }
         visit.TotalAmount = total;
         await _db.SaveChangesAsync();
+
+        // Send each lab order to the LIS asynchronously (fire-and-forget with error isolation)
+        var newOrders = await _db.LabOrders
+            .Include(o => o.Visit).ThenInclude(v => v.Patient)
+            .Include(o => o.LabTest)
+            .Where(o => o.VisitId == visit.Id)
+            .ToListAsync();
+        foreach (var order in newOrders)
+            _ = _lis.SendOrderAsync(order);
 
         return CreatedAtAction(nameof(GetById), new { id = visit.Id }, visit);
     }

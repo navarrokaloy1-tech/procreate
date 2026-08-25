@@ -1,115 +1,237 @@
-<div class="page-header page-actions">
-  <h1>Patients</h1>
-  <button class="btn btn-primary" (click)="newPatient()">+ New Patient</button>
-</div>
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="patients" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Patient Management</h1>
+        <p class="page-hero__subtitle">
+          {{ totalCount }} registered {{ totalCount === 1 ? 'patient' : 'patients' }}
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="newPatient()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Register Patient
+      </button>
+    </div>
+  </div>
+</section>
 
-<div class="card">
-  <div class="card-body">
-    <div class="page-actions" style="margin-bottom: 16px;">
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <label class="toolbar__grow search-field">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
       <input
-        class="search-input"
-        type="text"
-        placeholder="Search by name or code..."
+        type="search"
+        placeholder="Search by name, code, contact, or email..."
         [value]="searchTerm"
         (input)="onSearch($any($event.target).value)"
+        aria-label="Search patients"
       />
-    </div>
+    </label>
 
-    <div *ngIf="isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading patients...</p>
-    </div>
+    <span class="select-field">
+      <select
+        [ngModel]="genderFilter"
+        (ngModelChange)="onGenderChange($event)"
+        name="genderFilter"
+        aria-label="Filter by gender"
+      >
+        <option value="">All Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
 
-    <ng-container *ngIf="!isLoading">
-      <table class="data-table" *ngIf="patients.length > 0; else emptyState">
+    <button
+      type="button"
+      class="tool-btn"
+      (click)="clearFilters()"
+      title="Clear search and filters"
+      aria-label="Clear search and filters"
+    >
+      <app-icon name="filter" [size]="17"></app-icon>
+    </button>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading patients...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="patients.length > 0; else emptyState">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Code</th>
-            <th>Full Name</th>
-            <th>Date of Birth</th>
-            <th>Gender</th>
+            <th>Patient</th>
             <th>Contact</th>
-            <th>Email</th>
-            <th>Actions</th>
+            <th>Age / Gender</th>
+            <th>Blood Type</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let patient of patients">
             <td>
-              <span class="badge">{{ patient.patientCode }}</span>
+              <div class="cell-user">
+                <span class="avatar">{{ getInitials(patient) }}</span>
+                <span class="cell-user__body">
+                  <span class="cell-user__name">{{ getPatientFullName(patient) }}</span>
+                  <span class="cell-user__sub">{{ patient.patientCode }}</span>
+                </span>
+              </div>
             </td>
-            <td>{{ getPatientFullName(patient) }}</td>
-            <td>{{ patient.dateOfBirth | date: 'MMM d, yyyy' }}</td>
-            <td>{{ patient.gender }}</td>
-            <td>{{ patient.contactNumber }}</td>
-            <td>{{ patient.email }}</td>
+
             <td>
-              <div class="action-btns">
+              <span class="cell-stack">
+                <span class="cell-stack__value cell-icon" *ngIf="patient.contactNumber; else noContact">
+                  <app-icon name="phone" [size]="14"></app-icon>
+                  {{ patient.contactNumber }}
+                </span>
+                <ng-template #noContact>
+                  <span class="cell-stack__value cell-empty">&mdash;</span>
+                </ng-template>
+                <span class="cell-stack__sub">{{ patient.email || '&mdash;' }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value">
+                  <ng-container *ngIf="getAge(patient.dateOfBirth) !== null; else noAge">
+                    {{ getAge(patient.dateOfBirth) }} years old
+                  </ng-container>
+                  <ng-template #noAge>&mdash;</ng-template>
+                </span>
+                <span class="cell-stack__sub">{{ patient.gender || 'Not specified' }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="pill pill--primary" *ngIf="patient.bloodType; else noBlood">
+                {{ patient.bloodType }}
+              </span>
+              <ng-template #noBlood><span class="cell-empty">&mdash;</span></ng-template>
+            </td>
+
+            <td class="text-right">
+              <div class="table-actions">
                 <button
-                  class="btn btn-sm btn-secondary"
-                  (click)="editPatient(patient.id)"
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="viewPatient(patient.id)"
+                  title="View patient"
+                  aria-label="View patient"
                 >
-                  Edit
+                  <app-icon name="eye" [size]="17"></app-icon>
                 </button>
                 <button
-                  class="btn btn-sm btn-danger"
-                  (click)="deletePatient(patient.id)"
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="editPatient(patient.id)"
+                  title="Edit patient"
+                  aria-label="Edit patient"
                 >
-                  Delete
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="deletePatient(patient.id)"
+                  title="Delete patient"
+                  aria-label="Delete patient"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
                 </button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
 
-      <ng-template #emptyState>
-        <div class="empty-state">
-          <p>No patients found.</p>
-          <p *ngIf="searchTerm">
-            Try adjusting your search term or
-            <a href="javascript:void(0)" (click)="onSearch('')">clear the search</a>.
-          </p>
-          <button class="btn btn-primary" (click)="newPatient()">
-            Add First Patient
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="patients" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No patients found</h3>
+        <p class="empty-rich__text">
+          <ng-container *ngIf="searchTerm || genderFilter; else noneYet">
+            No records match the current search or filter.
+          </ng-container>
+          <ng-template #noneYet>The patient registry is currently empty.</ng-template>
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          *ngIf="searchTerm || genderFilter; else addFirst"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+        <ng-template #addFirst>
+          <button type="button" class="btn btn-primary" (click)="newPatient()">
+            <app-icon name="plus" [size]="16"></app-icon>
+            Register Patient
+          </button>
+        </ng-template>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="select-field select-field--sm">
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            name="pageSize"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <span class="table-footer__range">
+          <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ totalCount }} total
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
+            <button
+              *ngIf="page >= 0"
+              type="button"
+              class="pager__btn"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </ng-container>
+
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
           </button>
         </div>
-      </ng-template>
-
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button
-          class="page-btn"
-          [disabled]="pageIndex === 0"
-          (click)="onPageChange(pageIndex - 1)"
-        >
-          &laquo; Prev
-        </button>
-
-        <ng-container *ngFor="let page of pages">
-          <span *ngIf="page < 0" class="page-ellipsis">&hellip;</span>
-          <button
-            *ngIf="page >= 0"
-            class="page-btn"
-            [class.active]="page === pageIndex"
-            (click)="onPageChange(page)"
-          >
-            {{ page + 1 }}
-          </button>
-        </ng-container>
-
-        <button
-          class="page-btn"
-          [disabled]="pageIndex === totalPages - 1"
-          (click)="onPageChange(pageIndex + 1)"
-        >
-          Next &raquo;
-        </button>
       </div>
-
-      <div class="pagination-info" *ngIf="totalCount > 0">
-        Showing {{ pageIndex * pageSize + 1 }}–{{ (pageIndex + 1) * pageSize > totalCount ? totalCount : (pageIndex + 1) * pageSize }}
-        of {{ totalCount }} patients
-      </div>
-    </ng-container>
-  </div>
+    </div>
+  </ng-container>
 </div>

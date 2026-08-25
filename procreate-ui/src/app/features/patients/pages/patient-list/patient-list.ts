@@ -28,9 +28,12 @@ export class PatientListComponent implements OnInit, OnDestroy {
   patients: Patient[] = [];
   totalCount = 0;
   pageIndex = 0;
-  pageSize = 10;
+  pageSize = 15;
   searchTerm = '';
+  genderFilter = '';
   isLoading = false;
+
+  readonly pageSizeOptions = [15, 25, 50, 100];
 
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
@@ -60,6 +63,7 @@ export class PatientListComponent implements OnInit, OnDestroy {
     this.apiService
       .get<{ data: Patient[]; total: number }>('patients', {
         search: this.searchTerm,
+        gender: this.genderFilter,
         page: this.pageIndex + 1,
         pageSize: this.pageSize,
       })
@@ -79,6 +83,25 @@ export class PatientListComponent implements OnInit, OnDestroy {
 
   onSearch(term: string): void {
     this.searchSubject.next(term);
+  }
+
+  onGenderChange(gender: string): void {
+    this.genderFilter = gender;
+    this.pageIndex = 0;
+    this.loadPatients();
+  }
+
+  onPageSizeChange(size: string): void {
+    this.pageSize = Number(size);
+    this.pageIndex = 0;
+    this.loadPatients();
+  }
+
+  clearFilters(): void {
+    this.genderFilter = '';
+    this.searchTerm = '';
+    this.pageIndex = 0;
+    this.loadPatients();
   }
 
   onPageChange(page: number): void {
@@ -104,6 +127,10 @@ export class PatientListComponent implements OnInit, OnDestroy {
     });
   }
 
+  viewPatient(id: number): void {
+    this.router.navigate(['/app/patients', id, 'edit']);
+  }
+
   editPatient(id: number): void {
     this.router.navigate(['/app/patients', id, 'edit']);
   }
@@ -117,6 +144,40 @@ export class PatientListComponent implements OnInit, OnDestroy {
       (part) => part && part.trim()
     );
     return parts.join(' ');
+  }
+
+  /** Two-letter monogram for the row avatar. */
+  getInitials(p: Patient): string {
+    return [p.firstName, p.lastName]
+      .filter((part) => part && part.trim())
+      .slice(0, 2)
+      .map((part) => part.trim()[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  /** Whole years elapsed since date of birth, or null when unknown. */
+  getAge(dateOfBirth: string): number | null {
+    if (!dateOfBirth) return null;
+
+    const dob = new Date(dateOfBirth);
+    if (isNaN(dob.getTime())) return null;
+
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDelta = today.getMonth() - dob.getMonth();
+    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age >= 0 ? age : null;
+  }
+
+  get rangeStart(): number {
+    return this.totalCount === 0 ? 0 : this.pageIndex * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    return Math.min((this.pageIndex + 1) * this.pageSize, this.totalCount);
   }
 
   get totalPages(): number {

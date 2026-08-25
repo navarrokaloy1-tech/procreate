@@ -1,0 +1,278 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="calendar" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Appointments</h1>
+        <p class="page-hero__subtitle">Manage and view patient appointments</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <span class="select-field">
+        <select
+          [ngModel]="doctorFilter"
+          (ngModelChange)="onDoctorFilterChange($event)"
+          name="doctorFilter"
+          aria-label="Filter by doctor"
+        >
+          <option value="">All Doctors</option>
+          <option *ngFor="let doctor of doctors" [value]="doctor.id">{{ doctor.fullName }}</option>
+        </select>
+        <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+      </span>
+      <button type="button" class="btn btn-hero" (click)="openModal()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        New Appointment
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="appointments-grid hero-overlap">
+  <!-- Month calendar -->
+  <div class="card">
+    <div class="card-header calendar-head">
+      <h3 class="calendar-head__month">{{ viewMonth | date: 'MMMM y' }}</h3>
+      <div class="calendar-head__nav">
+        <button type="button" class="btn btn-sm btn-secondary" (click)="goToToday()">Today</button>
+        <button type="button" class="tool-btn" (click)="shiftMonth(-1)" aria-label="Previous month">
+          <app-icon name="chevron-left" [size]="16"></app-icon>
+        </button>
+        <button type="button" class="tool-btn" (click)="shiftMonth(1)" aria-label="Next month">
+          <app-icon name="chevron-right" [size]="16"></app-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="calendar">
+      <div class="calendar__weekdays">
+        <span *ngFor="let label of weekdayLabels">{{ label }}</span>
+      </div>
+
+      <div class="calendar__week" *ngFor="let week of weeks">
+        <button
+          type="button"
+          class="day"
+          *ngFor="let day of week"
+          [class.day--muted]="!day.inMonth"
+          [class.day--today]="day.isToday"
+          [class.day--selected]="isSelected(day)"
+          (click)="selectDate(day.date)"
+        >
+          <span class="day__number">{{ day.date | date: 'd' }}</span>
+          <span class="day__slots">
+            <span
+              *ngFor="let appointment of day.appointments.slice(0, 2)"
+              [class]="'day__slot ' + statusClass(appointment.status)"
+              [class.day__slot--void]="isVoided(appointment)"
+            >
+              {{ appointment.scheduledAt | date: 'shortTime' }}
+            </span>
+            <span class="day__more" *ngIf="day.appointments.length > 2">
+              +{{ day.appointments.length - 2 }} more
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected day panel -->
+  <div class="card day-panel">
+    <div class="card-header">
+      <h3 class="info-card__title">
+        <app-icon name="clock" [size]="17"></app-icon>
+        {{ selectedDate | date: 'MMM d' }} Appointments
+      </h3>
+    </div>
+
+    <div class="card-body">
+      <p class="legend__title">Status Legend</p>
+      <div class="legend">
+        <span class="legend__item" *ngFor="let status of statuses">
+          <span class="legend__dot" [class]="'legend__dot ' + statusClass(status)"></span>
+          {{ statusLabel(status) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="day-panel__divider">
+      <span>{{ dayAppointments.length }} APPOINTMENT{{ dayAppointments.length === 1 ? '' : 'S' }}</span>
+    </div>
+
+    <div class="card-body day-panel__list">
+      <p class="text-muted text-center" *ngIf="dayAppointments.length === 0">
+        Nothing booked for this day.
+      </p>
+
+      <article class="slot-card" *ngFor="let appointment of dayAppointments">
+        <header class="slot-card__head">
+          <span class="slot-card__time">
+            <app-icon name="clock" [size]="15"></app-icon>
+            {{ appointment.scheduledAt | date: 'shortTime' }}
+          </span>
+          <span class="pill" [class]="'pill ' + statusClass(appointment.status)">
+            {{ statusLabel(appointment.status) }}
+          </span>
+        </header>
+
+        <p class="slot-card__row">
+          <app-icon name="user" [size]="14"></app-icon>
+          <strong>{{ appointment.patientName }}</strong>
+        </p>
+        <p class="slot-card__row slot-card__row--accent">
+          <app-icon name="file-text" [size]="14"></app-icon>
+          {{ appointment.service }}
+        </p>
+        <p class="slot-card__row">
+          <app-icon name="stethoscope" [size]="14"></app-icon>
+          {{ appointment.doctorName }}
+        </p>
+        <p class="slot-card__row" *ngIf="appointment.chiefComplaint">
+          <app-icon name="alert-circle" [size]="14"></app-icon>
+          {{ appointment.chiefComplaint }}
+        </p>
+
+        <footer class="slot-card__foot">
+          <span class="select-field select-field--sm">
+            <select
+              [ngModel]="appointment.status"
+              (ngModelChange)="changeStatus(appointment, $event)"
+              [name]="'status-' + appointment.id"
+              [attr.aria-label]="'Status for ' + appointment.appointmentCode"
+            >
+              <option *ngFor="let status of statuses" [value]="status">
+                {{ statusLabel(status) }}
+              </option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="13"></app-icon></span>
+          </span>
+          <button
+            type="button"
+            class="table-actions__btn table-actions__btn--danger"
+            (click)="archive(appointment)"
+            title="Archive appointment"
+            aria-label="Archive appointment"
+          >
+            <app-icon name="trash" [size]="15"></app-icon>
+          </button>
+        </footer>
+      </article>
+    </div>
+
+    <div class="card-footer day-panel__archived" *ngIf="archivedCount > 0">
+      <span class="pill pill--neutral">
+        <span class="pill__dot"></span>
+        Archived {{ archivedCount }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- New appointment sheet -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="calendar" [size]="19"></app-icon>
+          New Appointment
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <div class="form-group patient-picker">
+        <label class="form-label" for="patientSearch">
+          Patient <span class="required-mark">*</span>
+        </label>
+        <input
+          id="patientSearch"
+          type="text"
+          class="form-control"
+          placeholder="Search patient..."
+          [value]="patientQuery"
+          (input)="onPatientQuery($any($event.target).value)"
+          autocomplete="off"
+        />
+        <ul class="patient-picker__results" *ngIf="patientResults.length > 0">
+          <li *ngFor="let patient of patientResults">
+            <button type="button" (click)="choosePatient(patient)">
+              <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
+              <small>{{ patient.patientCode }}</small>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="doctorSelect">
+          Doctor <span class="required-mark">*</span>
+        </label>
+        <select id="doctorSelect" class="form-control" [(ngModel)]="form.doctorId">
+          <option [ngValue]="0" disabled>Select doctor...</option>
+          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+            {{ doctor.fullName }} — {{ doctor.specialty }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="serviceSelect">Service</label>
+        <select id="serviceSelect" class="form-control" [(ngModel)]="form.service">
+          <option *ngFor="let service of serviceOptions" [value]="service">{{ service }}</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="apptDate">
+            Date <span class="required-mark">*</span>
+          </label>
+          <input id="apptDate" type="date" class="form-control" [(ngModel)]="form.date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="apptTime">
+            Time <span class="required-mark">*</span>
+          </label>
+          <input id="apptTime" type="time" class="form-control" [(ngModel)]="form.time" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="apptType">Type</label>
+        <select id="apptType" class="form-control" [(ngModel)]="form.type">
+          <option *ngFor="let type of typeOptions" [value]="type">{{ type }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="chiefComplaint">Chief Complaint</label>
+        <textarea
+          id="chiefComplaint"
+          class="form-control"
+          rows="2"
+          placeholder="Reason for the visit..."
+          [(ngModel)]="form.chiefComplaint"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        {{ isSaving ? 'Creating...' : 'Create Appointment' }}
+      </button>
+    </div>
+  </div>
+</div>

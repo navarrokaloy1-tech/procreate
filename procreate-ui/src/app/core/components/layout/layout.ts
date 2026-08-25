@@ -6,4 +6,6 @@ import { Component } from '@angular/core';
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
 })
-export class LayoutComponent {}
+export class LayoutComponent {
+  readonly year = new Date().getFullYear();
+}

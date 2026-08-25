@@ -1,124 +1,48 @@
-﻿.page-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
+// Page-specific tweaks only — layout, table, and toolbar styling all come
+// from the shared console pattern layer in styles.scss.
+
+.data-table-scroll {
+  overflow-x: auto;
 }
 
-.search-input {
-  padding: 9px 14px;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 280px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:focus {
-    border-color: #C49A6C;
-    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
-  }
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.page-ellipsis {
-  padding: 6px 4px;
-  color: #6c757d;
-  font-size: 13px;
-}
-
-.page-btn {
-  padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover:not(:disabled):not(.active) {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
+.data-table {
+  th:first-child,
+  td:first-child {
+    padding-left: 16px;
   }
 
-  &.active {
-    background: #C49A6C;
-    color: white;
-    border-color: #C49A6C;
+  th:last-child,
+  td:last-child {
+    padding-right: 16px;
   }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
   }
-}
-
-.action-btns {
-  display: flex;
-  gap: 6px;
-}
-
-.pagination-info {
-  text-align: center;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #6c757d;
 }
 
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 0;
-  color: #6c757d;
-
-  p {
-    margin-top: 12px;
-    font-size: 14px;
-  }
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 0;
-  color: #6c757d;
-  gap: 8px;
-
-  p {
-    margin: 0;
-    font-size: 14px;
-  }
-
-  a {
-    color: #C49A6C;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-
-  .btn {
-    margin-top: 8px;
-  }
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: patient-list-spin 0.7s linear infinite;
 }
 
-.badge {
-  display: inline-block;
-  padding: 3px 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #495057;
-  font-family: monospace;
+@keyframes patient-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

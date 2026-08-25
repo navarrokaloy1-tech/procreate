@@ -1,10 +1,19 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Lis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// LIS integration services
+var lisSettings = builder.Configuration.GetSection("Lis").Get<LisSettings>() ?? new LisSettings();
+builder.Services.AddSingleton(lisSettings);
+builder.Services.AddSingleton<Hl7Builder>();
+builder.Services.AddSingleton<MllpClient>();
+builder.Services.AddScoped<ILisService, LisService>();
+builder.Services.AddHostedService<MllpServer>();
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()

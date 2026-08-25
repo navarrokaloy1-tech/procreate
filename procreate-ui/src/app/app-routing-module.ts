@@ -37,6 +37,21 @@ const routes: Routes = [
           import('./features/dashboard/dashboard-module').then(m => m.DashboardModule)
       },
       {
+        path: 'appointments',
+        loadChildren: () =>
+          import('./features/appointments/appointments-module').then(m => m.AppointmentsModule)
+      },
+      {
+        path: 'reception-queue',
+        loadChildren: () =>
+          import('./features/reception/reception-module').then(m => m.ReceptionModule)
+      },
+      {
+        path: 'doctors',
+        loadChildren: () =>
+          import('./features/doctors/doctors-module').then(m => m.DoctorsModule)
+      },
+      {
         path: 'patients',
         loadChildren: () =>
           import('./features/patients/patients-module').then(m => m.PatientsModule)

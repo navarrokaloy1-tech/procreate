@@ -1,26 +1,24 @@
-.form-grid {
+// The tab bar sits over the hero, so the form card butts up against it.
+.form-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: 12px;
+}
+
+.hero-tabs {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+// Two-up field grid, collapsing on narrow viewports.
+.form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 24px;
-}
 
-@media (max-width: 768px) {
-  .form-grid {
-    grid-template-columns: 1fr;
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.form-group--full {
-  grid-column: 1 / -1;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #e8ecf0;
 }
 
 select.form-control {
@@ -33,7 +31,7 @@ textarea.form-control {
 }
 
 .required-mark {
-  color: #dc3545;
+  color: var(--danger);
   margin-left: 2px;
 }
 
@@ -41,29 +39,41 @@ textarea.form-control {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 0;
-  color: #6c757d;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
 
-  p {
-    margin-top: 12px;
-    font-size: 14px;
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: patient-form-spin 0.7s linear infinite;
+}
+
+@keyframes patient-form-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 .alert {
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   margin-bottom: 20px;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 
   &.alert-danger {
-    background-color: #f8d7da;
+    background-color: var(--danger-light);
     border: 1px solid #f5c6cb;
     color: #721c24;
   }
 
   &.alert-success {
-    background-color: #d4edda;
+    background-color: var(--success-light);
     border: 1px solid #c3e6cb;
     color: #155724;
   }

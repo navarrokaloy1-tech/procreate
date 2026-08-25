@@ -2,12 +2,15 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
 
-interface NavItem {
+interface NavLink {
   label: string;
-  route?: string;
+  route: string;
   icon: string;
-  children?: NavItem[];
-  expanded?: boolean;
+}
+
+interface NavSection {
+  label: string;
+  items: NavLink[];
 }
 
 @Component({
@@ -17,51 +20,101 @@ interface NavItem {
   styleUrls: ['./sidebar.scss']
 })
 export class SidebarComponent implements OnInit {
-  navItems: NavItem[] = [];
+  sections: NavSection[] = [];
+  userName = '';
 
   constructor(private router: Router, private auth: AuthService) {}
 
   ngOnInit(): void {
-    const role = this.auth.currentUser?.role ?? '';
+    const user = this.auth.currentUser;
+    this.userName = user?.fullName ?? '';
+    this.sections = SidebarComponent.navFor(user?.role ?? '');
+  }
 
+  /**
+   * Nav is grouped into labelled sections and scoped by role. A doctor sees
+   * clinical work only — no cashier desk, billing, or reporting.
+   */
+  private static navFor(role: string): NavSection[] {
     if (role === 'Cashier') {
-      this.navItems = [
-        { label: 'Cashiers', route: '/app/cashier', icon: 'cashier' },
-        { label: 'Orders', route: '/app/orders', icon: 'orders' }
-      ];
-    } else {
-      // Admin / staff: expanded "Cashiers" group + Orders
-      this.navItems = [
+      return [
         {
-          label: 'Cashiers',
-          icon: 'cashier',
-          expanded: true,
-          children: [
-            { label: 'Patients', route: '/app/patients', icon: 'patients' },
-            { label: 'Results', route: '/app/lab-results', icon: 'results' },
-            { label: 'Patient Services', route: '/app/visits', icon: 'services' }
-          ]
+          label: 'Clinic Operations',
+          items: [{ label: 'Cashier Desk', route: '/app/cashier', icon: 'cashier' }]
         },
-        { label: 'Orders', route: '/app/orders', icon: 'orders' }
+        {
+          label: 'Billing & Orders',
+          items: [{ label: 'Orders', route: '/app/orders', icon: 'orders' }]
+        }
       ];
     }
+
+    if (role === 'Doctor') {
+      return [
+        {
+          label: 'Clinic Operations',
+          items: [
+            { label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid' },
+            { label: 'Appointments', route: '/app/appointments', icon: 'calendar' }
+          ]
+        },
+        {
+          label: 'Patient Care',
+          items: [
+            { label: 'Patients', route: '/app/patients', icon: 'patients' },
+            { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
+          ]
+        },
+        {
+          label: 'Medical Records',
+          items: [{ label: 'Consultations', route: '/app/visits', icon: 'file-text' }]
+        }
+      ];
+    }
+
+    // Admin / staff — full console
+    return [
+      {
+        label: 'Clinic Operations',
+        items: [
+          { label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid' },
+          { label: 'Appointments', route: '/app/appointments', icon: 'calendar' },
+          { label: 'Reception Queue', route: '/app/reception-queue', icon: 'monitor' },
+          { label: 'Cashier Desk', route: '/app/cashier', icon: 'cashier' }
+        ]
+      },
+      {
+        label: 'Patient Care',
+        items: [
+          { label: 'Patients', route: '/app/patients', icon: 'patients' },
+          { label: 'Patient Services', route: '/app/visits', icon: 'stethoscope' },
+          { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
+        ]
+      },
+      {
+        label: 'Billing & Orders',
+        items: [
+          { label: 'Orders', route: '/app/orders', icon: 'orders' },
+          { label: 'Billing', route: '/app/billing', icon: 'credit-card' }
+        ]
+      },
+      {
+        label: 'Clinic Setup',
+        items: [{ label: 'Doctors', route: '/app/doctors', icon: 'stethoscope' }]
+      },
+      {
+        label: 'Reports',
+        items: [{ label: 'Reports & Analytics', route: '/app/reports', icon: 'chart' }]
+      }
+    ];
   }
 
-  toggle(item: NavItem): void {
-    if (item.children) item.expanded = !item.expanded;
-  }
-
-  isActive(route?: string): boolean {
-    if (!route) return false;
+  isActive(route: string): boolean {
     return this.router.isActive(route, {
       paths: 'subset',
       queryParams: 'ignored',
       fragment: 'ignored',
       matrixParams: 'ignored'
     });
-  }
-
-  isGroupActive(item: NavItem): boolean {
-    return !!item.children?.some(c => this.isActive(c.route));
   }
 }

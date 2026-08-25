@@ -4,6 +4,8 @@ procreate-api/obj/
 procreate-api/*.db
 procreate-api/*.db-shm
 procreate-api/*.db-wal
+# Local snapshots taken before an EnsureCreated() schema reset
+procreate-api/*.db.bak-*
 
 # Angular UI build output
 procreate-ui/dist/

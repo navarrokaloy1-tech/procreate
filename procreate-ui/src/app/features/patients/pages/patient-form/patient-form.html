@@ -1,25 +1,58 @@
-<div class="page-header">
-  <h1>{{ isEditMode ? 'Edit Patient' : 'New Patient' }}</h1>
+<section class="page-hero page-hero--compact">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <button
+        type="button"
+        class="page-hero__back"
+        (click)="cancel()"
+        aria-label="Back to patients"
+      >
+        <app-icon name="arrow-left" [size]="18"></app-icon>
+      </button>
+      <div class="page-hero__heading">
+        <h1>{{ isEditMode ? 'Edit Patient' : 'Register New Patient' }}</h1>
+        <p class="page-hero__subtitle">
+          {{ isEditMode ? 'Update the patient record' : 'Create a new patient record' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div *ngIf="isLoading" class="card hero-overlap">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading patient data...</p>
+  </div>
 </div>
 
-<div *ngIf="isLoading" class="loading-state">
-  <div class="spinner"></div>
-  <p>Loading patient data...</p>
-</div>
+<ng-container *ngIf="!isLoading">
+  <div class="hero-tabs">
+    <button
+      *ngFor="let tab of tabs"
+      type="button"
+      class="hero-tabs__tab"
+      [class.active]="activeTab === tab.id"
+      [class.invalid]="tabHasError(tab)"
+      (click)="selectTab(tab.id)"
+    >
+      <app-icon [name]="tab.icon" [size]="16"></app-icon>
+      {{ tab.label }}
+    </button>
+  </div>
 
-<div class="card" *ngIf="!isLoading">
-  <div class="card-body">
-    <div class="alert alert-danger" *ngIf="errorMessage">
-      {{ errorMessage }}
-    </div>
-    <div class="alert alert-success" *ngIf="successMessage">
-      {{ successMessage }}
-    </div>
+  <form
+    class="card form-card"
+    [formGroup]="patientForm"
+    (ngSubmit)="onSubmit()"
+    novalidate
+  >
+    <div class="card-body">
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+      <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
-    <form [formGroup]="patientForm" (ngSubmit)="onSubmit()" novalidate>
-      <div class="form-grid">
-
-        <!-- First Name -->
+      <!-- Personal Info -->
+      <div class="form-row" *ngIf="activeTab === 'personal'">
         <div class="form-group">
           <label class="form-label" for="firstName">
             First Name <span class="required-mark">*</span>
@@ -30,14 +63,24 @@
             class="form-control"
             [class.is-invalid]="f['firstName'].invalid && f['firstName'].touched"
             formControlName="firstName"
-            placeholder="Enter first name"
+            placeholder="Juan"
           />
           <div class="invalid-feedback" *ngIf="f['firstName'].invalid && f['firstName'].touched">
             First name is required.
           </div>
         </div>
 
-        <!-- Last Name -->
+        <div class="form-group">
+          <label class="form-label" for="middleName">Middle Name</label>
+          <input
+            id="middleName"
+            type="text"
+            class="form-control"
+            formControlName="middleName"
+            placeholder="Dela"
+          />
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="lastName">
             Last Name <span class="required-mark">*</span>
@@ -48,26 +91,13 @@
             class="form-control"
             [class.is-invalid]="f['lastName'].invalid && f['lastName'].touched"
             formControlName="lastName"
-            placeholder="Enter last name"
+            placeholder="Cruz"
           />
           <div class="invalid-feedback" *ngIf="f['lastName'].invalid && f['lastName'].touched">
             Last name is required.
           </div>
         </div>
 
-        <!-- Middle Name -->
-        <div class="form-group">
-          <label class="form-label" for="middleName">Middle Name</label>
-          <input
-            id="middleName"
-            type="text"
-            class="form-control"
-            formControlName="middleName"
-            placeholder="Enter middle name"
-          />
-        </div>
-
-        <!-- Date of Birth -->
         <div class="form-group">
           <label class="form-label" for="dateOfBirth">
             Date of Birth <span class="required-mark">*</span>
@@ -84,7 +114,6 @@
           </div>
         </div>
 
-        <!-- Gender -->
         <div class="form-group">
           <label class="form-label" for="gender">
             Gender <span class="required-mark">*</span>
@@ -96,124 +125,111 @@
             formControlName="gender"
           >
             <option value="" disabled>Select gender</option>
-            <option *ngFor="let option of genderOptions" [value]="option">
-              {{ option }}
-            </option>
+            <option *ngFor="let option of genderOptions" [value]="option">{{ option }}</option>
           </select>
           <div class="invalid-feedback" *ngIf="f['gender'].invalid && f['gender'].touched">
             Gender is required.
           </div>
         </div>
 
-        <!-- Contact Number -->
-        <div class="form-group">
-          <label class="form-label" for="contactNumber">
-            Contact Number <span class="required-mark">*</span>
-          </label>
-          <input
-            id="contactNumber"
-            type="tel"
-            class="form-control"
-            [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched"
-            formControlName="contactNumber"
-            placeholder="Enter contact number"
-          />
-          <div class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">
-            Contact number is required.
-          </div>
-        </div>
-
-        <!-- Email -->
-        <div class="form-group">
-          <label class="form-label" for="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            class="form-control"
-            [class.is-invalid]="f['email'].invalid && f['email'].touched"
-            formControlName="email"
-            placeholder="Enter email address"
-          />
-          <div class="invalid-feedback" *ngIf="f['email'].errors?.['email'] && f['email'].touched">
-            Please enter a valid email address.
-          </div>
-        </div>
-
-        <!-- Blood Type -->
         <div class="form-group">
           <label class="form-label" for="bloodType">Blood Type</label>
-          <select
-            id="bloodType"
-            class="form-control"
-            formControlName="bloodType"
-          >
+          <select id="bloodType" class="form-control" formControlName="bloodType">
             <option value="">Select blood type</option>
-            <option *ngFor="let option of bloodTypeOptions" [value]="option">
-              {{ option }}
-            </option>
+            <option *ngFor="let option of bloodTypeOptions" [value]="option">{{ option }}</option>
           </select>
         </div>
+      </div>
 
-        <!-- Address (full width) -->
-        <div class="form-group form-group--full">
-          <label class="form-label" for="address">Address</label>
+      <!-- Contact & Address -->
+      <ng-container *ngIf="activeTab === 'contact'">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="contactNumber">
+              Mobile Number <span class="required-mark">*</span>
+            </label>
+            <input
+              id="contactNumber"
+              type="tel"
+              class="form-control"
+              [class.is-invalid]="f['contactNumber'].invalid && f['contactNumber'].touched"
+              formControlName="contactNumber"
+              placeholder="09171234567"
+            />
+            <div class="invalid-feedback" *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched">
+              Contact number is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              class="form-control"
+              [class.is-invalid]="f['email'].invalid && f['email'].touched"
+              formControlName="email"
+              placeholder="juan@email.com"
+            />
+            <div class="invalid-feedback" *ngIf="f['email'].errors?.['email'] && f['email'].touched">
+              Please enter a valid email address.
+            </div>
+          </div>
+        </div>
+
+        <p class="form-section">
+          <span class="form-section__dot"></span>
+          Present Address
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="address">Street Address / House No. / Subdivision</label>
           <textarea
             id="address"
             class="form-control"
             formControlName="address"
-            placeholder="Enter full address"
+            placeholder="e.g., 123 Main St., Brgy. Example Subdivision"
             rows="3"
           ></textarea>
         </div>
+      </ng-container>
 
-        <!-- Emergency Contact Name -->
+      <!-- Emergency Contact -->
+      <ng-container *ngIf="activeTab === 'emergency'">
         <div class="form-group">
-          <label class="form-label" for="emergencyContactName">
-            Emergency Contact Name
-          </label>
+          <label class="form-label" for="emergencyContactName">Contact Person Name</label>
           <input
             id="emergencyContactName"
             type="text"
             class="form-control"
             formControlName="emergencyContactName"
-            placeholder="Enter emergency contact name"
+            placeholder="Full name"
           />
         </div>
 
-        <!-- Emergency Contact Number -->
         <div class="form-group">
-          <label class="form-label" for="emergencyContactNumber">
-            Emergency Contact Number
-          </label>
+          <label class="form-label" for="emergencyContactNumber">Contact Number</label>
           <input
             id="emergencyContactNumber"
             type="tel"
             class="form-control"
             formControlName="emergencyContactNumber"
-            placeholder="Enter emergency contact number"
+            placeholder="09171234567"
           />
         </div>
+      </ng-container>
+    </div>
 
-      </div>
-
-      <div class="form-actions">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="cancel()"
-          [disabled]="isSaving"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          class="btn btn-primary"
-          [disabled]="isSaving"
-        >
-          <span *ngIf="isSaving">Saving...</span>
-          <span *ngIf="!isSaving">{{ isEditMode ? 'Save Changes' : 'Create Patient' }}</span>
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        <span *ngIf="isSaving">Saving...</span>
+        <span *ngIf="!isSaving">{{ isEditMode ? 'Save Changes' : 'Register Patient' }}</span>
+      </button>
+    </div>
+  </form>
+</ng-container>

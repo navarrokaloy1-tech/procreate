@@ -8,14 +8,22 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
   }
 
   &__content {
     flex: 1;
     overflow-y: auto;
+    // Hero banners bleed past the padding with negative margins; clip
+    // horizontally so that never produces a sideways scrollbar.
+    overflow-x: hidden;
     padding: 24px 28px;
     background:
       radial-gradient(120% 90% at 85% 115%, rgba(233, 170, 175, 0.35) 0%, rgba(233, 170, 175, 0) 55%),
       var(--body-bg);
+
+    @media (max-width: 768px) {
+      padding: 24px 16px;
+    }
   }
 }

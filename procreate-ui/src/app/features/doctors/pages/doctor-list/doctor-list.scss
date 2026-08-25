@@ -1,0 +1,141 @@
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  th:first-child,
+  td:first-child { padding-left: 16px; }
+
+  th:last-child,
+  td:last-child { padding-right: 16px; }
+
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.doctor-login {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: doctor-spin 0.7s linear infinite;
+}
+
+@keyframes doctor-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ------------------------------------------------------------
+// Modal
+// ------------------------------------------------------------
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.required-mark {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+select.form-control {
+  appearance: auto;
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+.alert.alert-danger {
+  margin: 12px 16px;
+  padding: 11px 14px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
+}
+
+.modal-sheet__body .alert.alert-danger {
+  margin: 0 0 14px;
+}
+
+// One row per weekday: availability toggle plus a start/end pair.
+.schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+
+  & + & { margin-top: 8px; }
+
+  &__day {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+  }
+
+  &__to {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  .form-control {
+    width: auto;
+    padding: 0.4rem 0.55rem;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+
+    &__to { display: none; }
+  }
+}

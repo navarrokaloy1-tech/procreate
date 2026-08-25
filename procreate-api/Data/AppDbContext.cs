@@ -19,6 +19,10 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
+    public DbSet<Doctor> Doctors => Set<Doctor>();
+    public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +46,84 @@ public class AppDbContext : DbContext
                 Role = "Cashier",
                 Email = "cashier@procreate.ai",
                 IsActive = true
+            },
+            new User
+            {
+                Id = 3,
+                Username = "doctor",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("doctor123"),
+                FullName = "Dr. Maria Lopez",
+                Role = "Doctor",
+                Email = "mlopez@procreate.ai",
+                IsActive = true
             });
+
+        // Doctor 1 is linked to the seeded Doctor login so the doctor-scoped
+        // views can be exercised; doctor 2 has no system access.
+        modelBuilder.Entity<Doctor>().HasData(
+            new Doctor
+            {
+                Id = 1, DoctorCode = "DR-0001", UserId = 3,
+                FirstName = "Maria", LastName = "Lopez", Gender = "Female",
+                Specialty = "Obstetrics and Gynecology", SubSpecialty = "Reproductive Endocrinology",
+                Email = "mlopez@procreate.ai", ContactNumber = "09171112222",
+                PrcLicenseNumber = "0123456", ConsultationFee = 800, FollowUpFee = 500,
+                SpecialistFee = 1200, IsActive = true
+            },
+            new Doctor
+            {
+                Id = 2, DoctorCode = "DR-0002",
+                FirstName = "Ramon", LastName = "Bautista", Gender = "Male",
+                Specialty = "Obstetrics and Gynecology",
+                Email = "rbautista@procreate.ai", ContactNumber = "09173334444",
+                PrcLicenseNumber = "0654321", ConsultationFee = 700, FollowUpFee = 450,
+                SpecialistFee = 1000, IsActive = true
+            }
+        );
+
+        modelBuilder.Entity<DoctorSchedule>().HasData(
+            Enumerable.Range(0, 7).SelectMany(day => new[]
+            {
+                new DoctorSchedule
+                {
+                    Id = 1 + day, DoctorId = 1, DayOfWeek = day,
+                    IsAvailable = day >= 1 && day <= 5, StartTime = "08:00", EndTime = "17:00"
+                },
+                new DoctorSchedule
+                {
+                    Id = 8 + day, DoctorId = 2, DayOfWeek = day,
+                    IsAvailable = day >= 1 && day <= 6, StartTime = "09:00", EndTime = "16:00"
+                }
+            }).ToArray()
+        );
+
+        // A doctor's login may be cleared without deleting the practitioner record.
+        modelBuilder.Entity<Doctor>()
+            .HasOne(d => d.User)
+            .WithMany()
+            .HasForeignKey(d => d.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // A queue ticket can be anonymous (walk-in enquiry) or tied to a patient.
+        modelBuilder.Entity<QueueEntry>()
+            .HasOne(q => q.Patient)
+            .WithMany()
+            .HasForeignKey(q => q.PatientId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Queue numbers are allocated per day, so the pair must stay unique.
+        modelBuilder.Entity<QueueEntry>()
+            .HasIndex(q => new { q.QueueDate, q.QueueNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.Doctor)
+            .WithMany()
+            .HasForeignKey(a => a.DoctorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(a => a.ScheduledAt);
 
         modelBuilder.Entity<Product>().HasData(
             new Product { Id = 1, Code = "PRD-1001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true },
