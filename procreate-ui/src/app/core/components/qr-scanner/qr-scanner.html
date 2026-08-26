@@ -14,7 +14,7 @@
       <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
       <!-- Live camera -->
-      <ng-container *ngIf="detectorSupported && !cameraError">
+      <ng-container *ngIf="cameraSupported && !cameraError">
         <div class="scanner">
           <video #video class="scanner__video" muted playsinline></video>
           <div class="scanner__frame"></div>
@@ -23,13 +23,13 @@
         <p class="scanner__hint">{{ hint }}</p>
       </ng-container>
 
-      <!-- Camera unavailable or blocked -->
-      <div class="info-box" *ngIf="!detectorSupported || cameraError">
+      <!-- Camera unavailable, blocked, or already in use -->
+      <div class="info-box" *ngIf="!cameraSupported || cameraError">
         <app-icon name="info" [size]="18"></app-icon>
         <div>
-          <span class="info-box__title">Camera scanning unavailable</span>
+          <span class="info-box__title">Camera unavailable</span>
           <p class="info-box__text">
-            {{ cameraError || 'This browser does not support QR detection. Chrome or Edge does.' }}
+            {{ cameraError || 'This browser cannot access a camera.' }}
           </p>
         </div>
       </div>

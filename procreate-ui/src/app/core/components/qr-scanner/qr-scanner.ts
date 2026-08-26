@@ -12,16 +12,20 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import jsQR from 'jsqr';
 import { IconComponent } from '../icon/icon';
 
 /**
  * Camera QR reader.
  *
- * Decoding uses the browser's built-in BarcodeDetector rather than a bundled
- * library — it keeps the payload small and needs no dependency. It ships in
- * Chrome and Edge on Windows, which is what the clinic runs; anywhere it is
- * missing, the component falls back to typing the code, so the flow never
- * becomes unusable.
+ * Decoding uses jsQR rather than the browser's BarcodeDetector. The native API
+ * looks attractive because it needs no dependency, but Chrome only implements
+ * it on Android, ChromeOS and macOS — on Windows desktop it is absent, so it
+ * degraded to manual entry on every machine in the clinic. jsQR is ~45 KB and
+ * works everywhere a canvas does.
+ *
+ * Manual entry is still offered, for a damaged code or a machine with no
+ * camera.
  */
 @Component({
   selector: 'app-qr-scanner',
@@ -45,11 +49,11 @@ export class QrScannerComponent implements OnChanges, OnDestroy {
   isStarting = false;
   cameraError = '';
   manualCode = '';
-  /** False when BarcodeDetector is unavailable; the manual field is shown instead. */
-  detectorSupported = 'BarcodeDetector' in window;
+  /** False only when the machine has no camera API at all. */
+  cameraSupported = !!navigator.mediaDevices?.getUserMedia;
 
   private stream: MediaStream | null = null;
-  private detector: any = null;
+  private canvas: HTMLCanvasElement | null = null;
   private pollHandle: number | null = null;
   /** Guards against emitting the same code repeatedly while it stays in frame. */
   private lastEmitted = '';
@@ -75,16 +79,14 @@ export class QrScannerComponent implements OnChanges, OnDestroy {
   }
 
   private async start(): Promise<void> {
-    if (!this.detectorSupported) return;
-
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (!this.cameraSupported) {
       this.cameraError = 'This browser cannot access a camera.';
-      this.detectorSupported = false;
       this.cdr.markForCheck();
       return;
     }
 
     this.isStarting = true;
+    this.cameraError = '';
     this.cdr.markForCheck();
 
     try {
@@ -98,38 +100,66 @@ export class QrScannerComponent implements OnChanges, OnDestroy {
         await video.play();
       }
 
-      this.detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+      this.canvas = document.createElement('canvas');
       this.isStarting = false;
       this.cdr.markForCheck();
 
-      this.pollHandle = window.setInterval(() => this.tick(), 250);
+      this.pollHandle = window.setInterval(() => this.tick(), 200);
     } catch (err: any) {
       this.isStarting = false;
-      this.cameraError =
-        err?.name === 'NotAllowedError'
-          ? 'Camera permission was denied. Allow it in the browser, or type the code below.'
-          : 'Could not start the camera. Type the code below instead.';
+      this.cameraError = this.describeCameraError(err);
       this.cdr.markForCheck();
     }
   }
 
-  private async tick(): Promise<void> {
-    const video = this.videoRef?.nativeElement;
-    if (!video || !this.detector || video.readyState !== 4) return;
-
-    try {
-      const codes = await this.detector.detect(video);
-      if (!codes?.length) return;
-
-      const value = String(codes[0].rawValue ?? '').trim();
-      if (!value || value === this.lastEmitted) return;
-
-      this.lastEmitted = value;
-      this.scanned.emit(value);
-      this.cdr.markForCheck();
-    } catch {
-      // A single failed frame is not worth surfacing; the next tick retries.
+  private describeCameraError(err: any): string {
+    switch (err?.name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return 'Camera permission was denied. Allow it in the browser, or type the code below.';
+      case 'NotFoundError':
+      case 'OverconstrainedError':
+        return 'No camera was found on this machine. Type the code below instead.';
+      case 'NotReadableError':
+        return 'The camera is in use by another application. Close it, or type the code below.';
+      default:
+        return 'Could not start the camera. Type the code below instead.';
     }
+  }
+
+  /** Grabs a frame and runs it through jsQR. */
+  private tick(): void {
+    const video = this.videoRef?.nativeElement;
+    const canvas = this.canvas;
+
+    if (!video || !canvas) return;
+    if (video.readyState < 2 || !video.videoWidth) return;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    let frame: ImageData;
+    try {
+      frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    } catch {
+      // A tainted or not-yet-painted frame; the next tick retries.
+      return;
+    }
+
+    const result = jsQR(frame.data, frame.width, frame.height, {
+      inversionAttempts: 'dontInvert',
+    });
+
+    const value = result?.data?.trim();
+    if (!value || value === this.lastEmitted) return;
+
+    this.lastEmitted = value;
+    this.scanned.emit(value);
+    this.cdr.markForCheck();
   }
 
   /** Releases the camera. Skipping this leaves the capture light on. */
@@ -141,7 +171,7 @@ export class QrScannerComponent implements OnChanges, OnDestroy {
 
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
-    this.detector = null;
+    this.canvas = null;
 
     const video = this.videoRef?.nativeElement;
     if (video) video.srcObject = null;
