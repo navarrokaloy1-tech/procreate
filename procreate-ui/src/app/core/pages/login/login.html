@@ -1,66 +1,76 @@
-<div class="login-page">
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-logo">
-        <div class="logo-icon">🧪</div>
-        <h1 class="logo-title">Pro-Create</h1>
-        <p class="logo-subtitle">Laboratory &amp; Clinic Management</p>
+<div class="login">
+  <div class="login__panel">
+    <header class="login__brand">
+      <span class="login__mark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2 L8 14 H14 L4 30 L26 14 H18 L28 2 Z" fill="currentColor" />
+        </svg>
+      </span>
+      <h1 class="login__title">Pro-Create</h1>
+      <p class="login__subtitle">Fertility, OB-GYN and Diagnostic Center</p>
+    </header>
+
+    <div class="card login__card">
+      <div class="card-body">
+        <h2 class="login__heading">Sign in to your account</h2>
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+          <div class="alert alert-danger" *ngIf="errorMessage">
+            <app-icon name="alert-circle" [size]="17"></app-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input
+              id="username"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="usernameControl?.invalid && usernameControl?.touched"
+              formControlName="username"
+              placeholder="Enter your username"
+              autocomplete="username"
+            />
+            <div class="invalid-feedback" *ngIf="usernameControl?.invalid && usernameControl?.touched">
+              Username is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              class="form-control"
+              [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
+              formControlName="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+            />
+            <div class="invalid-feedback" *ngIf="passwordControl?.invalid && passwordControl?.touched">
+              <span *ngIf="passwordControl?.errors?.['required']">Password is required.</span>
+              <span *ngIf="passwordControl?.errors?.['minlength']">
+                Password must be at least 4 characters.
+              </span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary login__submit" [disabled]="isLoading">
+            <span class="login__spinner" *ngIf="isLoading"></span>
+            {{ isLoading ? 'Signing in...' : 'Sign In' }}
+          </button>
+        </form>
       </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-        <h2 class="form-title">Sign in to your account</h2>
-
-        <div class="alert alert-danger" *ngIf="errorMessage">
-          {{ errorMessage }}
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="username">Username</label>
-          <input
-            id="username"
-            type="text"
-            class="form-control"
-            [class.is-invalid]="usernameControl?.invalid && usernameControl?.touched"
-            formControlName="username"
-            placeholder="Enter your username"
-            autocomplete="username"
-          />
-          <div class="invalid-feedback" *ngIf="usernameControl?.invalid && usernameControl?.touched">
-            Username is required.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            class="form-control"
-            [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
-            formControlName="password"
-            placeholder="Enter your password"
-            autocomplete="current-password"
-          />
-          <div class="invalid-feedback" *ngIf="passwordControl?.invalid && passwordControl?.touched">
-            <span *ngIf="passwordControl?.errors?.['required']">Password is required.</span>
-            <span *ngIf="passwordControl?.errors?.['minlength']">Password must be at least 4 characters.</span>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-login" [disabled]="isLoading">
-          <span class="spinner" *ngIf="isLoading"></span>
-          <span>{{ isLoading ? 'Signing in...' : 'Sign In' }}</span>
-        </button>
-      </form>
-
-      <div class="login-patient-cta">
-        <p>Are you a patient?</p>
-        <a routerLink="/register" class="btn-patient-register">Self-Register &amp; Get Queue Number →</a>
-      </div>
-
-      <div class="login-footer">
-        <p>Pro-Create &copy; 2024 &mdash; Clinic Management System</p>
+      <div class="card-footer login__patient">
+        <span class="login__patient-label">Are you a patient?</span>
+        <a routerLink="/register" class="btn btn-secondary">
+          <app-icon name="user-plus" [size]="16"></app-icon>
+          Self-Register &amp; Get Queue Number
+        </a>
       </div>
     </div>
+
+    <p class="login__footer">Pro-Create &copy; {{ year }}</p>
   </div>
 </div>

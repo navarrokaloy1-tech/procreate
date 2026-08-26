@@ -1,198 +1,141 @@
-﻿.login-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #C49A6C 0%, #A67C52 50%, #8B6340 100%);
+// Sign-in. Uses the same background, card and controls as the console, so
+// the first screen looks like the app it leads into. Everything resolves to a
+// token in :root — the previous version hardcoded its own browns.
+
+.login {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-}
+  min-height: 100vh;
+  padding: 32px 20px;
+  // Matches layout__content, so signing in is not a jarring colour change.
+  background:
+    radial-gradient(120% 90% at 85% 115%, rgba(233, 170, 175, 0.35) 0%, rgba(233, 170, 175, 0) 55%),
+    var(--body-bg);
 
-.login-patient-cta {
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid #e9ecef;
-  text-align: center;
-
-  p {
-    margin: 0 0 10px;
-    font-size: 13px;
-    color: #6c757d;
+  &__panel {
+    width: 100%;
+    max-width: 400px;
   }
 
-  .btn-patient-register {
-    display: inline-block;
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #C49A6C;
-    border-radius: 8px;
-    color: #C49A6C;
-    background: #fff;
-    font-weight: 700;
-    font-size: 14px;
-    text-decoration: none;
-    transition: background 0.15s, color 0.15s;
+  &__brand {
+    text-align: center;
+    margin-bottom: 20px;
+  }
 
-    &:hover {
-      background: #C49A6C;
-      color: #fff;
+  &__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    color: var(--primary-dark);
+
+    svg {
+      width: 24px;
+      height: 24px;
     }
   }
-}
 
-.login-container {
-  width: 100%;
-  max-width: 420px;
-}
-
-.login-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.login-logo {
-  background: linear-gradient(135deg, #C49A6C, #A67C52);
-  padding: 32px;
-  text-align: center;
-  color: white;
-
-  .logo-icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-  }
-
-  .logo-title {
-    font-size: 28px;
-    font-weight: 700;
+  &__title {
     margin: 0;
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
   }
 
-  .logo-subtitle {
-    font-size: 13px;
-    opacity: 0.85;
-    margin: 6px 0 0;
+  &__subtitle {
+    margin: 2px 0 0;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
   }
-}
 
-.login-form {
-  padding: 32px;
+  &__card {
+    box-shadow: var(--shadow-lg);
+  }
 
-  .form-title {
-    font-size: 18px;
+  &__heading {
+    margin: 0 0 18px;
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    color: #343a40;
-    margin: 0 0 24px;
+    color: var(--text-primary);
+  }
+
+  &__submit {
+    width: 100%;
+    margin-top: 4px;
+    padding: 0.7rem 1rem;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+  }
+
+  &__spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    animation: login-spin 0.7s linear infinite;
+  }
+
+  // Patient route out, kept visually secondary to staff sign-in.
+  &__patient {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    justify-content: flex-start;
+
+    .btn {
+      width: 100%;
+    }
+  }
+
+  &__patient-label {
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  &__footer {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
   }
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 6px;
-}
-
-.form-control {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 14px;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-  outline: none;
-
-  &:focus {
-    border-color: #C49A6C;
-    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
-  }
-
-  &.is-invalid {
-    border-color: #dc3545;
-  }
-}
-
-.invalid-feedback {
-  font-size: 12px;
-  color: #dc3545;
-  margin-top: 4px;
-}
-
-.alert {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-
-.alert-danger {
-  background: #fff5f5;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
-}
-
-.btn-login {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #C49A6C, #A67C52);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
+.alert.alert-danger {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
-  margin-top: 8px;
+  gap: 9px;
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
 
-  &:hover {
-    background: linear-gradient(135deg, #A67C52, #8B6340);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(196, 154, 108, 0.4);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
+  .app-icon {
+    flex: 0 0 auto;
   }
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
+@keyframes login-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.login-footer {
-  padding: 16px 32px;
-  border-top: 1px solid #e8ecf0;
-  text-align: center;
-  font-size: 12px;
-  color: #adb5bd;
-
-  p {
-    margin: 0;
+@media (prefers-reduced-motion: reduce) {
+  .login__spinner {
+    animation: none;
   }
 }

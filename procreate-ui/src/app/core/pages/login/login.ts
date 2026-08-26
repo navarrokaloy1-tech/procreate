@@ -13,6 +13,8 @@ export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   isLoading = false;
   errorMessage = '';
+  /** The footer year was hardcoded to 2024 and had gone stale. */
+  readonly year = new Date().getFullYear();
 
   constructor(
     private fb: FormBuilder,
