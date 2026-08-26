@@ -1,0 +1,64 @@
+// Layout, cards and timeline all come from the shared console pattern layer.
+
+.page-hero__meta {
+  flex-wrap: wrap;
+}
+
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  th:first-child,
+  td:first-child { padding-left: 16px; }
+
+  th:last-child,
+  td:last-child { padding-right: 16px; }
+
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.order-row {
+  padding: 12px 0;
+
+  & + & {
+    border-top: 1px solid var(--border-color);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: visit-detail-spin 0.7s linear infinite;
+}
+
+@keyframes visit-detail-spin {
+  to { transform: rotate(360deg); }
+}

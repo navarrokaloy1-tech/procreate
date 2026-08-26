@@ -1,0 +1,196 @@
+<section class="page-hero page-hero--compact">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to consultations">
+        <app-icon name="arrow-left" [size]="18"></app-icon>
+      </button>
+      <div class="page-hero__heading">
+        <ng-container *ngIf="visit; else headingFallback">
+          <span class="page-hero__code">{{ visit.visitCode }}</span>
+          <p class="page-hero__meta">
+            <span [class]="statusPill(visit.status)">{{ visit.status }}</span>
+            <span [class]="paymentPill(visit.paymentStatus)">{{ visit.paymentStatus }}</span>
+            <span>{{ visit.patientName }} &middot; {{ visit.visitDate | date: 'MMM d, y' }}</span>
+          </p>
+        </ng-container>
+        <ng-template #headingFallback>
+          <h1>Consultation</h1>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap" *ngIf="isLoading">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading consultation...</p>
+  </div>
+</div>
+
+<div class="card hero-overlap" *ngIf="!isLoading && errorMessage">
+  <div class="empty-rich">
+    <span class="empty-rich__icon"><app-icon name="alert-circle" [size]="32"></app-icon></span>
+    <h3 class="empty-rich__title">{{ errorMessage }}</h3>
+    <button type="button" class="btn btn-primary" (click)="back()">Back to Consultations</button>
+  </div>
+</div>
+
+<div class="detail-grid hero-overlap" *ngIf="!isLoading && visit">
+  <!-- Left column -->
+  <div class="detail-grid__col">
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="user" [size]="17"></app-icon>
+          Patient
+        </h3>
+        <span class="cell-code">{{ visit.patientCode }}</span>
+      </div>
+      <div class="info-card__body">
+        <div class="cell-user">
+          <span class="avatar avatar--lg">{{ initials(visit.patientName) }}</span>
+          <span class="cell-user__body">
+            <span class="cell-user__name">{{ visit.patientName }}</span>
+            <span class="cell-user__sub">{{ visit.visitDate | date: 'MMMM d, y' }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="file-text" [size]="17"></app-icon>
+          Consultation
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list">
+          <div>
+            <span class="field-list__label">Purpose</span>
+            <span class="field-list__value">{{ visit.purpose || 'Not specified' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Referring Physician</span>
+            <span class="field-list__value">{{ visit.referringPhysician || 'Not specified' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Status</span>
+            <span class="field-list__value">
+              <span [class]="statusPill(visit.status)">{{ visit.status }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="credit-card" [size]="17"></app-icon>
+          Billing
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list field-list--2col">
+          <div>
+            <span class="field-list__label">Total</span>
+            <span class="field-list__value">&#8369;{{ visit.totalAmount | number: '1.2-2' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Paid</span>
+            <span class="field-list__value">&#8369;{{ visit.amountPaid | number: '1.2-2' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Balance</span>
+            <span class="field-list__value" [class.text-danger]="balance > 0">
+              &#8369;{{ balance | number: '1.2-2' }}
+            </span>
+          </div>
+          <div>
+            <span class="field-list__label">Method</span>
+            <span class="field-list__value">{{ visit.paymentMethod || '&mdash;' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="detail-grid__col">
+    <div class="info-card">
+      <div class="info-card__head">
+        <div>
+          <h3 class="info-card__title">
+            <app-icon name="flask" [size]="17"></app-icon>
+            Requested Tests
+          </h3>
+          <p class="info-card__sub">
+            {{ visit.tests.length }} test{{ visit.tests.length === 1 ? '' : 's' }} on this consultation
+          </p>
+        </div>
+      </div>
+
+      <div class="info-card__body" *ngIf="visit.tests.length === 0">
+        <p class="text-muted text-center">No tests were requested.</p>
+      </div>
+
+      <div class="data-table-scroll" *ngIf="visit.tests.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Code</th>
+              <th class="text-right">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let test of visit.tests">
+              <td>{{ test.testName }}</td>
+              <td><span class="cell-code">{{ test.code }}</span></td>
+              <td class="text-right">&#8369;{{ test.price | number: '1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="info-card" *ngIf="visit.labOrders.length > 0">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="history" [size]="17"></app-icon>
+          Laboratory Orders
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="order-row" *ngFor="let order of visit.labOrders">
+          <div class="order-row__head">
+            <span class="cell-code">{{ order.specimenBarcode || 'No barcode' }}</span>
+            <span [class]="orderPill(order.status)">{{ order.status }}</span>
+          </div>
+          <div class="timeline">
+            <div class="timeline__item" *ngIf="order.collectedAt">
+              <span class="timeline__dot"></span>
+              <span class="timeline__title">Collected</span>
+              <span class="timeline__time">{{ order.collectedAt | date: 'MMM d, y, shortTime' }}</span>
+            </div>
+            <div class="timeline__item" *ngIf="order.processedAt">
+              <span class="timeline__dot"></span>
+              <span class="timeline__title">Processed</span>
+              <span class="timeline__time">{{ order.processedAt | date: 'MMM d, y, shortTime' }}</span>
+            </div>
+            <div class="timeline__item" *ngIf="order.releasedAt">
+              <span class="timeline__dot"></span>
+              <span class="timeline__title">Released</span>
+              <span class="timeline__time">{{ order.releasedAt | date: 'MMM d, y, shortTime' }}</span>
+            </div>
+            <p class="text-muted" *ngIf="!order.collectedAt && !order.processedAt && !order.releasedAt">
+              Not yet collected.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
