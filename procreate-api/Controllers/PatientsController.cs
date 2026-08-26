@@ -47,6 +47,29 @@ public class PatientsController : ControllerBase
         return Ok(new { total, page, pageSize, data = patients });
     }
 
+    /// <summary>
+    /// Exact lookup by patient code, for QR scanning. Accepts the bare code or
+    /// a "patient:CODE" payload so a scanned card can carry a scheme.
+    /// </summary>
+    [HttpGet("by-code/{code}")]
+    public async Task<IActionResult> GetByCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return BadRequest(new { message = "No patient code was supplied." });
+
+        var trimmed = code.Trim();
+        const string scheme = "patient:";
+        if (trimmed.StartsWith(scheme, StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[scheme.Length..].Trim();
+
+        var patient = await _db.Patients
+            .FirstOrDefaultAsync(p => p.PatientCode == trimmed);
+
+        return patient is null
+            ? NotFound(new { message = $"No patient found for code \"{trimmed}\"." })
+            : Ok(patient);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {

@@ -18,6 +18,13 @@
         </ng-template>
       </div>
     </div>
+
+    <div class="page-hero__actions" *ngIf="visit">
+      <button type="button" class="btn btn-hero" (click)="openAddTests()" [disabled]="!canEdit">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Tests
+      </button>
+    </div>
   </div>
 </section>
 
@@ -167,7 +174,19 @@
         <div class="order-row" *ngFor="let order of visit.labOrders">
           <div class="order-row__head">
             <span class="cell-code">{{ order.specimenBarcode || 'No barcode' }}</span>
-            <span [class]="orderPill(order.status)">{{ order.status }}</span>
+            <span class="order-row__actions">
+              <span [class]="orderPill(order.status)">{{ order.status }}</span>
+              <button
+                type="button"
+                class="table-actions__btn table-actions__btn--danger"
+                *ngIf="canRemoveOrder(order)"
+                (click)="removeOrder(order)"
+                title="Remove this test"
+                aria-label="Remove this test"
+              >
+                <app-icon name="trash" [size]="15"></app-icon>
+              </button>
+            </span>
           </div>
           <div class="timeline">
             <div class="timeline__item" *ngIf="order.collectedAt">
@@ -191,6 +210,80 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add tests to this consultation -->
+<div class="modal-backdrop" *ngIf="isAddOpen" (click)="closeAddTests()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="flask" [size]="19"></app-icon>
+          Add Tests
+        </h3>
+        <p class="modal-sheet__desc" *ngIf="visit">
+          These are added to {{ visit.visitCode }} — no new consultation is created.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeAddTests()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="addError">{{ addError }}</div>
+
+      <div *ngIf="isLoadingTests" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading tests...</p>
+      </div>
+
+      <ng-container *ngIf="!isLoadingTests">
+        <div class="test-category" *ngFor="let category of testCategories">
+          <div class="category-header">
+            {{ category.name }}
+            <span class="category-count">{{ category.tests.length }} tests</span>
+          </div>
+          <label
+            class="test-item"
+            *ngFor="let test of category.tests"
+            [class.selected]="isSelected(test)"
+            [class.ordered]="isAlreadyOrdered(test)"
+          >
+            <input
+              type="checkbox"
+              [checked]="isSelected(test)"
+              [disabled]="isAlreadyOrdered(test)"
+              (change)="toggleTest(test)"
+            />
+            <span class="test-item__name">{{ test.name }}</span>
+            <span class="tag" *ngIf="isAlreadyOrdered(test)">Already ordered</span>
+            <span class="test-item__price">&#8369;{{ test.price | number: '1.2-2' }}</span>
+          </label>
+        </div>
+
+        <p class="text-muted" *ngIf="testCategories.length === 0">No tests available.</p>
+      </ng-container>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note" *ngIf="selectedTestIds.size > 0">
+        {{ selectedTestIds.size }} selected &middot; &#8369;{{ addedTotal | number: '1.2-2' }}
+      </span>
+      <button type="button" class="btn btn-secondary" (click)="closeAddTests()" [disabled]="isSavingTests">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="saveTests()"
+        [disabled]="isSavingTests || selectedTestIds.size === 0"
+      >
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSavingTests ? 'Adding...' : 'Add to Consultation' }}
+      </button>
     </div>
   </div>
 </div>

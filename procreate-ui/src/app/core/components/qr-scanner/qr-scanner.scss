@@ -1,0 +1,81 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.scanner {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--border-radius);
+  background: var(--dark);
+  overflow: hidden;
+
+  &__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  // Alignment guide for the operator.
+  &__frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 56%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: var(--border-radius);
+    box-shadow: 0 0 0 100vmax rgba(45, 27, 14, 0.35);
+    pointer-events: none;
+  }
+
+  &__starting {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    color: var(--white);
+    font-size: var(--font-size-base);
+  }
+
+  &__hint {
+    margin: 10px 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  &__manual {
+    margin-top: 16px;
+    margin-bottom: 0;
+  }
+
+  &__manual-row {
+    display: flex;
+    gap: 8px;
+
+    .form-control {
+      flex: 1 1 auto;
+    }
+  }
+}
+
+.alert.alert-danger {
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
+}

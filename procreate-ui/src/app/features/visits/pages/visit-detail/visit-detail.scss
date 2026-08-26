@@ -35,6 +35,102 @@
     gap: 10px;
     margin-bottom: 10px;
   }
+
+  &__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+// ------------------------------------------------------------
+// Add-tests sheet
+// ------------------------------------------------------------
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.test-category {
+  & + & { margin-top: 16px; }
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.category-count {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.test-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition);
+
+  &:hover { background: var(--light); }
+
+  &.selected { background: var(--primary-light); }
+
+  // Already on the visit — shown for context but not re-orderable.
+  &.ordered {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__name {
+    flex: 1 1 auto;
+    color: var(--text-primary);
+  }
+
+  &__price {
+    font-weight: 600;
+    color: var(--success-green);
+    white-space: nowrap;
+  }
+}
+
+.modal-sheet__body .alert.alert-danger {
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
 }
 
 .text-danger {

@@ -1,0 +1,66 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <h3 class="modal-sheet__title">
+        <app-icon name="qr" [size]="19"></app-icon>
+        {{ title }}
+      </h3>
+      <button type="button" class="modal-sheet__close" (click)="close()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <!-- Live camera -->
+      <ng-container *ngIf="detectorSupported && !cameraError">
+        <div class="scanner">
+          <video #video class="scanner__video" muted playsinline></video>
+          <div class="scanner__frame"></div>
+          <p class="scanner__starting" *ngIf="isStarting">Starting camera...</p>
+        </div>
+        <p class="scanner__hint">{{ hint }}</p>
+      </ng-container>
+
+      <!-- Camera unavailable or blocked -->
+      <div class="info-box" *ngIf="!detectorSupported || cameraError">
+        <app-icon name="info" [size]="18"></app-icon>
+        <div>
+          <span class="info-box__title">Camera scanning unavailable</span>
+          <p class="info-box__text">
+            {{ cameraError || 'This browser does not support QR detection. Chrome or Edge does.' }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Always available, so a damaged or unreadable code never blocks the desk -->
+      <div class="form-group scanner__manual">
+        <label class="form-label" for="manualCode">Or enter the patient code</label>
+        <div class="scanner__manual-row">
+          <input
+            id="manualCode"
+            type="text"
+            class="form-control"
+            placeholder="e.g. PT-20260826-0003"
+            autocomplete="off"
+            [(ngModel)]="manualCode"
+            (keyup.enter)="submitManual()"
+          />
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="submitManual()"
+            [disabled]="!manualCode.trim()"
+          >
+            Find
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="close()">Close</button>
+    </div>
+  </div>
+</div>
