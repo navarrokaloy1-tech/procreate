@@ -2727,12 +2727,11 @@ textarea.form-control {
     .sidebar,
     .header,
     .app-footer,
-    .page-hero,
     .no-print {
       display: none !important;
     }
 
-    // Unlock the app shell's scroll containers so the slip isn't clipped.
+    // Unlock the app shell's scroll containers so the artefact isn't clipped.
     .layout,
     .layout__main,
     .layout__content {
@@ -2743,8 +2742,31 @@ textarea.form-control {
       background: none !important;
     }
 
+    // Hide the page's own content, then reveal only the artefact.
+    //
+    // Uses visibility rather than display:none on a list of containers: the
+    // artefact sits several levels inside a component host, so hiding its
+    // ancestors would hide it too. visibility is inherited but can be turned
+    // back on for a descendant, which display cannot — so this works wherever
+    // the .print-only element happens to live in the tree.
+    .layout__content {
+      visibility: hidden;
+    }
+
+    .print-only,
+    .print-only * {
+      visibility: visible !important;
+    }
+
+    // Lift it to the top of the page, since its hidden ancestors still
+    // occupy their original layout position.
     .print-only {
       display: block !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      margin: 0;
     }
   }
 }
