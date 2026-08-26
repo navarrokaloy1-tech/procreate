@@ -1,308 +1,301 @@
-﻿:host {
+// Public kiosk. Uses the same sheet, tabs and controls as the staff
+// Add Patient modal so both surfaces look and behave alike.
+
+:host {
   display: block;
   min-height: 100vh;
-  background: linear-gradient(135deg, #C49A6C 0%, #A67C52 100%);
-  padding: 32px 16px;
+  padding: 28px 20px 40px;
+  background:
+    radial-gradient(120% 90% at 85% 115%, rgba(233, 170, 175, 0.35) 0%, rgba(233, 170, 175, 0) 55%),
+    var(--body-bg);
 }
 
 .kiosk {
-  max-width: 760px;
+  max-width: 880px;
   margin: 0 auto;
 
   &__brand {
     display: flex;
     align-items: center;
-    gap: 16px;
-    color: #fff;
-    margin-bottom: 24px;
     justify-content: center;
-  }
-
-  &__logo {
-    font-size: 44px;
-    line-height: 1;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
-  &__subtitle {
-    margin: 2px 0 0;
-    font-size: 15px;
-    opacity: 0.9;
-  }
-
-  &__card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-    padding: 32px;
-  }
-
-  &__welcome {
-    text-align: center;
-    margin-bottom: 24px;
-
-    h2 {
-      margin: 0 0 8px;
-      font-size: 22px;
-      color: #212529;
-    }
-
-    p {
-      margin: 0;
-      color: #6c757d;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-  }
-
-  &__staff-link {
-    text-align: center;
-    margin: 20px 0 0;
-    font-size: 13px;
-    color: #6c757d;
-
-    a {
-      color: #C49A6C;
-      text-decoration: none;
-      font-weight: 600;
-    }
-  }
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-
-  &--full {
-    grid-column: 1 / -1;
-  }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #344054;
-  margin-bottom: 6px;
-
-  .req {
-    color: #dc3545;
-  }
-}
-
-.form-control {
-  padding: 11px 13px;
-  border: 1.5px solid #dee2e6;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  background: #fff;
-  color: #212529;
-
-  &:focus {
-    outline: none;
-    border-color: #C49A6C;
-    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
-  }
-
-  &.is-invalid {
-    border-color: #dc3545;
-  }
-}
-
-.invalid-feedback {
-  color: #dc3545;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.alert-danger {
-  background: #f8d7da;
-  color: #842029;
-  border: 1px solid #f5c2c7;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
-.btn-kiosk {
-  width: 100%;
-  margin-top: 24px;
-  padding: 15px;
-  border: none;
-  border-radius: 10px;
-  background: #C49A6C;
-  color: #fff;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: background 0.15s, transform 0.05s;
-
-  &:hover:not(:disabled) {
-    background: #A67C52;
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  &:disabled {
-    opacity: 0.65;
-    cursor: not-allowed;
-  }
-
-  &--outline {
-    background: #fff;
-    color: #C49A6C;
-    border: 2px solid #C49A6C;
-
-    &:hover:not(:disabled) {
-      background: #e8f4ff;
-    }
-  }
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ===================== TICKET ===================== */
-.ticket {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-  padding: 40px 32px;
-  text-align: center;
-  max-width: 460px;
-  margin: 0 auto;
-
-  &__check {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    background: #28a745;
-    color: #fff;
-    font-size: 40px;
-    line-height: 72px;
-    font-weight: 700;
-  }
-
-  &__heading {
-    margin: 0 0 4px;
-    font-size: 24px;
-    color: #212529;
-  }
-
-  &__name {
-    margin: 0 0 20px;
-    font-size: 16px;
-    color: #6c757d;
-    font-weight: 600;
-  }
-
-  &__number-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    background: #e8f4ff;
-    border: 2px dashed #C49A6C;
-    border-radius: 14px;
-    padding: 22px;
+    gap: 12px;
     margin-bottom: 20px;
   }
 
-  &__label {
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: #A67C52;
+  &__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    color: var(--primary-dark);
+
+    svg { width: 22px; height: 22px; }
+  }
+
+  &__brand-text {
+    strong {
+      display: block;
+      font-size: var(--font-size-2xl);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+
+    small {
+      display: block;
+      font-size: var(--font-size-base);
+      color: var(--text-secondary);
+    }
+  }
+
+  // The sheet is a page element here, not an overlay, so it needs its own
+  // frame rather than inheriting the modal backdrop's.
+  &__sheet {
+    max-height: none;
+    border: 1px solid var(--border-color);
+  }
+
+  &__staff {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+
+    a {
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+  }
+
+  &__done {
+    margin-top: 20px;
+    text-align: center;
+
+    h2 {
+      margin: 0 0 4px;
+      font-size: var(--font-size-2xl);
+      color: var(--text-primary);
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--text-secondary);
+    }
+  }
+
+  &__done-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.form-group--half {
+  max-width: calc(50% - 10px);
+
+  @media (max-width: 640px) {
+    max-width: none;
+  }
+}
+
+.required-mark {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+.alert.alert-danger {
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  font-size: var(--font-size-base);
+}
+
+// ------------------------------------------------------------
+// Issued card
+// ------------------------------------------------------------
+
+.patient-card {
+  max-width: 460px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+
+  &__head {
+    padding: 14px 18px;
+    text-align: center;
+    background: var(--hero-bg);
+    color: var(--white);
+  }
+
+  &__clinic {
+    display: block;
+    font-size: var(--font-size-xl);
     font-weight: 700;
   }
 
-  &__number {
-    font-size: 64px;
-    font-weight: 800;
-    color: #C49A6C;
-    line-height: 1;
-    letter-spacing: 2px;
+  &__sub {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  &__queue {
+    padding: 14px 18px 10px;
+    text-align: center;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  &__queue-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+
+  &__queue-number {
+    display: block;
+    font-size: 46px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--primary-dark);
+  }
+
+  &__body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+
+    @media (max-width: 420px) {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+
+  &__qr {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+
+    img {
+      width: 132px;
+      height: 132px;
+      display: block;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+    }
+
+    &--missing {
+      width: 132px;
+      height: 132px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      border: 1px dashed var(--border-color);
+      border-radius: var(--border-radius-sm);
+      font-size: var(--font-size-sm);
+      color: var(--text-muted);
+      text-align: center;
+    }
+  }
+
+  &__qr-hint {
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  &__details {
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
+
+    div + div { margin-top: 9px; }
+
+    dt {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    dd {
+      margin: 0;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
   }
 
   &__code {
-    font-size: 13px;
-    color: #6c757d;
-    font-family: monospace;
+    font-family: 'Consolas', 'Courier New', monospace;
   }
 
-  &__time {
-    font-size: 13px;
-    color: #adb5bd;
-    margin: 0 0 8px;
-  }
-
-  &__instruction {
-    font-size: 15px;
-    color: #344054;
-    line-height: 1.5;
-    margin: 0 0 24px;
-  }
-
-  &__actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    .btn-kiosk {
-      margin-top: 0;
-    }
+  &__note {
+    margin: 0;
+    padding: 10px 18px 14px;
+    border-top: 1px dashed var(--border-color);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    text-align: center;
   }
 }
 
-@media (max-width: 560px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Print only the ticket */
+// Printing the card: the kiosk has no app shell, so hide everything marked
+// no-print and let the card stand alone.
 @media print {
   :host {
-    background: #fff !important;
+    background: none;
     padding: 0;
+    min-height: 0;
   }
-  .kiosk__brand,
-  .ticket__actions {
-    display: none !important;
-  }
-  .ticket {
+
+  .no-print { display: none !important; }
+
+  .patient-card {
     box-shadow: none;
-    border: 1px solid #ccc;
+    border-color: #000;
+    max-width: 100%;
   }
+
+  .patient-card__head {
+    background: none !important;
+    color: #000 !important;
+    border-bottom: 1px solid #000;
+
+    .patient-card__sub { color: #000 !important; }
+  }
+
+  .patient-card__queue-number { color: #000 !important; }
 }
