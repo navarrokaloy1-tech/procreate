@@ -25,6 +25,7 @@ export class LabOrders implements OnInit {
   totalCount = 0;
   pageIndex = 0;
   pageSize = 10;
+  readonly pageSizeOptions = [5, 10, 15, 20];
   isLoading = false;
   activeFilter = 'All';
   statusFilters = ['All', 'Ordered', 'Collected', 'Resulted', 'Released'];
@@ -83,7 +84,33 @@ export class LabOrders implements OnInit {
 
   onPageChange(page: number): void {
     this.pageIndex = page;
-    this.loadOrders();
+  }
+
+  onPageSizeChange(size: string | number): void {
+    // Ignore a blank or junk value: pageSize 0 would divide by zero in
+    // totalPages and render an Infinity-page pager with no rows.
+    const parsed = Number(size);
+    if (!Number.isFinite(parsed) || parsed < 1) return;
+
+    this.pageSize = Math.floor(parsed);
+    this.pageIndex = 0;
+  }
+
+  /**
+   * lab/orders returns the whole list, so pages are sliced here. Refetching on
+   * every page change would return the same rows and show no difference.
+   */
+  get pagedOrders(): LabOrder[] {
+    const start = this.pageIndex * this.pageSize;
+    return this.orders.slice(start, start + this.pageSize);
+  }
+
+  get rangeStart(): number {
+    return this.totalCount === 0 ? 0 : this.pageIndex * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    return Math.min((this.pageIndex + 1) * this.pageSize, this.totalCount);
   }
 
   getStatusClass(status: string): string {

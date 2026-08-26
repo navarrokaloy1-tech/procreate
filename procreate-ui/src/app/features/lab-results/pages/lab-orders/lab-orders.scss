@@ -228,50 +228,7 @@
   }
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
+// Pagination now uses the shared .table-footer / .pager pattern from
+// styles.scss, which lays the range out on the left and the pager on the
+// right instead of centring both.
 
-.page-ellipsis {
-  padding: 6px 4px;
-  color: #6c757d;
-  font-size: 13px;
-}
-
-.page-btn {
-  padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover:not(:disabled):not(.active) {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-  }
-
-  &.active {
-    background: #C49A6C;
-    color: white;
-    border-color: #C49A6C;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.pagination-info {
-  text-align: center;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #6c757d;
-}
