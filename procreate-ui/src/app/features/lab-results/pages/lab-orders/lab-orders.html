@@ -1,5 +1,22 @@
-<div class="page-header">
+<div class="page-header page-actions">
   <h1>Lab Orders</h1>
+  <button type="button" class="btn btn-primary" (click)="openScanner()">
+    <app-icon name="qr" [size]="16"></app-icon>
+    Scan to Find
+  </button>
+</div>
+
+<!-- What a scan narrowed the list to, and how to get back -->
+<div class="scan-chip" *ngIf="scanFilter">
+  <app-icon name="qr" [size]="15"></app-icon>
+  <span class="scan-chip__body">
+    <strong>{{ scanFilter }}</strong>
+    <small>{{ scanFilterLabel }}</small>
+  </span>
+  <button type="button" class="scan-chip__clear" (click)="clearScanFilter()">
+    <app-icon name="x" [size]="14"></app-icon>
+    Clear
+  </button>
 </div>
 
 <div class="filter-tabs">
@@ -21,7 +38,7 @@
 <ng-container *ngIf="!isLoading">
   <div class="card">
     <div class="card-body">
-      <table class="data-table" *ngIf="orders.length > 0; else emptyState">
+      <table class="data-table" *ngIf="visibleOrders.length > 0; else emptyState">
         <thead>
           <tr>
             <th>Order Code</th>
@@ -85,14 +102,18 @@
       <ng-template #emptyState>
         <div class="empty-state">
           <p>No lab orders found.</p>
-          <p *ngIf="activeFilter !== 'All'">
+          <p *ngIf="scanFilter">
+            Nothing matches the scanned code under the current filter.
+            <a href="javascript:void(0)" (click)="clearScanFilter()">Clear the scan</a>.
+          </p>
+          <p *ngIf="!scanFilter && activeFilter !== 'All'">
             Try selecting a different filter or
             <a href="javascript:void(0)" (click)="onFilterChange('All')">view all orders</a>.
           </p>
         </div>
       </ng-template>
 
-      <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer" *ngIf="filteredCount > 0">
         <div class="table-footer__left">
           <span class="select-field select-field--sm">
             <select
@@ -106,7 +127,7 @@
             <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
           </span>
           <span class="table-footer__range">
-            <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ totalCount }} total
+            <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ filteredCount }} total
           </span>
         </div>
 
@@ -148,3 +169,12 @@
     </div>
   </div>
 </ng-container>
+
+<app-qr-scanner
+  [open]="isScannerOpen"
+  [errorMessage]="scanError"
+  title="Scan to Find"
+  hint="Scan a patient card, a specimen label, or an order barcode."
+  (scanned)="onScanned($event)"
+  (closed)="closeScanner()"
+></app-qr-scanner>
