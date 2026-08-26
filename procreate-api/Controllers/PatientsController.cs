@@ -1,6 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
 using ProCreateApi.Services.Lis;
+using ProCreateApi.Services.Queue;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,8 +13,14 @@ public class PatientsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILisService _lis;
+    private readonly QueueAllocator _queue;
 
-    public PatientsController(AppDbContext db, ILisService lis) { _db = db; _lis = lis; }
+    public PatientsController(AppDbContext db, ILisService lis, QueueAllocator queue)
+    {
+        _db = db;
+        _lis = lis;
+        _queue = queue;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? gender, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -89,6 +96,45 @@ public class PatientsController : ControllerBase
         await _db.SaveChangesAsync();
         _ = _lis.SendPatientAsync(patient, isUpdate: false);
         return CreatedAtAction(nameof(GetById), new { id = patient.Id }, patient);
+    }
+
+    /// <summary>
+    /// Kiosk registration: creates the patient and puts them in today's
+    /// reception queue in one call.
+    ///
+    /// Deliberately separate from POST /patients. Staff registering someone
+    /// should not silently queue them, and doing this as two client calls
+    /// could leave a patient registered but not queued — which is the exact
+    /// state the kiosk used to leave them in while telling them otherwise.
+    /// </summary>
+    [HttpPost("self-register")]
+    public async Task<IActionResult> SelfRegister(Patient patient)
+    {
+        var count = await _db.Patients.CountAsync();
+        patient.PatientCode = $"PT-{DateTime.Now:yyyyMMdd}-{(count + 1):D4}";
+        patient.CreatedAt = DateTime.UtcNow;
+
+        _db.Patients.Add(patient);
+        await _db.SaveChangesAsync();
+        _ = _lis.SendPatientAsync(patient, isUpdate: false);
+
+        var fullName = $"{patient.FirstName} {patient.LastName}".Trim();
+        var entry = await _queue.EnqueueAsync(fullName, patient.Id);
+
+        // The patient exists either way. Report the queue separately so the
+        // kiosk can show the card and point them at reception rather than
+        // claiming registration failed.
+        return Ok(new
+        {
+            patient.Id,
+            patient.PatientCode,
+            patient.FirstName,
+            patient.MiddleName,
+            patient.LastName,
+            queued = entry is not null,
+            queueNumber = entry?.QueueNumber,
+            queueEntryId = entry?.Id
+        });
     }
 
     [HttpPut("{id}")]

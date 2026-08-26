@@ -390,10 +390,21 @@
         <span class="patient-card__sub">Fertility, OB-GYN and Diagnostic Center</span>
       </header>
 
-      <div class="patient-card__queue">
+      <div class="patient-card__queue" *ngIf="wasQueued; else noTicket">
         <span class="patient-card__queue-label">YOUR QUEUE NUMBER</span>
         <span class="patient-card__queue-number">{{ queueNumber }}</span>
       </div>
+
+      <!-- Registered, but no ticket. Say so rather than showing a number that
+           does not exist in the queue. -->
+      <ng-template #noTicket>
+        <div class="patient-card__queue patient-card__queue--none">
+          <span class="patient-card__queue-label">REGISTERED</span>
+          <span class="patient-card__queue-warn">
+            Please see reception for your queue number
+          </span>
+        </div>
+      </ng-template>
 
       <div class="patient-card__body">
         <div class="patient-card__qr" *ngIf="qrDataUrl; else qrFallback">
@@ -429,7 +440,14 @@
 
     <div class="kiosk__done no-print">
       <h2>You&rsquo;re registered!</h2>
-      <p>Please take a seat &mdash; a staff member will call your number shortly.</p>
+      <p *ngIf="wasQueued">
+        Please take a seat &mdash; a staff member will call number
+        <strong>{{ queueNumber }}</strong> shortly.
+      </p>
+      <p *ngIf="!wasQueued">
+        Your details are saved. Please show this card to reception to get a
+        queue number.
+      </p>
       <div class="kiosk__done-actions">
         <button type="button" class="btn btn-primary" (click)="printCard()">
           <app-icon name="printer" [size]="16"></app-icon>

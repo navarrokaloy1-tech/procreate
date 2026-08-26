@@ -11,9 +11,10 @@ interface RegisteredPatient {
   firstName: string;
   lastName: string;
   middleName: string;
-  dateOfBirth?: string;
-  gender?: string;
-  contactNumber?: string;
+  /** False when the record saved but a queue ticket could not be issued. */
+  queued: boolean;
+  queueNumber: number | null;
+  queueEntryId: number | null;
 }
 
 interface CountryOption { code: string; name: string; }
@@ -332,11 +333,22 @@ export class PatientSignup implements OnInit, OnDestroy {
   // Card
   // ----------------------------------------------------------
 
-  /** The numeric portion of the patient code, used as the big queue number. */
+  /**
+   * The real reception-queue ticket.
+   *
+   * This used to slice the tail off the patient code, which looked like a
+   * queue number but had nothing to do with the queue — the kiosk never
+   * enqueued anyone, so reception stayed empty while the card claimed
+   * otherwise.
+   */
   get queueNumber(): string {
-    if (!this.registered) return '';
-    const parts = this.registered.patientCode.split('-');
-    return parts.length ? parts[parts.length - 1] : this.registered.patientCode;
+    return this.registered?.queueNumber != null
+      ? String(this.registered.queueNumber)
+      : '';
+  }
+
+  get wasQueued(): boolean {
+    return !!this.registered?.queued;
   }
 
   get fullName(): string {
@@ -386,7 +398,7 @@ export class PatientSignup implements OnInit, OnDestroy {
     this.isSubmitting = true;
     this.errorMessage = '';
 
-    this.apiService.post<RegisteredPatient>('patients', this.signupForm.value).subscribe({
+    this.apiService.post<RegisteredPatient>('patients/self-register', this.signupForm.value).subscribe({
       next: (patient) => {
         this.registered = patient;
         this.registeredAt = new Date();

@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Queue;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +15,13 @@ namespace ProCreateApi.Controllers;
 public class QueueController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly QueueAllocator _allocator;
 
-    public QueueController(AppDbContext db) { _db = db; }
+    public QueueController(AppDbContext db, QueueAllocator allocator)
+    {
+        _db = db;
+        _allocator = allocator;
+    }
 
     public record QueueEntryDto(
         int Id, int QueueNumber, string PatientName, int? PatientId,
@@ -54,41 +60,14 @@ public class QueueController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.PatientName))
             return BadRequest(new { message = "Patient name or identifier is required." });
 
-        var day = DateTime.Today;
+        var entry = await _allocator.EnqueueAsync(request.PatientName, request.PatientId);
 
-        // Numbers restart each day. Retry on the unique (date, number) index so
-        // two receptionists clicking at once can't be handed the same ticket.
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            var lastNumber = await _db.QueueEntries
-                .Where(q => q.QueueDate == day)
-                .MaxAsync(q => (int?)q.QueueNumber) ?? 0;
+        if (entry is null)
+            return Conflict(new { message = "Could not allocate a queue number. Please try again." });
 
-            var entry = new QueueEntry
-            {
-                QueueNumber = lastNumber + 1,
-                QueueDate = day,
-                PatientName = request.PatientName.Trim(),
-                PatientId = request.PatientId,
-                Status = "Waiting",
-                AddedAt = DateTime.Now
-            };
-
-            _db.QueueEntries.Add(entry);
-            try
-            {
-                await _db.SaveChangesAsync();
-                return Ok(new QueueEntryDto(
-                    entry.Id, entry.QueueNumber, entry.PatientName, entry.PatientId,
-                    entry.Status, entry.AddedAt, entry.CalledAt));
-            }
-            catch (DbUpdateException)
-            {
-                _db.Entry(entry).State = EntityState.Detached;
-            }
-        }
-
-        return Conflict(new { message = "Could not allocate a queue number. Please try again." });
+        return Ok(new QueueEntryDto(
+            entry.Id, entry.QueueNumber, entry.PatientName, entry.PatientId,
+            entry.Status, entry.AddedAt, entry.CalledAt));
     }
 
     /// <summary>Advance a ticket's state (Waiting → Called → Served, or Skipped).</summary>

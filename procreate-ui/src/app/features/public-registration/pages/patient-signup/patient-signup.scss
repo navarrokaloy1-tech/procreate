@@ -299,3 +299,14 @@ textarea.form-control {
 
   .patient-card__queue-number { color: #000 !important; }
 }
+
+// Registered but no ticket issued — the number is deliberately absent.
+.patient-card__queue--none {
+  .patient-card__queue-warn {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: #856404;
+  }
+}

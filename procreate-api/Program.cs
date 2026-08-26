@@ -1,6 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Locations;
+using ProCreateApi.Services.Queue;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -27,6 +28,8 @@ builder.Services.AddHttpClient<ILocationService, PsgcLocationService>(client =>
     client.BaseAddress = new Uri(psgcOptions.BaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(psgcOptions.TimeoutSeconds + 2);
 });
+
+builder.Services.AddScoped<QueueAllocator>();
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()
