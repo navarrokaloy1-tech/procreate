@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<Doctor> Doctors => Set<Doctor>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -124,6 +125,24 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Appointment>()
             .HasIndex(a => a.ScheduledAt);
+
+        // A certificate outlives the patient record it was issued against, and
+        // walk-in certificates have no patient at all.
+        modelBuilder.Entity<MedicalCertificate>()
+            .HasOne(c => c.Patient)
+            .WithMany()
+            .HasForeignKey(c => c.PatientId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<MedicalCertificate>()
+            .HasOne(c => c.Doctor)
+            .WithMany()
+            .HasForeignKey(c => c.DoctorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<MedicalCertificate>()
+            .HasIndex(c => c.CertificateNumber)
+            .IsUnique();
 
         modelBuilder.Entity<Product>().HasData(
             new Product { Id = 1, Code = "PRD-1001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true },

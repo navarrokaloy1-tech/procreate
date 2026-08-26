@@ -1,0 +1,404 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="file-text" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Medical Certificates</h1>
+        <p class="page-hero__subtitle">
+          Manage and issue professional certificates for patients and walk-ins
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openModal()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Issue New Certificate
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <span class="toolbar__pagesize">
+      <app-combo-select
+        inputId="certPageSize"
+        [options]="pageSizeSelection"
+        [ngModel]="pageSize.toString()"
+        (ngModelChange)="onPageSizeChange($event)"
+      ></app-combo-select>
+      <span class="toolbar__label">entries per page</span>
+    </span>
+
+    <span class="toolbar__spacer"></span>
+
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by name or number..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search certificates"
+      />
+    </label>
+
+    <span class="toolbar__filter">
+      <app-combo-select
+        inputId="certTemplate"
+        [options]="templateOptions"
+        [ngModel]="templateFilter"
+        (ngModelChange)="onTemplateFilter($event)"
+      ></app-combo-select>
+    </span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading certificates...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="certificates.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cert Number</th>
+            <th>Issued To</th>
+            <th>Type</th>
+            <th>Attending Doctor</th>
+            <th>Date Issued</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cert of certificates">
+            <td><span class="cell-code">{{ cert.certificateNumber }}</span></td>
+
+            <td>
+              <span class="cell-stack">
+                <span class="cell-user__name">{{ cert.issuedTo }}</span>
+                <span class="cell-user__sub">
+                  <ng-container *ngIf="cert.isWalkIn; else registered">Walk-in</ng-container>
+                  <ng-template #registered>{{ cert.patientCode }}</ng-template>
+                </span>
+              </span>
+            </td>
+
+            <td>
+              <span [class]="templatePill(cert.template)">{{ cert.template }}</span>
+            </td>
+
+            <td>
+              <div class="cell-user">
+                <span class="avatar avatar--sm">{{ initials(cert.doctorName) }}</span>
+                <span class="cell-user__body">
+                  <span class="cell-user__name">{{ cert.doctorName }}</span>
+                </span>
+              </div>
+            </td>
+
+            <td>{{ cert.issueDate | date: 'MMM d, y' }}</td>
+
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="print(cert)"
+                  title="Print certificate"
+                  aria-label="Print certificate"
+                >
+                  <app-icon name="printer" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(cert)"
+                  title="Delete certificate"
+                  aria-label="Delete certificate"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="file-text" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No certificates found</h3>
+        <p class="empty-rich__text">
+          {{ searchTerm || templateFilter
+            ? 'No records match the current search or filter.'
+            : 'Issue a certificate for a patient or a walk-in to get started.' }}
+        </p>
+        <button type="button" class="btn btn-primary" (click)="openModal()">
+          <app-icon name="plus" [size]="16"></app-icon>
+          Issue New Certificate
+        </button>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="table-footer__range">
+          Showing <strong>{{ rangeStart }}</strong> to <strong>{{ rangeEnd }}</strong>
+          of {{ totalCount }} entries
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+          <button
+            *ngFor="let page of pages"
+            type="button"
+            class="pager__btn"
+            [class.active]="page === pageIndex"
+            (click)="onPageChange(page)"
+          >
+            {{ page + 1 }}
+          </button>
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Issue certificate sheet -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="file-text" [size]="19"></app-icon>
+          Issue Medical Certificate
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__tabs">
+      <button
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="recipientMode === 'registered'"
+        (click)="setRecipientMode('registered')"
+      >
+        Registered Patient
+      </button>
+      <button
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="recipientMode === 'walkin'"
+        (click)="setRecipientMode('walkin')"
+      >
+        Express Walk-in
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <!-- Recipient -->
+      <div class="form-group patient-picker" *ngIf="recipientMode === 'registered'">
+        <label class="form-label" for="certPatient">
+          Select Patient <span class="required-mark">*</span>
+        </label>
+        <input
+          id="certPatient"
+          type="text"
+          class="form-control"
+          placeholder="Search patient name or ID..."
+          autocomplete="off"
+          [value]="patientQuery"
+          (input)="onPatientQuery($any($event.target).value)"
+        />
+        <ul class="patient-picker__results" *ngIf="patientResults.length">
+          <li *ngFor="let patient of patientResults">
+            <button type="button" (mousedown)="$event.preventDefault(); choosePatient(patient)">
+              <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
+              <small>{{ patient.patientCode }}</small>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="form-row" *ngIf="recipientMode === 'walkin'">
+        <div class="form-group">
+          <label class="form-label" for="walkInName">
+            Full Name <span class="required-mark">*</span>
+          </label>
+          <input
+            id="walkInName"
+            type="text"
+            class="form-control"
+            placeholder="Juan Dela Cruz"
+            [(ngModel)]="form.walkInName"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="walkInAge">Age</label>
+          <input id="walkInAge" type="text" class="form-control" placeholder="35" [(ngModel)]="form.walkInAge" />
+        </div>
+        <div class="form-group form-group--full">
+          <label class="form-label" for="walkInAddress">Address</label>
+          <input
+            id="walkInAddress"
+            type="text"
+            class="form-control"
+            placeholder="B1 L2, Street, Barangay, City"
+            [(ngModel)]="form.walkInAddress"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="certIssueDate">Issue Date</label>
+          <input id="certIssueDate" type="date" class="form-control" [(ngModel)]="form.issueDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="certDoctor">
+            Attending Physician <span class="required-mark">*</span>
+          </label>
+          <app-combo-select
+            inputId="certDoctor"
+            placeholder="Select physician"
+            [options]="doctorOptions"
+            [ngModel]="form.doctorId ? form.doctorId.toString() : ''"
+            (ngModelChange)="form.doctorId = +$event"
+          ></app-combo-select>
+        </div>
+      </div>
+
+      <!-- Template picker -->
+      <div class="form-group">
+        <label class="form-label">Certificate Template</label>
+        <div class="template-grid">
+          <button
+            *ngFor="let template of templates"
+            type="button"
+            class="template-card"
+            [class.active]="form.template === template.id"
+            (click)="selectTemplate(template.id)"
+          >
+            <app-icon [name]="template.icon" [size]="20"></app-icon>
+            <span>{{ template.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certDiagnosis">
+          Diagnosis / Medical Findings <span class="required-mark">*</span>
+        </label>
+        <textarea
+          id="certDiagnosis"
+          class="form-control"
+          rows="2"
+          placeholder="Acute Respiratory Infection, etc..."
+          [(ngModel)]="form.diagnosis"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certRecommendation">Recommendation / Advice</label>
+        <textarea
+          id="certRecommendation"
+          class="form-control"
+          rows="2"
+          placeholder="Bed rest for 3 days, Fit to work, etc..."
+          [(ngModel)]="form.recommendation"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certRemarks">Remarks (Internal or Footer Notes)</label>
+        <textarea
+          id="certRemarks"
+          class="form-control"
+          rows="2"
+          placeholder="Optional notes not usually in the cert body"
+          [(ngModel)]="form.remarks"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Generate & Save' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Printed certificate. Hidden on screen. -->
+<div class="print-only cert-sheet" *ngIf="printing">
+  <header class="cert-sheet__head">
+    <h1>Pro-Create</h1>
+    <p>Fertility, OB-GYN and Diagnostic Center</p>
+    <p class="cert-sheet__contact">procreate.clinic&#64;gmail.com</p>
+  </header>
+
+  <hr />
+
+  <h2 class="cert-sheet__title">Medical Certificate</h2>
+  <p class="cert-sheet__number">{{ printing.certificateNumber }}</p>
+
+  <p class="cert-sheet__body">
+    This is to certify that <strong>{{ printing.issuedTo }}</strong> was examined
+    and attended to on {{ printing.issueDate | date: 'MMMM d, y' }}.
+  </p>
+
+  <div class="cert-sheet__section">
+    <h3>Diagnosis / Medical Findings</h3>
+    <p>{{ printing.diagnosis }}</p>
+  </div>
+
+  <div class="cert-sheet__section" *ngIf="printing.recommendation">
+    <h3>Recommendation / Advice</h3>
+    <p>{{ printing.recommendation }}</p>
+  </div>
+
+  <p class="cert-sheet__body">
+    This certification is issued upon the request of the above-named for
+    {{ printing.template === 'Work' ? 'employment' : printing.template === 'School' ? 'school' : 'whatever legal' }}
+    purposes it may serve.
+  </p>
+
+  <div class="cert-sheet__sign">
+    <p class="cert-sheet__sign-name">{{ printing.doctorName }}</p>
+    <p class="cert-sheet__sign-label">Attending Physician</p>
+  </div>
+
+  <p class="cert-sheet__remarks" *ngIf="printing.remarks">{{ printing.remarks }}</p>
+</div>

@@ -266,6 +266,39 @@ public class DoctorSchedule
     public string EndTime { get; set; } = "17:00";
 }
 
+/// <summary>
+/// A certificate issued to a patient or to an unregistered walk-in. Exactly one
+/// of PatientId / WalkInName identifies the recipient — see IssuedTo.
+/// </summary>
+public class MedicalCertificate
+{
+    public int Id { get; set; }
+    public string CertificateNumber { get; set; } = string.Empty;
+
+    /// <summary>Set when issued to a registered patient.</summary>
+    public int? PatientId { get; set; }
+    public Patient? Patient { get; set; }
+
+    /// <summary>Set instead of PatientId for an express walk-in.</summary>
+    public string WalkInName { get; set; } = string.Empty;
+    public string WalkInAge { get; set; } = string.Empty;
+    public string WalkInAddress { get; set; } = string.Empty;
+
+    public int DoctorId { get; set; }
+    public Doctor Doctor { get; set; } = null!;
+
+    public DateTime IssueDate { get; set; } = DateTime.Today;
+    /// <summary>General | Work | School</summary>
+    public string Template { get; set; } = "General";
+
+    public string Diagnosis { get; set; } = string.Empty;
+    public string Recommendation { get; set; } = string.Empty;
+    /// <summary>Internal or footer notes, not usually printed in the body.</summary>
+    public string Remarks { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class Appointment
 {
     public int Id { get; set; }

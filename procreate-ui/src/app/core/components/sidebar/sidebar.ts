@@ -67,7 +67,14 @@ export class SidebarComponent implements OnInit {
         },
         {
           label: 'Medical Records',
-          items: [{ label: 'Consultations', route: '/app/visits', icon: 'file-text' }]
+          items: [
+            { label: 'Consultations', route: '/app/visits', icon: 'stethoscope' },
+            {
+              label: 'Medical Certificates',
+              route: '/app/medical-records/certificates',
+              icon: 'file-text'
+            }
+          ]
         }
       ];
     }
@@ -87,8 +94,18 @@ export class SidebarComponent implements OnInit {
         label: 'Patient Care',
         items: [
           { label: 'Patients', route: '/app/patients', icon: 'patients' },
-          { label: 'Patient Services', route: '/app/visits', icon: 'stethoscope' },
           { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
+        ]
+      },
+      {
+        label: 'Medical Records',
+        items: [
+          { label: 'Consultations', route: '/app/visits', icon: 'stethoscope' },
+          {
+            label: 'Medical Certificates',
+            route: '/app/medical-records/certificates',
+            icon: 'file-text'
+          }
         ]
       },
       {

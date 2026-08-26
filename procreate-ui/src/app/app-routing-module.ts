@@ -52,6 +52,13 @@ const routes: Routes = [
           import('./features/doctors/doctors-module').then(m => m.DoctorsModule)
       },
       {
+        path: 'medical-records',
+        loadChildren: () =>
+          import('./features/medical-records/medical-records-module').then(
+            m => m.MedicalRecordsModule
+          )
+      },
+      {
         path: 'patients',
         loadChildren: () =>
           import('./features/patients/patients-module').then(m => m.PatientsModule)
