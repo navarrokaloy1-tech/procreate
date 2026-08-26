@@ -1535,14 +1535,22 @@ textarea.form-control {
     letter-spacing: 0.5px;
   }
 
-  // Tighter banner for detail pages
+  // Tighter banner for detail pages.
+  //
+  // Only the top padding changes. It must NOT redefine --hero-overlap: the
+  // overlapping content is a sibling, and custom properties inherit down the
+  // tree rather than sideways, so the banner would reserve one distance while
+  // the content pulled up by another — clipping the subtitle.
   &--compact {
     padding-top: 22px;
-    --hero-overlap: 72px;
   }
 }
 
-// Content that lifts up over the banner's lower edge
+// Content that lifts up over the banner's lower edge.
+//
+// The banner reserves `--hero-overlap + 16` of bottom padding and this pulls
+// back `--hero-overlap`, leaving a 16px gap under the title block. Both sides
+// must resolve the same value, so it stays defined only on :root.
 .hero-overlap {
   position: relative;
   z-index: 2;
