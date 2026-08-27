@@ -1,244 +1,78 @@
-﻿.page-header {
-  margin-bottom: 16px;
+// Hero, department tabs, cards, pills and the table footer all come from the
+// shared console pattern layer in styles.scss.
 
-  h1 {
-    font-size: 22px;
-    font-weight: 700;
-    color: #343a40;
-    margin: 0;
-  }
+// The department tabs already take the banner overlap, so the card only needs
+// a normal gap under them.
+//
+// It is positioned so it shares a paint layer with the banner. A static block
+// paints in an earlier layer than a positioned one, so the banner would draw
+// over the top of this card even though it comes first in the DOM.
+.lab-card {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
 }
 
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.filter-tab {
-  padding: 7px 16px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  color: #6c757d;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover:not(.active) {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-    color: #495057;
-  }
-
-  &.active {
-    background-color: #C49A6C;
-    border-color: #C49A6C;
-    color: white;
-  }
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 0;
-  color: #6c757d;
-
-  p {
-    margin-top: 12px;
-    font-size: 14px;
-  }
-}
-
-.card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-.card-body {
-  padding: 20px;
+.data-table-scroll {
+  overflow-x: auto;
 }
 
 .data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  th:first-child,
+  td:first-child { padding-left: 16px; }
 
-  th {
-    background-color: #f8f9fa;
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #6c757d;
-    border-bottom: 1px solid #dee2e6;
-    white-space: nowrap;
-  }
+  th:last-child,
+  td:last-child { padding-right: 16px; }
 
-  td {
-    padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
-    color: #343a40;
-    vertical-align: middle;
-  }
-
-  tbody tr {
-    transition: background-color 0.1s ease;
-
-    &:hover {
-      background-color: #f8f9fa;
-    }
-
-    &:last-child td {
-      border-bottom: none;
-    }
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
   }
 }
 
-.badge {
-  display: inline-block;
-  padding: 3px 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #495057;
-  font-family: monospace;
+// The whole row opens the order; the patient name and the action buttons
+// stop propagation so they can do their own thing.
+.order-row {
+  cursor: pointer;
 
-  &.badge-info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-  }
-
-  &.badge-warning {
-    background-color: #fff3cd;
-    color: #856404;
-  }
-
-  &.badge-secondary {
-    background-color: #e2e3e5;
-    color: #383d41;
-  }
-
-  &.badge-success {
-    background-color: #d4edda;
-    color: #155724;
+  &:hover {
+    background: var(--light);
   }
 }
 
-.barcode-text {
-  font-family: monospace;
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: #495057;
+.cell-link {
+  color: var(--text-primary);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+  }
 }
 
-.action-btns {
-  display: flex;
-  gap: 6px;
-  flex-wrap: nowrap;
-}
-
-.btn {
+.cell-badges {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
-  text-decoration: none;
-  white-space: nowrap;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  &.btn-sm {
-    padding: 5px 10px;
-    font-size: 12px;
-    border-radius: 5px;
-  }
-
-  &.btn-primary {
-    background-color: #C49A6C;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background-color: #0069d9;
-    }
-  }
-
-  &.btn-warning {
-    background-color: #ffc107;
-    color: #212529;
-
-    &:hover:not(:disabled) {
-      background-color: #e0a800;
-    }
-  }
-
-  &.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background-color: #5a6268;
-    }
-  }
-
-  &.btn-danger {
-    background-color: #dc3545;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background-color: #c82333;
-    }
-  }
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
+.row-actions {
+  display: inline-flex;
   align-items: center;
-  padding: 48px 0;
-  color: #6c757d;
-  gap: 8px;
-
-  p {
-    margin: 0;
-    font-size: 14px;
-  }
-
-  a {
-    color: #C49A6C;
-    text-decoration: underline;
-    cursor: pointer;
-  }
+  justify-content: flex-end;
+  gap: 6px;
 }
 
-// Pagination now uses the shared .table-footer / .pager pattern from
-// styles.scss, which lays the range out on the left and the pager on the
-// right instead of centring both.
+// ------------------------------------------------------------
+// Scan-to-find chip
+// ------------------------------------------------------------
 
-
-// Shows which scanned code is narrowing the list, with a way to drop it.
 .scan-chip {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin: 0 16px 14px;
   padding: 9px 12px;
   border: 1px solid var(--primary);
   border-radius: var(--border-radius);
@@ -285,9 +119,32 @@
   }
 }
 
-.page-actions {
+// ------------------------------------------------------------
+// Loading
+// ------------------------------------------------------------
+
+.loading-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: lab-orders-spin 0.7s linear infinite;
+}
+
+@keyframes lab-orders-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .toolbar__search { flex: 1 1 100%; }
 }

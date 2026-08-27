@@ -1,174 +1,274 @@
-<div class="page-header page-actions">
-  <h1>Lab Orders</h1>
-  <button type="button" class="btn btn-primary" (click)="openScanner()">
-    <app-icon name="qr" [size]="16"></app-icon>
-    Scan to Find
-  </button>
-</div>
+<section class="page-hero page-hero--tabs">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="flask" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Laboratory &amp; Diagnostics</h1>
+        <p class="page-hero__subtitle">
+          Manage diagnostic orders, status tracking, and results processing
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero-ghost" (click)="openScanner()">
+        <app-icon name="qr" [size]="16"></app-icon>
+        Scan to Find
+      </button>
+      <button type="button" class="btn btn-hero" (click)="newOrder()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        New Order
+      </button>
+    </div>
+  </div>
+</section>
 
-<!-- What a scan narrowed the list to, and how to get back -->
-<div class="scan-chip" *ngIf="scanFilter">
-  <app-icon name="qr" [size]="15"></app-icon>
-  <span class="scan-chip__body">
-    <strong>{{ scanFilter }}</strong>
-    <small>{{ scanFilterLabel }}</small>
-  </span>
-  <button type="button" class="scan-chip__clear" (click)="clearScanFilter()">
-    <app-icon name="x" [size]="14"></app-icon>
-    Clear
-  </button>
-</div>
-
-<div class="filter-tabs">
+<!-- Department tabs, sitting over the banner edge -->
+<div class="hero-tabs">
   <button
-    *ngFor="let filter of statusFilters"
-    class="filter-tab"
-    [class.active]="activeFilter === filter"
-    (click)="onFilterChange(filter)"
+    *ngFor="let department of departments"
+    type="button"
+    class="hero-tabs__tab"
+    [class.active]="activeDepartment === department.name"
+    (click)="onDepartmentChange(department.name)"
   >
-    {{ filter }}
+    <app-icon [name]="departmentIcon(department.name)" [size]="16"></app-icon>
+    {{ department.name }}
+    <span class="hero-tabs__count" *ngIf="department.count > 0">{{ department.count }}</span>
   </button>
 </div>
 
-<div *ngIf="isLoading" class="loading-state">
-  <div class="spinner"></div>
-  <p>Loading lab orders...</p>
-</div>
+<div class="card lab-card">
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button
+        *ngFor="let stage of stageFilters"
+        type="button"
+        class="filter-tab"
+        [class.active]="activeStage === stage"
+        (click)="onStageChange(stage)"
+      >
+        {{ stage }}
+      </button>
+    </div>
 
-<ng-container *ngIf="!isLoading">
-  <div class="card">
-    <div class="card-body">
-      <table class="data-table" *ngIf="visibleOrders.length > 0; else emptyState">
+    <span class="toolbar__spacer"></span>
+
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by order #, test, or patient..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search diagnostic orders"
+      />
+    </label>
+  </div>
+
+  <!-- What a scan narrowed the list to, and how to get back -->
+  <div class="scan-chip" *ngIf="scanFilter">
+    <app-icon name="qr" [size]="15"></app-icon>
+    <span class="scan-chip__body">
+      <strong>{{ scanFilter }}</strong>
+      <small>{{ scanFilterLabel }}</small>
+    </span>
+    <button type="button" class="scan-chip__clear" (click)="clearScanFilter()">
+      <app-icon name="x" [size]="14"></app-icon>
+      Clear
+    </button>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading {{ activeDepartment }} orders...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="filteredCount > 0; else emptyState">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>Order Code</th>
-            <th>Visit Code</th>
+            <th>Order</th>
             <th>Patient</th>
-            <th>Test Name</th>
-            <th>Barcode</th>
+            <th>Study</th>
             <th>Status</th>
-            <th>Ordered Date</th>
-            <th>Actions</th>
+            <th>Ordered</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let order of pagedOrders">
+          <tr *ngFor="let order of pagedOrders" class="order-row" (click)="openOrder(order.id)">
             <td>
-              <span class="badge">{{ order.orderCode }}</span>
-            </td>
-            <td>
-              <span class="badge">{{ order.visitCode }}</span>
-            </td>
-            <td>{{ order.patientName }}</td>
-            <td>{{ order.testName }}</td>
-            <td>
-              <span class="barcode-text">{{ order.specimenBarcode }}</span>
-            </td>
-            <td>
-              <span class="badge" [ngClass]="getStatusClass(order.status)">
-                {{ order.status }}
+              <span class="cell-stack">
+                <span class="cell-code">{{ order.orderCode }}</span>
+                <span class="cell-stack__sub">{{ order.specimenBarcode || order.visitCode }}</span>
               </span>
             </td>
-            <td>{{ order.orderedDate | date: 'MMM d, yyyy' }}</td>
+
             <td>
-              <div class="action-btns">
+              <div class="cell-user">
+                <span class="avatar">{{ initials(order.patientName) }}</span>
+                <span class="cell-user__body">
+                  <a
+                    href="javascript:void(0)"
+                    class="cell-user__name cell-link"
+                    (click)="openPatient(order, $event)"
+                  >
+                    {{ order.patientName }}
+                  </a>
+                  <span class="cell-user__sub">{{ order.patientCode }}</span>
+                </span>
+              </div>
+            </td>
+
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value">{{ order.testName }}</span>
+                <span class="cell-stack__sub">{{ order.categoryName }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="cell-badges">
+                <span [class]="stagePill(order.stage)">{{ order.stage }}</span>
+                <span class="pill pill--danger" *ngIf="order.isAbnormal">
+                  <app-icon name="alert-triangle" [size]="11"></app-icon>
+                  Abnormal
+                </span>
+              </span>
+            </td>
+
+            <td>{{ order.orderedDate | date: 'MMM d, y' }}</td>
+
+            <td class="text-right">
+              <div class="row-actions" (click)="$event.stopPropagation()">
                 <button
-                  *ngIf="order.status === 'Ordered'"
+                  *ngIf="order.stage === 'Pending'"
+                  type="button"
                   class="btn btn-sm btn-primary"
-                  (click)="collectSpecimen(order.id)"
+                  (click)="collectSpecimen(order)"
                 >
-                  Collect Specimen
+                  {{ collectLabel(order) }}
                 </button>
                 <button
-                  *ngIf="order.status === 'Collected'"
+                  *ngIf="order.stage === 'In Progress'"
+                  type="button"
                   class="btn btn-sm btn-warning"
-                  (click)="navigateToEncode(order.id)"
+                  (click)="openOrder(order.id)"
                 >
-                  Encode Results
+                  {{ encodeLabel(order) }}
                 </button>
                 <button
-                  *ngIf="order.status === 'Resulted' || order.status === 'Released'"
-                  class="btn btn-sm btn-secondary"
-                  (click)="navigateToEncode(order.id)"
+                  *ngIf="order.stage === 'For Reading'"
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  (click)="openOrder(order.id)"
                 >
-                  View Results
+                  Read &amp; Release
+                </button>
+                <button
+                  *ngIf="order.stage === 'Completed'"
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="openOrder(order.id)"
+                  title="View result"
+                  aria-label="View result"
+                >
+                  <app-icon name="eye" [size]="17"></app-icon>
                 </button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
 
-      <ng-template #emptyState>
-        <div class="empty-state">
-          <p>No lab orders found.</p>
-          <p *ngIf="scanFilter">
-            Nothing matches the scanned code under the current filter.
-            <a href="javascript:void(0)" (click)="clearScanFilter()">Clear the scan</a>.
-          </p>
-          <p *ngIf="!scanFilter && activeFilter !== 'All'">
-            Try selecting a different filter or
-            <a href="javascript:void(0)" (click)="onFilterChange('All')">view all orders</a>.
-          </p>
-        </div>
-      </ng-template>
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon">
+          <app-icon [name]="departmentIcon(activeDepartment)" [size]="32"></app-icon>
+        </span>
+        <h3 class="empty-rich__title">No orders found</h3>
+        <p class="empty-rich__text">
+          <ng-container *ngIf="hasFilters; else queueEmpty">
+            No {{ activeDepartment }} orders match the current search or filter.
+          </ng-container>
+          <ng-template #queueEmpty>
+            The {{ activeDepartment }} queue is currently empty.
+          </ng-template>
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          *ngIf="hasFilters; else addFirst"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+        <ng-template #addFirst>
+          <button type="button" class="btn btn-primary" (click)="newOrder()">
+            <app-icon name="plus" [size]="16"></app-icon>
+            New Diagnostic Order
+          </button>
+        </ng-template>
+      </div>
+    </ng-template>
 
-      <div class="table-footer" *ngIf="filteredCount > 0">
-        <div class="table-footer__left">
-          <span class="select-field select-field--sm">
-            <select
-              [ngModel]="pageSize"
-              (ngModelChange)="onPageSizeChange($event)"
-              name="pageSize"
-              aria-label="Rows per page"
-            >
-              <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
-            </select>
-            <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
-          </span>
-          <span class="table-footer__range">
-            <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ filteredCount }} total
-          </span>
-        </div>
+    <div class="table-footer" *ngIf="filteredCount > 0">
+      <div class="table-footer__left">
+        <span class="select-field select-field--sm">
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            name="pageSize"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <span class="table-footer__range">
+          <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ filteredCount }} total
+        </span>
+      </div>
 
-        <div class="table-footer__right" *ngIf="totalPages > 1">
-          <div class="pager">
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
             <button
+              *ngIf="page >= 0"
               type="button"
               class="pager__btn"
-              [disabled]="pageIndex === 0"
-              (click)="onPageChange(pageIndex - 1)"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
             >
-              &laquo; Previous
+              {{ page + 1 }}
             </button>
+          </ng-container>
 
-            <ng-container *ngFor="let page of pages">
-              <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
-              <button
-                *ngIf="page >= 0"
-                type="button"
-                class="pager__btn"
-                [class.active]="page === pageIndex"
-                (click)="onPageChange(page)"
-              >
-                {{ page + 1 }}
-              </button>
-            </ng-container>
-
-            <button
-              type="button"
-              class="pager__btn"
-              [disabled]="pageIndex === totalPages - 1"
-              (click)="onPageChange(pageIndex + 1)"
-            >
-              Next &raquo;
-            </button>
-          </div>
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
         </div>
       </div>
     </div>
-  </div>
-</ng-container>
+  </ng-container>
+</div>
 
 <app-qr-scanner
   [open]="isScannerOpen"

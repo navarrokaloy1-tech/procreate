@@ -1387,6 +1387,10 @@ textarea.form-control {
   --hero-glow: radial-gradient(circle at 88% 15%, rgba(196, 154, 108, 0.28) 0%, rgba(196, 154, 108, 0) 60%);
   --hero-height: 200px;
   --hero-overlap: 96px;
+
+  // How far a .hero-tabs strip is pulled up into the banner. Smaller than
+  // --hero-overlap because the strip is one row tall, not a whole card.
+  --hero-tab-overlap: 44px;
 }
 
 // ------------------------------------------------------------
@@ -1544,6 +1548,14 @@ textarea.form-control {
   &--compact {
     padding-top: 22px;
   }
+
+  // Followed by a .hero-tabs strip instead of a content card. The default
+  // bottom padding reserves room for a whole card, which leaves a one-row
+  // strip well short of the banner edge — and because .page-hero is
+  // positioned, it then paints over the static content card below it.
+  &--tabs {
+    padding-bottom: calc(var(--hero-tab-overlap) + 16px);
+  }
 }
 
 // Content that lifts up over the banner's lower edge.
@@ -1564,8 +1576,12 @@ textarea.form-control {
   display: flex;
   gap: 4px;
   padding: 6px;
-  margin-top: calc(var(--hero-overlap) * -1);
-  background: rgba(255, 255, 255, 0.9);
+  margin-top: calc(var(--hero-tab-overlap) * -1);
+  // Opaque, and the same tint as .filter-tabs. A translucent strip picks up
+  // whatever it happens to sit over — the banner glow on the right, the page
+  // background on the few pixels below the banner edge — so the trough looked
+  // unevenly lit and lost its contrast against the white active tab.
+  background: var(--light);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
@@ -1597,6 +1613,26 @@ textarea.form-control {
       font-weight: 600;
       box-shadow: var(--shadow-sm);
     }
+  }
+
+  // Live order count beside a tab label
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--border-color);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  &__tab.active &__count {
+    background: var(--primary-light);
+    color: var(--primary-dark);
   }
 }
 
@@ -1924,6 +1960,55 @@ textarea.form-control {
   .cell-empty { color: var(--text-muted); }
 }
 
+// The same cell helpers outside a table, for detail pages and card bodies.
+// Deliberately lower specificity than the .data-table rules above, which keep
+// their own spacing.
+.cell-code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.cell-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  &__body { min-width: 0; }
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__sub {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+.cell-stack {
+  display: block;
+  min-width: 0;
+
+  &__value {
+    display: block;
+    color: var(--text-primary);
+  }
+
+  &__sub {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+.cell-empty { color: var(--text-muted); }
+
 // Ghost icon buttons in an actions column
 .table-actions {
   display: inline-flex;
@@ -2166,6 +2251,27 @@ textarea.form-control {
 
   &__body { padding: 16px; }
 
+  // Action row under the body. Buttons sit right, notes left.
+  &__foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-color);
+    background: var(--light);
+    flex-wrap: wrap;
+  }
+
+  &__foot-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__foot-spacer { flex: 1 1 auto; }
+
   // Red-banner variant for allergies / critical flags
   &--critical {
     border-color: var(--danger);
@@ -2186,6 +2292,9 @@ textarea.form-control {
   gap: 14px;
 
   &--2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  // Spans every column of the grid it sits in
+  &__wide { grid-column: 1 / -1; }
 
   &__label {
     display: block;
@@ -2279,6 +2388,11 @@ textarea.form-control {
 
   &--success .timeline__dot { background: var(--success-green); }
   &--info    .timeline__dot { background: var(--info); }
+
+  // Or colour a single step, when the steps differ in kind
+  &__dot--success { background: var(--success-green); }
+  &__dot--info    { background: var(--info); }
+  &__dot--muted   { background: var(--text-muted); }
 }
 
 // File / attachment row

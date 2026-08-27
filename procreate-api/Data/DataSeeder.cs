@@ -117,8 +117,134 @@ public static class DataSeeder
 
         db.SaveChanges();
 
+        // ---------- Diagnostics outside the lab bench ----------
+        SeedDiagnosticStudies(db, maria, juan, today);
+
+        // ---------- Clinical chart for the first patient ----------
+        SeedChart(db, maria, today);
+
         // ---------- Cashier Orders (Product/Order domain) ----------
         SeedOrders(db, juan, today);
+    }
+
+    /// <summary>
+    /// Imaging, ultrasound and heart-station orders, so the Laboratory console
+    /// has something under every department tab. These studies carry no test
+    /// parameters, so the reading is stored as narrative findings.
+    /// </summary>
+    private static void SeedDiagnosticStudies(AppDbContext db, Patient maria, Patient juan, DateTime today)
+    {
+        string Stamp() => today.ToString("yyyyMMdd");
+
+        var chestXray = db.LabTests.First(t => t.Code == "CXR-APL");
+        var breastUs = db.LabTests.First(t => t.Code == "BUS");
+        var ecg = db.LabTests.First(t => t.Code == "ECG");
+
+        // Maria: an imaging and an ultrasound study, both read and released.
+        var v4 = new Visit
+        {
+            VisitCode = $"VS-{Stamp()}-0004", PatientId = maria.Id, VisitDate = today.AddDays(-2),
+            ReferringPhysician = "Dr. Lopez", Purpose = "Diagnostic imaging", Status = "Completed",
+            TotalAmount = chestXray.Price + breastUs.Price, AmountPaid = chestXray.Price + breastUs.Price,
+            PaymentStatus = "Paid", PaymentMethod = "Card"
+        };
+        db.Visits.Add(v4);
+        db.SaveChanges();
+
+        db.LabOrders.AddRange(
+            new LabOrder
+            {
+                VisitId = v4.Id, LabTestId = chestXray.Id, Status = "Released",
+                SpecimenBarcode = $"IMG-{Stamp()}-001",
+                CollectedAt = today.AddDays(-2), ProcessedAt = today.AddDays(-2).AddHours(1),
+                ReleasedAt = today.AddDays(-2).AddHours(2), ResultedBy = "Dr. Maria Lopez",
+                NarrativeFindings =
+                    "Lung fields are clear. Heart is not enlarged. Both hemidiaphragms and costophrenic "
+                    + "sulci are intact. The visualised osseous structures are unremarkable.\n\n"
+                    + "IMPRESSION: No significant chest findings."
+            },
+            new LabOrder
+            {
+                VisitId = v4.Id, LabTestId = breastUs.Id, Status = "Released",
+                SpecimenBarcode = $"IMG-{Stamp()}-002",
+                CollectedAt = today.AddDays(-2), ProcessedAt = today.AddDays(-2).AddHours(1),
+                ReleasedAt = today.AddDays(-2).AddHours(3), ResultedBy = "Dr. Maria Lopez",
+                IsAbnormal = true,
+                NarrativeFindings =
+                    "A well-circumscribed hypoechoic nodule measuring 0.8 x 0.6 cm is seen in the upper "
+                    + "outer quadrant of the right breast. No posterior shadowing.\n\n"
+                    + "IMPRESSION: Probably benign nodule, right breast. Follow-up in six months advised."
+            }
+        );
+
+        // Juan: a tracing waiting to be read, so the For Reading tab is not empty.
+        var v5 = new Visit
+        {
+            VisitCode = $"VS-{Stamp()}-0005", PatientId = juan.Id, VisitDate = today.AddHours(-2),
+            ReferringPhysician = "Dr. Bautista", Purpose = "Cardiac screening", Status = "Processing",
+            TotalAmount = ecg.Price, AmountPaid = 0, PaymentStatus = "Unpaid"
+        };
+        db.Visits.Add(v5);
+        db.SaveChanges();
+
+        db.LabOrders.Add(new LabOrder
+        {
+            VisitId = v5.Id, LabTestId = ecg.Id, Status = "Collected",
+            SpecimenBarcode = $"HST-{Stamp()}-001", CollectedAt = today.AddHours(-1)
+        });
+
+        db.SaveChanges();
+    }
+
+    /// <summary>
+    /// Allergies, medications, history and vitals for one patient, so the
+    /// patient chart is not an empty shell on a fresh database.
+    /// </summary>
+    private static void SeedChart(AppDbContext db, Patient patient, DateTime today)
+    {
+        if (db.PatientAllergies.Any()) return;
+
+        db.PatientAllergies.AddRange(
+            new PatientAllergy
+            {
+                PatientId = patient.Id, Substance = "Penicillin",
+                Severity = "Severe", Reaction = "Urticaria and facial swelling"
+            },
+            new PatientAllergy
+            {
+                PatientId = patient.Id, Substance = "Shellfish",
+                Severity = "Mild", Reaction = "Itching"
+            }
+        );
+
+        db.PatientMedications.Add(new PatientMedication
+        {
+            PatientId = patient.Id, Name = "Folic Acid", Dosage = "5 mg",
+            Frequency = "Once daily", Notes = "Preconception supplementation"
+        });
+
+        db.PatientConditions.Add(new PatientCondition
+        {
+            PatientId = patient.Id, Condition = "Polycystic ovary syndrome",
+            DiagnosedOn = "2021", Notes = "Managed with lifestyle changes"
+        });
+
+        db.VitalSignRecords.AddRange(
+            new VitalSignRecord
+            {
+                PatientId = patient.Id, RecordedAt = today.AddDays(-2), RecordedBy = "Dr. Maria Lopez",
+                SystolicBp = 118, DiastolicBp = 76, HeartRate = 72, RespiratoryRate = 18,
+                TemperatureC = 36.6m, WeightKg = 58.4m, HeightCm = 160m, OxygenSaturation = 98
+            },
+            new VitalSignRecord
+            {
+                PatientId = patient.Id, RecordedAt = today.AddHours(-5), RecordedBy = "Dr. Maria Lopez",
+                SystolicBp = 120, DiastolicBp = 80, HeartRate = 66, RespiratoryRate = 20,
+                TemperatureC = 36.8m, WeightKg = 58.1m, HeightCm = 160m, OxygenSaturation = 99
+            }
+        );
+
+        db.SaveChanges();
     }
 
     /// <summary>

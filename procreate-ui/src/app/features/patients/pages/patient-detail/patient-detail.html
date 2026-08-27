@@ -1,0 +1,984 @@
+<section class="page-hero page-hero--compact">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to Patients">
+        <app-icon name="arrow-left" [size]="18"></app-icon>
+      </button>
+
+      <ng-container *ngIf="chart; else headingFallback">
+        <span class="avatar avatar--lg avatar--dark hero-avatar">
+          {{ initials(chart.patient.fullName) }}
+        </span>
+        <div class="page-hero__heading">
+          <h1>{{ chart.patient.fullName }}</h1>
+          <p class="page-hero__meta">
+            <span class="page-hero__code">{{ chart.patient.patientCode }}</span>
+            <span>
+              {{ chart.patient.age }} years old &middot;
+              {{ chart.patient.gender || 'Not specified' }}
+            </span>
+          </p>
+        </div>
+      </ng-container>
+      <ng-template #headingFallback>
+        <div class="page-hero__heading"><h1>Patient</h1></div>
+      </ng-template>
+    </div>
+
+    <div class="page-hero__actions" *ngIf="chart">
+      <button type="button" class="btn btn-hero-ghost" (click)="editPatient()">
+        <app-icon name="edit" [size]="16"></app-icon>
+        Edit
+      </button>
+      <button type="button" class="btn btn-hero" (click)="issueCertificate()">
+        <app-icon name="file-text" [size]="16"></app-icon>
+        Issue certificate
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap" *ngIf="isLoading">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading patient chart...</p>
+  </div>
+</div>
+
+<div class="card hero-overlap" *ngIf="!isLoading && !chart">
+  <div class="empty-rich">
+    <span class="empty-rich__icon"><app-icon name="alert-circle" [size]="32"></app-icon></span>
+    <h3 class="empty-rich__title">{{ errorMessage || 'Patient not found' }}</h3>
+    <button type="button" class="btn btn-primary" (click)="back()">Back to Patients</button>
+  </div>
+</div>
+
+<div class="detail-grid hero-overlap" *ngIf="!isLoading && chart">
+  <!-- ==================== Left column: who they are ==================== -->
+  <div class="detail-grid__col">
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="user" [size]="17"></app-icon>
+          Personal Information
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list">
+          <div>
+            <span class="field-list__label">Date of Birth</span>
+            <span class="field-list__value">
+              {{ chart.patient.dateOfBirth | date: 'MMMM d, y' }}
+            </span>
+          </div>
+          <div>
+            <span class="field-list__label">Civil Status</span>
+            <span class="field-list__value">{{ chart.patient.civilStatus || 'Not specified' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Occupation</span>
+            <span class="field-list__value">{{ chart.patient.occupation || 'Not specified' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Blood Type</span>
+            <span class="field-list__value">
+              <span class="pill pill--primary" *ngIf="chart.patient.bloodType; else noBlood">
+                {{ chart.patient.bloodType }}
+              </span>
+              <ng-template #noBlood>Unknown</ng-template>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="phone" [size]="17"></app-icon>
+          Contact Information
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list">
+          <div>
+            <span class="field-list__label">Mobile</span>
+            <span class="field-list__value">{{ chart.patient.contactNumber || 'Not on file' }}</span>
+          </div>
+          <div *ngIf="chart.patient.landline">
+            <span class="field-list__label">Landline</span>
+            <span class="field-list__value">{{ chart.patient.landline }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Email</span>
+            <span class="field-list__value">{{ chart.patient.email || 'Not on file' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Address</span>
+            <span class="field-list__value">{{ chart.patient.address || 'Not on file' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="shield" [size]="17"></app-icon>
+          Insurance &amp; Discounts
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list" *ngIf="hasInsurance; else noInsurance">
+          <div *ngIf="chart.patient.philHealthNumber">
+            <span class="field-list__label">PhilHealth</span>
+            <span class="field-list__value">{{ chart.patient.philHealthNumber }}</span>
+          </div>
+          <div *ngIf="chart.patient.seniorCitizenId">
+            <span class="field-list__label">Senior Citizen ID</span>
+            <span class="field-list__value">{{ chart.patient.seniorCitizenId }}</span>
+          </div>
+          <div *ngIf="chart.patient.pwdId">
+            <span class="field-list__label">PWD ID</span>
+            <span class="field-list__value">{{ chart.patient.pwdId }}</span>
+          </div>
+          <div *ngIf="chart.patient.hmoProvider">
+            <span class="field-list__label">HMO</span>
+            <span class="field-list__value">
+              {{ chart.patient.hmoProvider }}
+              <small class="text-muted" *ngIf="chart.patient.hmoAccountNumber">
+                &middot; {{ chart.patient.hmoAccountNumber }}
+              </small>
+            </span>
+          </div>
+        </div>
+        <ng-template #noInsurance>
+          <p class="text-muted">No insurance information on file</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="info-card" *ngIf="chart.patient.emergencyContactName">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="users" [size]="17"></app-icon>
+          Emergency Contact
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list">
+          <div>
+            <span class="field-list__label">Name</span>
+            <span class="field-list__value">
+              {{ chart.patient.emergencyContactName }}
+              <small class="text-muted" *ngIf="chart.patient.emergencyContactRelationship">
+                &middot; {{ chart.patient.emergencyContactRelationship }}
+              </small>
+            </span>
+          </div>
+          <div>
+            <span class="field-list__label">Contact Number</span>
+            <span class="field-list__value">
+              {{ chart.patient.emergencyContactNumber || 'Not on file' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Right column: the chart ==================== -->
+  <div class="detail-grid__col">
+    <!-- Allergies lead the chart: they change what is safe to prescribe. -->
+    <div class="info-card" [class.info-card--critical]="chart.allergies.length > 0">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="alert-triangle" [size]="17"></app-icon>
+          Patient Allergies
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openAllergies()">
+          Update
+        </button>
+      </div>
+      <div class="info-card__body">
+        <ul class="allergy-list" *ngIf="chart.allergies.length > 0; else noAllergies">
+          <li *ngFor="let allergy of chart.allergies">
+            <span class="allergy-list__name">{{ allergy.substance }}</span>
+            <span [class]="severityPill(allergy.severity)" *ngIf="allergy.severity">
+              {{ allergy.severity }}
+            </span>
+            <span class="allergy-list__reaction" *ngIf="allergy.reaction">
+              {{ allergy.reaction }}
+            </span>
+          </li>
+        </ul>
+        <ng-template #noAllergies>
+          <p class="text-muted">No known allergies recorded</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="link" [size]="17"></app-icon>
+          Current Medications
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openMedications()">
+          Edit
+        </button>
+      </div>
+      <div class="info-card__body">
+        <div class="record-list" *ngIf="chart.medications.length > 0; else noMeds">
+          <div class="record-list__item" *ngFor="let medication of chart.medications">
+            <span class="record-list__name">{{ medication.name }}</span>
+            <span class="record-list__meta">
+              <ng-container *ngIf="medication.dosage">{{ medication.dosage }}</ng-container>
+              <ng-container *ngIf="medication.dosage && medication.frequency"> &middot; </ng-container>
+              <ng-container *ngIf="medication.frequency">{{ medication.frequency }}</ng-container>
+            </span>
+            <span class="record-list__note" *ngIf="medication.notes">{{ medication.notes }}</span>
+          </div>
+        </div>
+        <ng-template #noMeds>
+          <p class="text-muted">No medications recorded</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="heart" [size]="17"></app-icon>
+          Medical History
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openConditions()">
+          Edit
+        </button>
+      </div>
+      <div class="info-card__body">
+        <div class="record-list" *ngIf="chart.conditions.length > 0; else noHistory">
+          <div class="record-list__item" *ngFor="let condition of chart.conditions">
+            <span class="record-list__name">{{ condition.condition }}</span>
+            <span class="record-list__meta" *ngIf="condition.diagnosedOn">
+              Diagnosed {{ condition.diagnosedOn }}
+            </span>
+            <span class="record-list__note" *ngIf="condition.notes">{{ condition.notes }}</span>
+          </div>
+        </div>
+        <ng-template #noHistory>
+          <p class="text-muted">No medical history recorded</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="activity" [size]="17"></app-icon>
+          Vital Signs History
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openVitals()">
+          <app-icon name="plus" [size]="14"></app-icon>
+          Record
+        </button>
+      </div>
+
+      <div class="info-card__body" *ngIf="latestVitals as latest">
+        <div class="vitals-head">
+          <span class="vitals-head__date">{{ latest.recordedAt | date: 'MMMM d, y' }}</span>
+          <span class="vitals-head__by" *ngIf="latest.recordedBy">
+            &middot; {{ latest.recordedBy }}
+          </span>
+          <span class="vitals-head__spacer"></span>
+          <button
+            type="button"
+            class="table-actions__btn table-actions__btn--danger"
+            (click)="deleteVitals(latest)"
+            title="Remove this record"
+            aria-label="Remove this record"
+          >
+            <app-icon name="trash" [size]="15"></app-icon>
+          </button>
+        </div>
+
+        <div class="metric-grid">
+          <div>
+            <span class="metric-grid__label">BP</span>
+            <span class="metric-grid__value">
+              {{ bloodPressure(latest) }} <small>mmHg</small>
+            </span>
+          </div>
+          <div>
+            <span class="metric-grid__label">Heart Rate</span>
+            <span class="metric-grid__value">
+              {{ latest.heartRate ?? '—' }} <small>bpm</small>
+            </span>
+          </div>
+          <div>
+            <span class="metric-grid__label">Resp. Rate</span>
+            <span class="metric-grid__value">
+              {{ latest.respiratoryRate ?? '—' }} <small>cpm</small>
+            </span>
+          </div>
+          <div>
+            <span class="metric-grid__label">Temp</span>
+            <span class="metric-grid__value">
+              {{ latest.temperatureC ?? '—' }} <small>&deg;C</small>
+            </span>
+          </div>
+          <div *ngIf="latest.oxygenSaturation != null">
+            <span class="metric-grid__label">SpO2</span>
+            <span class="metric-grid__value">{{ latest.oxygenSaturation }} <small>%</small></span>
+          </div>
+          <div *ngIf="latest.weightKg != null">
+            <span class="metric-grid__label">Weight</span>
+            <span class="metric-grid__value">{{ latest.weightKg }} <small>kg</small></span>
+          </div>
+          <div *ngIf="latest.heightCm != null">
+            <span class="metric-grid__label">Height</span>
+            <span class="metric-grid__value">{{ latest.heightCm }} <small>cm</small></span>
+          </div>
+        </div>
+
+        <p class="vitals-note" *ngIf="latest.notes">{{ latest.notes }}</p>
+      </div>
+
+      <div class="data-table-scroll" *ngIf="olderVitals.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Taken</th>
+              <th>BP</th>
+              <th>HR</th>
+              <th>RR</th>
+              <th>Temp</th>
+              <th class="text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let record of olderVitals">
+              <td>
+                <span class="cell-stack">
+                  <span class="cell-stack__value">{{ record.recordedAt | date: 'MMM d, y' }}</span>
+                  <span class="cell-stack__sub">{{ record.recordedBy || '—' }}</span>
+                </span>
+              </td>
+              <td>{{ bloodPressure(record) }}</td>
+              <td>{{ record.heartRate ?? '—' }}</td>
+              <td>{{ record.respiratoryRate ?? '—' }}</td>
+              <td>{{ record.temperatureC ?? '—' }}</td>
+              <td class="text-right">
+                <div class="table-actions">
+                  <button
+                    type="button"
+                    class="table-actions__btn table-actions__btn--danger"
+                    (click)="deleteVitals(record)"
+                    title="Remove this record"
+                    aria-label="Remove this record"
+                  >
+                    <app-icon name="trash" [size]="15"></app-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-card__body" *ngIf="chart.vitals.length === 0">
+        <p class="text-muted">No vital signs recorded</p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="file-text" [size]="17"></app-icon>
+          Diagnostic Results
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openUpload()">
+          <app-icon name="upload" [size]="14"></app-icon>
+          Upload Result
+        </button>
+      </div>
+      <div class="info-card__body">
+        <ng-container *ngIf="chart.documents.length > 0; else noDocs">
+          <div class="file-row" *ngFor="let document of chart.documents">
+            <span class="file-row__thumb">{{ fileExtension(document.fileName) }}</span>
+            <span class="file-row__body">
+              <span class="file-row__tags">
+                <span [class]="departmentTag(document.department)">{{ document.department }}</span>
+                <span class="file-row__date">
+                  <app-icon name="calendar" [size]="12"></app-icon>
+                  {{ document.resultDate | date: 'MMM d, y' }}
+                </span>
+              </span>
+              <span class="file-row__name">{{ document.fileName }}</span>
+              <span class="file-row__meta">
+                {{ fileSize(document.sizeBytes) }}
+                <ng-container *ngIf="document.uploadedBy">
+                  &middot; Uploaded by {{ document.uploadedBy }}
+                </ng-container>
+                &middot; {{ document.uploadedAt | date: 'MMM d, y' }}
+              </span>
+            </span>
+            <span class="table-actions">
+              <button
+                type="button"
+                class="table-actions__btn"
+                (click)="viewDocument(document)"
+                title="View file"
+                aria-label="View file"
+              >
+                <app-icon name="eye" [size]="16"></app-icon>
+              </button>
+              <button
+                type="button"
+                class="table-actions__btn table-actions__btn--danger"
+                (click)="deleteDocument(document)"
+                title="Delete file"
+                aria-label="Delete file"
+              >
+                <app-icon name="trash" [size]="16"></app-icon>
+              </button>
+            </span>
+          </div>
+        </ng-container>
+        <ng-template #noDocs>
+          <p class="text-muted">No result files uploaded</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="flask" [size]="17"></app-icon>
+          Lab Results History
+        </h3>
+
+        <div class="filter-tabs filter-tabs--sm">
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="labFilter === 'All'"
+            (click)="onLabFilter('All')"
+          >
+            All
+          </button>
+          <button
+            *ngFor="let department of departments"
+            type="button"
+            class="filter-tab"
+            [class.active]="labFilter === department"
+            (click)="onLabFilter(department)"
+          >
+            {{ department }}
+          </button>
+        </div>
+      </div>
+
+      <div class="info-card__body" *ngIf="labHistory.length > 0; else noLabs">
+        <div class="lab-row" *ngFor="let entry of labHistory" (click)="openOrder(entry)">
+          <span class="icon-square icon-square--sm">
+            <app-icon [name]="departmentIcon(entry.department)" [size]="16"></app-icon>
+          </span>
+          <span class="lab-row__body">
+            <span class="lab-row__head">
+              <span [class]="stagePill(entry.stage)">{{ entry.stage }}</span>
+              <span class="lab-row__date">
+                <app-icon name="calendar" [size]="12"></app-icon>
+                {{ entry.resultDate | date: 'MMM d, y' }}
+              </span>
+              <span class="pill pill--danger" *ngIf="entry.isAbnormal">
+                <app-icon name="alert-triangle" [size]="11"></app-icon>
+                Abnormal
+              </span>
+            </span>
+            <span class="lab-row__name">{{ entry.testName }}</span>
+            <span class="lab-row__meta">
+              <span class="cell-code">{{ entry.orderCode }}</span>
+              &middot; {{ entry.categoryName }}
+            </span>
+          </span>
+          <span class="table-actions">
+            <button
+              type="button"
+              class="table-actions__btn"
+              (click)="$event.stopPropagation(); openOrder(entry)"
+              title="Open order"
+              aria-label="Open order"
+            >
+              <app-icon name="chevron-right" [size]="17"></app-icon>
+            </button>
+          </span>
+        </div>
+      </div>
+      <ng-template #noLabs>
+        <div class="info-card__body">
+          <p class="text-muted">
+            {{ labFilter === 'All'
+              ? 'No diagnostic orders yet'
+              : 'No ' + labFilter + ' orders yet' }}
+          </p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Allergies editor ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'allergies'" (click)="closeEditor()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="alert-triangle" [size]="19"></app-icon>
+          Patient Allergies
+        </h3>
+        <p class="modal-sheet__desc">
+          Saving replaces the list. Clear a substance to drop that row.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <div class="editor-row" *ngFor="let allergy of allergyDraft; let i = index">
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'allergySubstance' + i">Substance</label>
+          <input
+            [id]="'allergySubstance' + i"
+            type="text"
+            class="form-control"
+            placeholder="Penicillin"
+            [(ngModel)]="allergy.substance"
+          />
+        </div>
+        <div class="form-group editor-row__narrow">
+          <label class="form-label" [attr.for]="'allergySeverity' + i">Severity</label>
+          <span class="select-field select-field--block">
+            <select [id]="'allergySeverity' + i" [(ngModel)]="allergy.severity">
+              <option *ngFor="let severity of severities" [value]="severity">
+                {{ severity || 'Not assessed' }}
+              </option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'allergyReaction' + i">Reaction</label>
+          <input
+            [id]="'allergyReaction' + i"
+            type="text"
+            class="form-control"
+            placeholder="Rash, swelling"
+            [(ngModel)]="allergy.reaction"
+          />
+        </div>
+        <button
+          type="button"
+          class="table-actions__btn table-actions__btn--danger editor-row__remove"
+          (click)="removeAllergyRow(i)"
+          title="Remove row"
+          aria-label="Remove row"
+        >
+          <app-icon name="trash" [size]="16"></app-icon>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-sm" (click)="addAllergyRow()">
+        <app-icon name="plus" [size]="14"></app-icon>
+        Add allergy
+      </button>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveAllergies()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save Allergies' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Medications editor ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'medications'" (click)="closeEditor()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="link" [size]="19"></app-icon>
+          Current Medications
+        </h3>
+        <p class="modal-sheet__desc">
+          Saving replaces the list. Clear a name to drop that row.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <div class="editor-row" *ngFor="let medication of medicationDraft; let i = index">
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'medName' + i">Medication</label>
+          <input
+            [id]="'medName' + i"
+            type="text"
+            class="form-control"
+            placeholder="Folic Acid"
+            [(ngModel)]="medication.name"
+          />
+        </div>
+        <div class="form-group editor-row__narrow">
+          <label class="form-label" [attr.for]="'medDosage' + i">Dosage</label>
+          <input
+            [id]="'medDosage' + i"
+            type="text"
+            class="form-control"
+            placeholder="5 mg"
+            [(ngModel)]="medication.dosage"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'medFrequency' + i">Frequency</label>
+          <input
+            [id]="'medFrequency' + i"
+            type="text"
+            class="form-control"
+            placeholder="Once daily"
+            [(ngModel)]="medication.frequency"
+          />
+        </div>
+        <button
+          type="button"
+          class="table-actions__btn table-actions__btn--danger editor-row__remove"
+          (click)="removeMedicationRow(i)"
+          title="Remove row"
+          aria-label="Remove row"
+        >
+          <app-icon name="trash" [size]="16"></app-icon>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-sm" (click)="addMedicationRow()">
+        <app-icon name="plus" [size]="14"></app-icon>
+        Add medication
+      </button>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveMedications()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save Medications' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Medical history editor ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'conditions'" (click)="closeEditor()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="heart" [size]="19"></app-icon>
+          Medical History
+        </h3>
+        <p class="modal-sheet__desc">
+          Saving replaces the list. Clear a condition to drop that row.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <div class="editor-row" *ngFor="let condition of conditionDraft; let i = index">
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'condName' + i">Condition</label>
+          <input
+            [id]="'condName' + i"
+            type="text"
+            class="form-control"
+            placeholder="Hypertension"
+            [(ngModel)]="condition.condition"
+          />
+        </div>
+        <div class="form-group editor-row__narrow">
+          <label class="form-label" [attr.for]="'condDate' + i">Diagnosed</label>
+          <input
+            [id]="'condDate' + i"
+            type="text"
+            class="form-control"
+            placeholder="2021"
+            [(ngModel)]="condition.diagnosedOn"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" [attr.for]="'condNotes' + i">Notes</label>
+          <input
+            [id]="'condNotes' + i"
+            type="text"
+            class="form-control"
+            placeholder="Managed with medication"
+            [(ngModel)]="condition.notes"
+          />
+        </div>
+        <button
+          type="button"
+          class="table-actions__btn table-actions__btn--danger editor-row__remove"
+          (click)="removeConditionRow(i)"
+          title="Remove row"
+          aria-label="Remove row"
+        >
+          <app-icon name="trash" [size]="16"></app-icon>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-sm" (click)="addConditionRow()">
+        <app-icon name="plus" [size]="14"></app-icon>
+        Add condition
+      </button>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveConditions()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save History' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Vitals recorder ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'vitals'" (click)="closeEditor()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="activity" [size]="19"></app-icon>
+          Record Vital Signs
+        </h3>
+        <p class="modal-sheet__desc">
+          Leave anything you did not measure blank; it is stored as not taken.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="systolic">Systolic BP <small>mmHg</small></label>
+          <input
+            id="systolic"
+            type="number"
+            class="form-control"
+            placeholder="120"
+            [(ngModel)]="vitalsDraft.systolicBp"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="diastolic">Diastolic BP <small>mmHg</small></label>
+          <input
+            id="diastolic"
+            type="number"
+            class="form-control"
+            placeholder="80"
+            [(ngModel)]="vitalsDraft.diastolicBp"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="heartRate">Heart Rate <small>bpm</small></label>
+          <input
+            id="heartRate"
+            type="number"
+            class="form-control"
+            placeholder="72"
+            [(ngModel)]="vitalsDraft.heartRate"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="respRate">Resp. Rate <small>cpm</small></label>
+          <input
+            id="respRate"
+            type="number"
+            class="form-control"
+            placeholder="18"
+            [(ngModel)]="vitalsDraft.respiratoryRate"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="temp">Temperature <small>&deg;C</small></label>
+          <input
+            id="temp"
+            type="number"
+            step="0.1"
+            class="form-control"
+            placeholder="36.6"
+            [(ngModel)]="vitalsDraft.temperatureC"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="spo2">SpO2 <small>%</small></label>
+          <input
+            id="spo2"
+            type="number"
+            class="form-control"
+            placeholder="98"
+            [(ngModel)]="vitalsDraft.oxygenSaturation"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="weight">Weight <small>kg</small></label>
+          <input
+            id="weight"
+            type="number"
+            step="0.1"
+            class="form-control"
+            placeholder="58.4"
+            [(ngModel)]="vitalsDraft.weightKg"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="height">Height <small>cm</small></label>
+          <input
+            id="height"
+            type="number"
+            step="0.1"
+            class="form-control"
+            placeholder="160"
+            [(ngModel)]="vitalsDraft.heightCm"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="vitalsNotes">Notes</label>
+        <textarea
+          id="vitalsNotes"
+          class="form-control"
+          rows="2"
+          placeholder="Optional observations..."
+          [(ngModel)]="vitalsDraft.notes"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveVitals()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save Vitals' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Result upload ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'upload'" (click)="closeEditor()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="upload" [size]="19"></app-icon>
+          Upload Diagnostic Result
+        </h3>
+        <p class="modal-sheet__desc">PDF or image, up to 10 MB.</p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="uploadDepartment">Department</label>
+          <span class="select-field select-field--block">
+            <select id="uploadDepartment" [(ngModel)]="uploadDraft.department">
+              <option *ngFor="let department of departments" [value]="department">
+                {{ department }}
+              </option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="uploadDate">Result Date</label>
+          <input
+            id="uploadDate"
+            type="date"
+            class="form-control"
+            [(ngModel)]="uploadDraft.resultDate"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="uploadFile">File</label>
+        <input
+          id="uploadFile"
+          type="file"
+          class="form-control file-input"
+          accept=".pdf,.png,.jpg,.jpeg"
+          (change)="onFileSelected($event)"
+        />
+        <p class="text-muted upload-hint" *ngIf="uploadFile">
+          {{ uploadFile.name }} &middot; {{ fileSize(uploadFile.size) }}
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="uploadResult()" [disabled]="isSaving">
+        <app-icon name="upload" [size]="16"></app-icon>
+        {{ isSaving ? 'Uploading...' : 'Upload' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<app-patient-form
+  [open]="isFormOpen"
+  [patientId]="patientId"
+  (saved)="onFormSaved()"
+  (cancelled)="onFormCancelled()"
+></app-patient-form>

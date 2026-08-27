@@ -24,6 +24,11 @@ public class AppDbContext : DbContext
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
+    public DbSet<PatientAllergy> PatientAllergies => Set<PatientAllergy>();
+    public DbSet<PatientMedication> PatientMedications => Set<PatientMedication>();
+    public DbSet<PatientCondition> PatientConditions => Set<PatientCondition>();
+    public DbSet<VitalSignRecord> VitalSignRecords => Set<VitalSignRecord>();
+    public DbSet<PatientDocument> PatientDocuments => Set<PatientDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -144,6 +149,29 @@ public class AppDbContext : DbContext
             .HasIndex(c => c.CertificateNumber)
             .IsUnique();
 
+        // The chart belongs to the patient: deleting the patient takes the whole
+        // clinical record with it. Each side is indexed by PatientId because
+        // every read is "everything for this patient".
+        foreach (var chartEntity in new[]
+                 {
+                     typeof(PatientAllergy), typeof(PatientMedication),
+                     typeof(PatientCondition), typeof(VitalSignRecord),
+                     typeof(PatientDocument)
+                 })
+        {
+            modelBuilder.Entity(chartEntity)
+                .HasOne("Patient")
+                .WithMany()
+                .HasForeignKey("PatientId")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity(chartEntity).HasIndex("PatientId");
+        }
+
+        // Vitals and documents are always shown newest-first.
+        modelBuilder.Entity<VitalSignRecord>().HasIndex(v => v.RecordedAt);
+        modelBuilder.Entity<PatientDocument>().HasIndex(d => d.ResultDate);
+
         modelBuilder.Entity<Product>().HasData(
             new Product { Id = 1, Code = "PRD-1001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true },
             new Product { Id = 2, Code = "PRD-1002", Name = "Transvaginal Ultrasound", Category = "Imaging", Price = 1500, IsActive = true },
@@ -155,11 +183,17 @@ public class AppDbContext : DbContext
             new Product { Id = 8, Code = "PRD-1008", Name = "Pelvic Ultrasound", Category = "Imaging", Price = 1300, IsActive = true }
         );
 
+        // Categories carry the department, so a test's console tab follows from
+        // the category it sits in. Categories 5-7 have no test parameters:
+        // those studies are read and written up, not measured.
         modelBuilder.Entity<TestCategory>().HasData(
-            new TestCategory { Id = 1, Name = "Hematology", Description = "Blood count and related tests" },
-            new TestCategory { Id = 2, Name = "Clinical Chemistry", Description = "Blood chemistry panels" },
-            new TestCategory { Id = 3, Name = "Urinalysis", Description = "Urine examination" },
-            new TestCategory { Id = 4, Name = "Serology", Description = "Antibody and antigen tests" }
+            new TestCategory { Id = 1, Name = "Hematology", Description = "Blood count and related tests", Department = Departments.Laboratory },
+            new TestCategory { Id = 2, Name = "Clinical Chemistry", Description = "Blood chemistry panels", Department = Departments.Laboratory },
+            new TestCategory { Id = 3, Name = "Urinalysis", Description = "Urine examination", Department = Departments.Laboratory },
+            new TestCategory { Id = 4, Name = "Serology", Description = "Antibody and antigen tests", Department = Departments.Laboratory },
+            new TestCategory { Id = 5, Name = "Radiology", Description = "Plain-film radiography", Department = Departments.Imaging },
+            new TestCategory { Id = 6, Name = "Sonography", Description = "Ultrasound studies", Department = Departments.Ultrasound },
+            new TestCategory { Id = 7, Name = "Cardiology", Description = "Cardiac tracing and echo", Department = Departments.HeartStation }
         );
 
         modelBuilder.Entity<LabTest>().HasData(
@@ -168,7 +202,22 @@ public class AppDbContext : DbContext
             new LabTest { Id = 3, CategoryId = 2, Code = "CREA", Name = "Creatinine", Specimen = "Blood", Method = "Jaffe", Price = 150, TurnaroundHours = 1 },
             new LabTest { Id = 4, CategoryId = 2, Code = "UA", Name = "Uric Acid", Specimen = "Blood", Method = "Enzymatic", Price = 150, TurnaroundHours = 1 },
             new LabTest { Id = 5, CategoryId = 3, Name = "Urinalysis", Code = "URA", Specimen = "Urine", Method = "Dipstick + Microscopy", Price = 120, TurnaroundHours = 1 },
-            new LabTest { Id = 6, CategoryId = 4, Code = "HBsAg", Name = "Hepatitis B Surface Antigen", Specimen = "Blood", Method = "ELISA", Price = 450, TurnaroundHours = 4 }
+            new LabTest { Id = 6, CategoryId = 4, Code = "HBsAg", Name = "Hepatitis B Surface Antigen", Specimen = "Blood", Method = "ELISA", Price = 450, TurnaroundHours = 4 },
+
+            // Imaging
+            new LabTest { Id = 7, CategoryId = 5, Code = "CXR-PA", Name = "Chest X-Ray (PA)", Specimen = "None", Method = "Digital Radiography", Price = 500, TurnaroundHours = 2 },
+            new LabTest { Id = 8, CategoryId = 5, Code = "CXR-APL", Name = "Chest X-Ray (APL)", Specimen = "None", Method = "Digital Radiography", Price = 650, TurnaroundHours = 2 },
+            new LabTest { Id = 9, CategoryId = 5, Code = "PXR", Name = "Pelvic X-Ray", Specimen = "None", Method = "Digital Radiography", Price = 600, TurnaroundHours = 2 },
+
+            // Ultrasound
+            new LabTest { Id = 10, CategoryId = 6, Code = "TVS", Name = "Transvaginal Ultrasound", Specimen = "None", Method = "Sonography", Price = 1500, TurnaroundHours = 2 },
+            new LabTest { Id = 11, CategoryId = 6, Code = "PUS", Name = "Pelvic Ultrasound", Specimen = "None", Method = "Sonography", Price = 1300, TurnaroundHours = 2 },
+            new LabTest { Id = 12, CategoryId = 6, Code = "BUS", Name = "Breast Ultrasound", Specimen = "None", Method = "Sonography", Price = 1400, TurnaroundHours = 2 },
+            new LabTest { Id = 13, CategoryId = 6, Code = "FOLM", Name = "Follicle Monitoring", Specimen = "None", Method = "Sonography", Price = 1200, TurnaroundHours = 1 },
+
+            // Heart Station
+            new LabTest { Id = 14, CategoryId = 7, Code = "ECG", Name = "12-Lead ECG", Specimen = "None", Method = "Electrocardiography", Price = 450, TurnaroundHours = 1 },
+            new LabTest { Id = 15, CategoryId = 7, Code = "2DECHO", Name = "2D Echocardiogram", Specimen = "None", Method = "Doppler Echocardiography", Price = 3500, TurnaroundHours = 4 }
         );
 
         modelBuilder.Entity<TestParameter>().HasData(

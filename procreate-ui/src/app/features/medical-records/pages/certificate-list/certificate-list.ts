@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 import { ComboOption } from '../../../../core/components/combo-select/combo-select';
@@ -74,7 +75,12 @@ export class CertificateListComponent implements OnInit {
   /** The certificate currently rendered into the print-only sheet. */
   printing: Certificate | null = null;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => {
@@ -89,6 +95,29 @@ export class CertificateListComponent implements OnInit {
 
     this.loadDoctors();
     this.load();
+
+    // Arriving from a patient chart with ?patientId= means "issue one for
+    // them": open the sheet on the Registered Patient tab with that patient
+    // already chosen, then drop the parameter so a reload starts clean.
+    const patientId = Number(this.route.snapshot.queryParamMap.get('patientId'));
+    if (patientId) this.openModalForPatient(patientId);
+  }
+
+  /** Opens the issue sheet with a registered patient pre-selected. */
+  private openModalForPatient(patientId: number): void {
+    this.api.get<PatientOption>(`patients/${patientId}`).subscribe({
+      next: (patient) => {
+        this.openModal();
+        this.choosePatient(patient);
+        this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // The chart link is stale or the patient is gone. The list still
+        // works, so say nothing and leave the sheet closed.
+        this.router.navigate([], { queryParams: {}, replaceUrl: true });
+      },
+    });
   }
 
   private blankForm() {
@@ -142,6 +171,11 @@ export class CertificateListComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.doctors = res.data;
+          // The sheet can be opened from a patient chart before this call
+          // lands, which would leave the physician combo empty.
+          if (this.isModalOpen && !this.form.doctorId) {
+            this.form.doctorId = this.doctors[0]?.id ?? 0;
+          }
           this.cdr.markForCheck();
         },
         error: () => this.cdr.markForCheck(),

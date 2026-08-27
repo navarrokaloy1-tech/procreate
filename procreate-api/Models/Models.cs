@@ -68,7 +68,26 @@ public class TestCategory
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The service line that performs the test, and the tab the order appears
+    /// under on the Laboratory console: Laboratory | Imaging | Ultrasound |
+    /// Heart Station. See <see cref="Departments"/>.
+    /// </summary>
+    public string Department { get; set; } = Departments.Laboratory;
+
     public List<LabTest> Tests { get; set; } = new();
+}
+
+/// <summary>The four diagnostic service lines, in console tab order.</summary>
+public static class Departments
+{
+    public const string Laboratory = "Laboratory";
+    public const string Imaging = "Imaging";
+    public const string Ultrasound = "Ultrasound";
+    public const string HeartStation = "Heart Station";
+
+    public static readonly string[] All = { Laboratory, Imaging, Ultrasound, HeartStation };
 }
 
 public class LabTest
@@ -108,6 +127,19 @@ public class LabOrder
     public DateTime? CollectedAt { get; set; }
     public DateTime? ProcessedAt { get; set; }
     public DateTime? ReleasedAt { get; set; }
+
+    /// <summary>
+    /// Free-text findings, used by tests with no measurable parameters —
+    /// imaging, ultrasound and heart-station studies are read, not measured.
+    /// </summary>
+    public string NarrativeFindings { get; set; } = string.Empty;
+
+    /// <summary>Set by the reader when the study is not within normal limits.</summary>
+    public bool IsAbnormal { get; set; }
+
+    /// <summary>Display name of whoever last saved results, for the timeline.</summary>
+    public string ResultedBy { get; set; } = string.Empty;
+
     public List<LabResult> Results { get; set; } = new();
     // LIS integration fields
     public string? LisStatus { get; set; }         // null | Sent | Acknowledged | Failed
@@ -316,4 +348,98 @@ public class Appointment
     public string Notes { get; set; } = string.Empty;
     public bool IsArchived { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ============================================================
+// Patient chart — the clinical record that hangs off a patient
+// ============================================================
+
+/// <summary>
+/// A substance the patient reacts to. Kept as rows rather than one free-text
+/// field so the chart banner can list them and a reaction can carry a severity.
+/// </summary>
+public class PatientAllergy
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public string Substance { get; set; } = string.Empty;
+    /// <summary>Mild | Moderate | Severe. Blank when not assessed.</summary>
+    public string Severity { get; set; } = string.Empty;
+    public string Reaction { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class PatientMedication
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public string Name { get; set; } = string.Empty;
+    public string Dosage { get; set; } = string.Empty;
+    public string Frequency { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>One past or ongoing condition in the patient's medical history.</summary>
+public class PatientCondition
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public string Condition { get; set; } = string.Empty;
+    /// <summary>Free text ("2019", "childhood") — patients rarely recall a date.</summary>
+    public string DiagnosedOn { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// One set of vitals taken at a point in time. Every field is nullable: a
+/// nurse may record a temperature alone, and a stored 0 would read as a
+/// measurement of zero rather than "not taken".
+/// </summary>
+public class VitalSignRecord
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>Display name of the clinician who took them.</summary>
+    public string RecordedBy { get; set; } = string.Empty;
+
+    public int? SystolicBp { get; set; }
+    public int? DiastolicBp { get; set; }
+    public int? HeartRate { get; set; }
+    public int? RespiratoryRate { get; set; }
+    public decimal? TemperatureC { get; set; }
+    public decimal? WeightKg { get; set; }
+    public decimal? HeightCm { get; set; }
+    public int? OxygenSaturation { get; set; }
+    public string Notes { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// A result file attached to the patient chart — typically a PDF from an
+/// outside provider. Bytes live in the row: SQLite handles blobs of this size
+/// fine, and a single file keeps backup and deletion honest (no orphans on
+/// disk once the patient is removed).
+/// </summary>
+public class PatientDocument
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+
+    /// <summary>Which service line the result came from — see <see cref="Departments"/>.</summary>
+    public string Department { get; set; } = Departments.Laboratory;
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/octet-stream";
+    public long SizeBytes { get; set; }
+    /// <summary>Date the study was performed, which is not the upload date.</summary>
+    public DateTime ResultDate { get; set; } = DateTime.Today;
+    public string UploadedBy { get; set; } = string.Empty;
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public byte[] Content { get; set; } = Array.Empty<byte>();
 }

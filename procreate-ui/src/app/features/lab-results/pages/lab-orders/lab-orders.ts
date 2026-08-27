@@ -1,19 +1,35 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
 
 export interface LabOrder {
   id: number;
   orderCode: string;
   visitCode: string;
+  patientId: number;
   patientName: string;
   patientCode: string;
   testName: string;
   testCode: string;
+  department: string;
+  categoryName: string;
   specimenBarcode: string;
   status: string;
+  /** The label staff use: Pending | In Progress | For Reading | Completed. */
+  stage: string;
+  isAbnormal: boolean;
+  /** 'parameters' for measured tests, 'narrative' for studies that are read. */
+  resultKind: string;
   orderedDate: string;
   collectedDate: string | null;
+  releasedDate: string | null;
+}
+
+interface DepartmentTab {
+  name: string;
+  count: number;
 }
 
 @Component({
@@ -22,14 +38,22 @@ export interface LabOrder {
   templateUrl: './lab-orders.html',
   styleUrl: './lab-orders.scss',
 })
-export class LabOrders implements OnInit {
+export class LabOrders implements OnInit, OnDestroy {
   orders: LabOrder[] = [];
-  totalCount = 0;
+  isLoading = false;
+
+  /** Department tabs come from the API so the counts stay honest. */
+  departments: DepartmentTab[] = [];
+  activeDepartment = 'Laboratory';
+
+  readonly stageFilters = ['All Orders', 'Pending', 'In Progress', 'For Reading', 'Completed'];
+  activeStage = 'All Orders';
+
+  searchTerm = '';
+
   pageIndex = 0;
   pageSize = 10;
   readonly pageSizeOptions = [5, 10, 15, 20];
-  isLoading = false;
-  activeFilter = 'All';
 
   // --- Scan-to-find ---
   isScannerOpen = false;
@@ -38,97 +62,149 @@ export class LabOrders implements OnInit {
   scanFilter = '';
   /** What the scanned code matched, so the chip can say so. */
   scanFilterLabel = '';
-  statusFilters = ['All', 'Ordered', 'Collected', 'Resulted', 'Released'];
 
-  constructor(private apiService: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+  private searchSubject = new Subject<string>();
+  private subscriptions = new Subscription();
+
+  constructor(
+    private apiService: ApiService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
+    const searchSub = this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe((term) => {
+        this.searchTerm = term;
+        this.pageIndex = 0;
+        this.loadOrders();
+        this.cdr.markForCheck();
+      });
+
+    this.subscriptions.add(searchSub);
+    this.loadDepartments();
     this.loadOrders();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  loadDepartments(): void {
+    this.apiService.get<DepartmentTab[]>('lab/departments').subscribe({
+      next: (departments) => {
+        this.departments = Array.isArray(departments) ? departments : [];
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Without counts the tabs are still usable, so fall back to the
+        // four known service lines rather than leaving the strip empty.
+        this.departments = ['Laboratory', 'Imaging', 'Ultrasound', 'Heart Station'].map(
+          (name) => ({ name, count: 0 })
+        );
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   loadOrders(): void {
     this.isLoading = true;
     this.apiService
       .get<LabOrder[]>('lab/orders', {
-        status: this.activeFilter === 'All' ? '' : this.activeFilter,
+        department: this.activeDepartment,
+        status: this.activeStage === 'All Orders' ? '' : this.activeStage,
+        search: this.searchTerm,
       })
       .subscribe({
         next: (response) => {
           this.orders = Array.isArray(response) ? response : [];
-          this.totalCount = this.orders.length;
           this.isLoading = false;
           this.cdr.markForCheck();
         },
         error: () => {
+          this.orders = [];
           this.isLoading = false;
           this.cdr.markForCheck();
         },
       });
   }
 
-  onFilterChange(filter: string): void {
-    this.activeFilter = filter;
+  onDepartmentChange(department: string): void {
+    if (this.activeDepartment === department) return;
+
+    // A scan matched an order in the department it was found in; carrying the
+    // chip across tabs would show an empty list under a filter that looks live.
+    this.clearScanFilter();
+    this.activeDepartment = department;
+    this.activeStage = 'All Orders';
     this.pageIndex = 0;
     this.loadOrders();
   }
 
-  collectSpecimen(orderId: number): void {
-    const confirmed = window.confirm('Confirm specimen collection for this order?');
+  onStageChange(stage: string): void {
+    this.activeStage = stage;
+    this.pageIndex = 0;
+    this.loadOrders();
+  }
+
+  onSearch(term: string): void {
+    this.searchSubject.next(term);
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.activeStage = 'All Orders';
+    this.clearScanFilter();
+    this.loadOrders();
+  }
+
+  newOrder(): void {
+    this.router.navigate(['/app/visits/new']);
+  }
+
+  // ----------------------------------------------------------
+  // Row actions
+  // ----------------------------------------------------------
+
+  /** Label for the first step: the lab draws a specimen, the others do not. */
+  collectLabel(order: LabOrder): string {
+    return order.department === 'Laboratory' ? 'Collect Specimen' : 'Start Study';
+  }
+
+  /** Label for the reading step, which is measurement in the lab and prose elsewhere. */
+  encodeLabel(order: LabOrder): string {
+    return order.resultKind === 'parameters' ? 'Encode Results' : 'Enter Findings';
+  }
+
+  collectSpecimen(order: LabOrder): void {
+    const confirmed = window.confirm(
+      order.department === 'Laboratory'
+        ? 'Confirm specimen collection for this order?'
+        : 'Mark this study as started?'
+    );
     if (!confirmed) return;
 
-    this.apiService.post<void>('lab/orders/' + orderId + '/collect', {}).subscribe({
+    this.apiService.post<void>('lab/orders/' + order.id + '/collect', {}).subscribe({
       next: () => {
         this.loadOrders();
+        this.loadDepartments();
         this.cdr.markForCheck();
       },
       error: () => {
-        window.alert('Failed to collect specimen. Please try again.');
+        window.alert('Failed to update the order. Please try again.');
         this.cdr.markForCheck();
       },
     });
   }
 
-  navigateToEncode(orderId: number): void {
-    this.router.navigate(['/app/lab-results', orderId, 'encode']);
+  openOrder(orderId: number): void {
+    this.router.navigate(['/app/lab-results', orderId]);
   }
 
-  onPageChange(page: number): void {
-    this.pageIndex = page;
-  }
-
-  onPageSizeChange(size: string | number): void {
-    // Ignore a blank or junk value: pageSize 0 would divide by zero in
-    // totalPages and render an Infinity-page pager with no rows.
-    const parsed = Number(size);
-    if (!Number.isFinite(parsed) || parsed < 1) return;
-
-    this.pageSize = Math.floor(parsed);
-    this.pageIndex = 0;
-  }
-
-  /**
-   * Orders left after a scan filter. Everything downstream — paging, counts,
-   * the range readout — works off this rather than the raw list.
-   */
-  get visibleOrders(): LabOrder[] {
-    if (!this.scanFilter) return this.orders;
-
-    const term = this.scanFilter.toLowerCase();
-    return this.orders.filter(
-      (o) =>
-        o.specimenBarcode?.toLowerCase() === term ||
-        o.patientCode?.toLowerCase() === term ||
-        o.orderCode?.toLowerCase() === term
-    );
-  }
-
-  /**
-   * lab/orders returns the whole list, so pages are sliced here. Refetching on
-   * every page change would return the same rows and show no difference.
-   */
-  get pagedOrders(): LabOrder[] {
-    const start = this.pageIndex * this.pageSize;
-    return this.visibleOrders.slice(start, start + this.pageSize);
+  openPatient(order: LabOrder, event: MouseEvent): void {
+    event.stopPropagation();
+    this.router.navigate(['/app/patients', order.patientId]);
   }
 
   // ----------------------------------------------------------
@@ -146,8 +222,9 @@ export class LabOrders implements OnInit {
   }
 
   /**
-   * Accepts a specimen barcode, an order code, or a patient QR. The list is
-   * already loaded, so matching happens here rather than round-tripping.
+   * Accepts a specimen barcode, an order code, or a patient QR. The list for
+   * this department is already loaded, so matching happens here rather than
+   * round-tripping.
    */
   onScanned(raw: string): void {
     const code = this.normaliseScan(raw);
@@ -178,15 +255,15 @@ export class LabOrders implements OnInit {
       return;
     }
 
-    // A patient with no orders is a different problem from an unknown code,
-    // so say which one it is.
+    // A patient with no orders here is a different problem from an unknown
+    // code, so say which one it is — and name the tab being searched.
     this.apiService.get<{ firstName: string; lastName: string }>(
       `patients/by-code/${encodeURIComponent(code)}`
     ).subscribe({
       next: (patient) => {
         this.scanError =
-          `${patient.firstName} ${patient.lastName} has no lab orders` +
-          (this.activeFilter === 'All' ? '.' : ` under the "${this.activeFilter}" filter.`);
+          `${patient.firstName} ${patient.lastName} has no ${this.activeDepartment} orders` +
+          (this.activeStage === 'All Orders' ? '.' : ` under the "${this.activeStage}" filter.`);
         this.cdr.markForCheck();
       },
       error: () => {
@@ -219,6 +296,100 @@ export class LabOrders implements OnInit {
     this.pageIndex = 0;
   }
 
+  // ----------------------------------------------------------
+  // Presentation
+  // ----------------------------------------------------------
+
+  departmentIcon(department: string): string {
+    switch (department) {
+      case 'Imaging':
+        return 'scan';
+      case 'Ultrasound':
+        return 'waves';
+      case 'Heart Station':
+        return 'activity';
+      default:
+        return 'flask';
+    }
+  }
+
+  stagePill(stage: string): string {
+    switch (stage) {
+      case 'Pending':
+        return 'pill pill--warning';
+      case 'In Progress':
+        return 'pill pill--info';
+      case 'For Reading':
+        return 'pill pill--primary';
+      case 'Completed':
+        return 'pill pill--success';
+      default:
+        return 'pill';
+    }
+  }
+
+  /** Two-letter monogram for the row avatar. */
+  initials(name: string): string {
+    return (name ?? '')
+      .split(' ')
+      .filter((part) => part.trim())
+      .slice(0, 2)
+      .map((part) => part.trim()[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  countFor(department: string): number {
+    return this.departments.find((d) => d.name === department)?.count ?? 0;
+  }
+
+  get hasFilters(): boolean {
+    return !!this.searchTerm || this.activeStage !== 'All Orders' || !!this.scanFilter;
+  }
+
+  // ----------------------------------------------------------
+  // Paging
+  // ----------------------------------------------------------
+
+  /**
+   * Orders left after a scan filter. Everything downstream — paging, counts,
+   * the range readout — works off this rather than the raw list.
+   */
+  get visibleOrders(): LabOrder[] {
+    if (!this.scanFilter) return this.orders;
+
+    const term = this.scanFilter.toLowerCase();
+    return this.orders.filter(
+      (o) =>
+        o.specimenBarcode?.toLowerCase() === term ||
+        o.patientCode?.toLowerCase() === term ||
+        o.orderCode?.toLowerCase() === term
+    );
+  }
+
+  /**
+   * lab/orders returns the whole filtered list, so pages are sliced here.
+   * Refetching on every page change would return the same rows.
+   */
+  get pagedOrders(): LabOrder[] {
+    const start = this.pageIndex * this.pageSize;
+    return this.visibleOrders.slice(start, start + this.pageSize);
+  }
+
+  onPageChange(page: number): void {
+    this.pageIndex = page;
+  }
+
+  onPageSizeChange(size: string | number): void {
+    // Ignore a blank or junk value: pageSize 0 would divide by zero in
+    // totalPages and render an Infinity-page pager with no rows.
+    const parsed = Number(size);
+    if (!Number.isFinite(parsed) || parsed < 1) return;
+
+    this.pageSize = Math.floor(parsed);
+    this.pageIndex = 0;
+  }
+
   get filteredCount(): number {
     return this.visibleOrders.length;
   }
@@ -229,21 +400,6 @@ export class LabOrders implements OnInit {
 
   get rangeEnd(): number {
     return Math.min((this.pageIndex + 1) * this.pageSize, this.filteredCount);
-  }
-
-  getStatusClass(status: string): string {
-    switch (status) {
-      case 'Ordered':
-        return 'badge-info';
-      case 'Collected':
-        return 'badge-warning';
-      case 'Resulted':
-        return 'badge-secondary';
-      case 'Released':
-        return 'badge-success';
-      default:
-        return '';
-    }
   }
 
   get totalPages(): number {
@@ -260,7 +416,7 @@ export class LabOrders implements OnInit {
     const pages: number[] = [];
 
     pages.push(0);
-    if (current > 3) pages.push(-1);
+    if (current > 3) pages.push(-1); // ellipsis marker
 
     const start = Math.max(1, current - 1);
     const end = Math.min(total - 2, current + 1);
@@ -268,7 +424,7 @@ export class LabOrders implements OnInit {
       pages.push(i);
     }
 
-    if (current < total - 4) pages.push(-2);
+    if (current < total - 4) pages.push(-2); // ellipsis marker
     pages.push(total - 1);
 
     return pages;

@@ -86,6 +86,8 @@ export class IconComponent {
     monitor: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
     stethoscope: '<path d="M4 3v6a4 4 0 0 0 8 0V3"/><path d="M8 13v3a5 5 0 0 0 10 0v-1"/><circle cx="19" cy="12" r="2"/>',
     flask: '<path d="M9 3h6"/><path d="M10 3v6.5L4.5 18A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3L14 9.5V3"/><path d="M6.5 15h11"/>',
+    scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="6" y1="12" x2="18" y2="12"/>',
+    waves: '<path d="M2 7c1.6 0 2.6-1.6 4.2-1.6S8.8 7 10.4 7s2.6-1.6 4.2-1.6S17.2 7 18.8 7s2.6-1.6 3.2-1.6"/><path d="M2 13c1.6 0 2.6-1.6 4.2-1.6S8.8 13 10.4 13s2.6-1.6 4.2-1.6S17.2 13 18.8 13s2.6-1.6 3.2-1.6"/><path d="M2 19c1.6 0 2.6-1.6 4.2-1.6S8.8 19 10.4 19s2.6-1.6 4.2-1.6S17.2 19 18.8 19s2.6-1.6 3.2-1.6"/>',
     'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>',
     'credit-card': '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
     clipboard: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',

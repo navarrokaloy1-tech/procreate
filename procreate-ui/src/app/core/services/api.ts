@@ -30,6 +30,14 @@ export class ApiService {
     return this.http.delete<T>(`${this.base}/${path}`);
   }
 
+  /**
+   * Absolute URL for a path, for the cases a plain link or an iframe has to
+   * hit the API directly rather than going through HttpClient.
+   */
+  url(path: string): string {
+    return `${this.base}/${path}`;
+  }
+
   getBlob(path: string): Observable<Blob> {
     return this.http.get(`${this.base}/${path}`, { responseType: 'blob' });
   }

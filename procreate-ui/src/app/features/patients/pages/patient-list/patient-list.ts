@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
@@ -60,7 +61,11 @@ export class PatientListComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
 
-  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private apiService: ApiService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     const searchSub = this.searchSubject
@@ -150,7 +155,7 @@ export class PatientListComponent implements OnInit, OnDestroy {
   }
 
   viewPatient(id: number): void {
-    this.editPatient(id);
+    this.router.navigate(['/app/patients', id]);
   }
 
   editPatient(id: number): void {

@@ -1,119 +1,355 @@
-<div class="page-header">
-  <div class="header-left">
-    <h1>
-      Encode Results
-      <span *ngIf="order" class="order-code-badge">{{ order.orderCode }}</span>
-    </h1>
-  </div>
-  <button class="btn btn-secondary" (click)="cancel()">
-    &larr; Back
-  </button>
-</div>
+<section class="page-hero page-hero--compact">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to Laboratory">
+        <app-icon name="arrow-left" [size]="18"></app-icon>
+      </button>
+      <div class="page-hero__heading">
+        <ng-container *ngIf="order; else headingFallback">
+          <span class="page-hero__code">{{ order.orderCode }}</span>
+          <p class="page-hero__meta">
+            <span [class]="stagePill(order.stage)">{{ order.stage }}</span>
+            <span class="pill pill--danger" *ngIf="order.isAbnormal">
+              <app-icon name="alert-triangle" [size]="11"></app-icon>
+              Abnormal
+            </span>
+            <span>
+              {{ order.testName }}
+              <ng-container *ngIf="order.requestedBy">
+                &middot; Requested by {{ order.requestedBy }}
+              </ng-container>
+            </span>
+          </p>
+        </ng-container>
+        <ng-template #headingFallback>
+          <h1>Diagnostic Order</h1>
+        </ng-template>
+      </div>
+    </div>
 
-<div *ngIf="isLoading" class="loading-state">
-  <div class="spinner"></div>
-  <p>Loading order details...</p>
-</div>
-
-<ng-container *ngIf="!isLoading && order">
-  <div class="order-info-card">
-    <div class="info-item">
-      <label>Patient</label>
-      <span>{{ order.patientName }}</span>
-    </div>
-    <div class="info-item">
-      <label>Test Name</label>
-      <span>{{ order.testName }}</span>
-    </div>
-    <div class="info-item">
-      <label>Order Code</label>
-      <span>{{ order.orderCode }}</span>
-    </div>
-    <div class="info-item">
-      <label>Status</label>
-      <span>
-        <span class="badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
-      </span>
+    <div class="page-hero__actions" *ngIf="order">
+      <button type="button" class="btn btn-hero" (click)="print()">
+        <app-icon name="printer" [size]="16"></app-icon>
+        Print
+      </button>
     </div>
   </div>
+</section>
 
-  <div class="card">
-    <div class="card-body">
-      <table class="result-table">
-        <thead>
-          <tr>
-            <th>Parameter</th>
-            <th>Unit</th>
-            <th>Reference Range</th>
-            <th>Value</th>
-            <th>Flag</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let param of order.parameters">
-            <td class="param-name">{{ param.parameterName }}</td>
-            <td class="param-unit">{{ param.unit || '—' }}</td>
-            <td class="param-range">{{ getReferenceRangeDisplay(param) }}</td>
-            <td class="param-value">
-              <input
-                type="text"
-                class="value-input"
-                [value]="resultValues[param.id]"
-                (input)="onValueChange(param.id, $any($event.target).value)"
-                [readonly]="order.status === 'Released'"
-                placeholder="Enter value"
-              />
-            </td>
-            <td class="param-flag">
-              <span [ngClass]="getFlagClass(getFlag(param))">
-                {{ getFlag(param) }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+<div class="card hero-overlap" *ngIf="isLoading">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading order...</p>
+  </div>
+</div>
 
-      <div *ngIf="order.parameters.length === 0" class="empty-state">
-        <p>No parameters defined for this test.</p>
+<div class="card hero-overlap" *ngIf="!isLoading && !order">
+  <div class="empty-rich">
+    <span class="empty-rich__icon"><app-icon name="alert-circle" [size]="32"></app-icon></span>
+    <h3 class="empty-rich__title">{{ errorMessage || 'Order not found' }}</h3>
+    <button type="button" class="btn btn-primary" (click)="back()">Back to Laboratory</button>
+  </div>
+</div>
+
+<div class="detail-grid hero-overlap" *ngIf="!isLoading && order">
+  <!-- Left column: who and when -->
+  <div class="detail-grid__col">
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="user" [size]="17"></app-icon>
+          Patient
+        </h3>
+        <span class="cell-code">{{ order.patient.patientCode }}</span>
+      </div>
+      <div class="info-card__body">
+        <div class="cell-user">
+          <span class="avatar avatar--lg">{{ initials(order.patient.name) }}</span>
+          <span class="cell-user__body">
+            <a href="javascript:void(0)" class="cell-user__name cell-link" (click)="openPatient()">
+              {{ order.patient.name }}
+            </a>
+            <span class="cell-user__sub">
+              {{ order.patient.age }} Years &middot; {{ order.patient.gender || 'Not specified' }}
+            </span>
+          </span>
+        </div>
+
+        <div class="field-list field-list--2col patient-facts">
+          <div>
+            <span class="field-list__label">Birthday</span>
+            <span class="field-list__value">{{ order.patient.dateOfBirth | date: 'MMM d, y' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Department</span>
+            <span class="field-list__value">{{ order.department }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="clock" [size]="17"></app-icon>
+          Timeline
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="timeline">
+          <div class="timeline__item" *ngIf="order.releasedAt">
+            <span class="timeline__dot timeline__dot--success"></span>
+            <span class="timeline__title">Finalized &amp; Released</span>
+            <span class="timeline__time">{{ order.releasedAt | date: 'MMM d, y, h:mm a' }}</span>
+          </div>
+          <div class="timeline__item" *ngIf="order.processedAt">
+            <span class="timeline__dot"></span>
+            <span class="timeline__title">Results Entered</span>
+            <span class="timeline__time">{{ order.processedAt | date: 'MMM d, y, h:mm a' }}</span>
+            <span class="timeline__by" *ngIf="order.resultedBy">By {{ order.resultedBy }}</span>
+          </div>
+          <div class="timeline__item" *ngIf="order.collectedAt">
+            <span class="timeline__dot timeline__dot--info"></span>
+            <span class="timeline__title">Processing</span>
+            <span class="timeline__time">{{ order.collectedAt | date: 'MMM d, y, h:mm a' }}</span>
+          </div>
+          <div class="timeline__item">
+            <span class="timeline__dot"></span>
+            <span class="timeline__title">Ordered</span>
+            <span class="timeline__time">{{ order.orderedDate | date: 'MMM d, y, h:mm a' }}</span>
+            <span class="timeline__by">{{ order.visitCode }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon [name]="departmentIcon(order.department)" [size]="17"></app-icon>
+          Study
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <div class="field-list field-list--2col">
+          <div>
+            <span class="field-list__label">Test</span>
+            <span class="field-list__value">{{ order.testName }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Code</span>
+            <span class="field-list__value"><span class="cell-code">{{ order.testCode }}</span></span>
+          </div>
+          <div>
+            <span class="field-list__label">Specimen</span>
+            <span class="field-list__value">{{ order.specimen || 'None' }}</span>
+          </div>
+          <div>
+            <span class="field-list__label">Method</span>
+            <span class="field-list__value">{{ order.method || '—' }}</span>
+          </div>
+          <div class="field-list__wide" *ngIf="order.specimenBarcode">
+            <span class="field-list__label">Barcode</span>
+            <span class="field-list__value">
+              <span class="cell-code">{{ order.specimenBarcode }}</span>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="remarks-section">
-    <label class="remarks-label">Remarks / Notes</label>
-    <textarea
-      class="remarks-textarea"
-      rows="3"
-      placeholder="Enter any additional remarks or notes..."
-      [(ngModel)]="remarks"
-      [readonly]="order.status === 'Released'"
-    ></textarea>
+  <!-- Right column: the reading -->
+  <div class="detail-grid__col">
+    <div class="info-card">
+      <div class="info-card__head">
+        <div>
+          <h3 class="info-card__title">
+            <app-icon name="file-text" [size]="17"></app-icon>
+            {{ isNarrative ? 'Diagnostic Findings' : 'Result Parameters' }}
+          </h3>
+          <p class="info-card__sub">
+            {{ isNarrative ? 'Free-text entry' : order.parameters.length + ' measured parameters' }}
+          </p>
+        </div>
+
+        <label class="abnormal-toggle" *ngIf="isNarrative">
+          <input type="checkbox" [(ngModel)]="isAbnormal" [disabled]="isReadOnly" />
+          Flag as Abnormal
+        </label>
+      </div>
+
+      <!-- Studies that are read, not measured -->
+      <div class="info-card__body" *ngIf="isNarrative">
+        <label class="form-label" for="narrative">Narrative Findings &amp; Observations</label>
+        <textarea
+          id="narrative"
+          class="form-control narrative-input"
+          rows="14"
+          placeholder="Describe the findings, then close with an IMPRESSION line..."
+          [(ngModel)]="narrativeFindings"
+          [readonly]="isReadOnly"
+        ></textarea>
+      </div>
+
+      <!-- Measured tests -->
+      <ng-container *ngIf="!isNarrative">
+        <div class="data-table-scroll" *ngIf="order.parameters.length > 0; else noParams">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>Reference</th>
+                <th>Value</th>
+                <th>Flag</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let param of order.parameters">
+                <td class="fw-semibold">{{ param.parameterName }}</td>
+                <td class="text-muted">{{ param.unit || '—' }}</td>
+                <td class="text-muted">{{ referenceRange(param) }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control value-input"
+                    [value]="resultValues[param.id]"
+                    (input)="onValueChange(param.id, $any($event.target).value)"
+                    [readonly]="isReadOnly"
+                    placeholder="Enter value"
+                    [attr.aria-label]="param.parameterName"
+                  />
+                </td>
+                <td>
+                  <span [class]="flagClass(getFlag(param))">{{ flagLabel(getFlag(param)) }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #noParams>
+          <div class="info-card__body">
+            <p class="text-muted text-center">No parameters are defined for this test.</p>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <div class="info-card__body result-remarks" *ngIf="!isReadOnly">
+        <label class="form-label" for="remarks">Remarks / Notes</label>
+        <textarea
+          id="remarks"
+          class="form-control"
+          rows="2"
+          placeholder="Optional notes for this reading..."
+          [(ngModel)]="remarks"
+        ></textarea>
+      </div>
+
+      <div class="info-card__foot">
+        <span class="info-card__foot-note" *ngIf="isReadOnly">
+          <app-icon name="shield" [size]="14"></app-icon>
+          Released results are read-only.
+        </span>
+        <span class="info-card__foot-note" *ngIf="!isReadOnly && !canRelease">
+          Save the reading first, then release it.
+        </span>
+        <span class="info-card__foot-spacer"></span>
+
+        <button type="button" class="btn btn-secondary" (click)="back()">Back</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="saveResults()"
+          [disabled]="isSaving || isReadOnly"
+        >
+          <app-icon name="save" [size]="16"></app-icon>
+          {{ isSaving ? 'Saving...' : 'Save Reading' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-success"
+          (click)="releaseResults()"
+          [disabled]="isReleasing || !canRelease"
+        >
+          <app-icon name="check" [size]="16"></app-icon>
+          {{ isReleasing ? 'Releasing...' : 'Release' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Printed report. Hidden on screen. -->
+<div class="print-only result-sheet" *ngIf="isPrinting && order">
+  <header class="result-sheet__head">
+    <h1>Pro-Create</h1>
+    <p>Fertility, OB-GYN and Diagnostic Center</p>
+    <p class="result-sheet__contact">procreate.clinic&#64;gmail.com</p>
+  </header>
+
+  <hr />
+
+  <h2 class="result-sheet__title">{{ order.department }} Report</h2>
+  <p class="result-sheet__number">{{ order.orderCode }}</p>
+
+  <table class="result-sheet__meta">
+    <tr>
+      <th>Patient</th>
+      <td>{{ order.patient.name }} ({{ order.patient.patientCode }})</td>
+      <th>Age / Sex</th>
+      <td>{{ order.patient.age }} / {{ order.patient.gender || '—' }}</td>
+    </tr>
+    <tr>
+      <th>Study</th>
+      <td>{{ order.testName }}</td>
+      <th>Date</th>
+      <td>{{ order.orderedDate | date: 'MMMM d, y' }}</td>
+    </tr>
+    <tr>
+      <th>Requested by</th>
+      <td>{{ order.requestedBy || '—' }}</td>
+      <th>Released</th>
+      <td>{{ order.releasedAt ? (order.releasedAt | date: 'MMMM d, y') : 'Not yet released' }}</td>
+    </tr>
+  </table>
+
+  <div class="result-sheet__section" *ngIf="isNarrative">
+    <h3>Findings</h3>
+    <p class="result-sheet__narrative">{{ narrativeFindings || 'No findings recorded.' }}</p>
   </div>
 
-  <div class="result-actions">
-    <button class="btn btn-secondary" (click)="cancel()">
-      Cancel
-    </button>
-    <button
-      class="btn btn-primary"
-      (click)="saveResults()"
-      [disabled]="isSaving || order.status === 'Released'"
-    >
-      {{ isSaving ? 'Saving...' : 'Save Results' }}
-    </button>
-    <button
-      class="btn btn-success"
-      (click)="releaseResults()"
-      [disabled]="isReleasing || order.status !== 'Resulted'"
-    >
-      {{ isReleasing ? 'Releasing...' : 'Release Results' }}
-    </button>
+  <div class="result-sheet__section" *ngIf="!isNarrative">
+    <h3>Results</h3>
+    <table class="result-sheet__results">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Result</th>
+          <th>Unit</th>
+          <th>Reference</th>
+          <th>Flag</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let param of order.parameters">
+          <td>{{ param.parameterName }}</td>
+          <td>{{ resultValues[param.id] || '—' }}</td>
+          <td>{{ param.unit || '—' }}</td>
+          <td>{{ referenceRange(param) }}</td>
+          <td>{{ flagLabel(getFlag(param)) }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-</ng-container>
 
-<ng-container *ngIf="!isLoading && !order">
-  <div class="empty-state">
-    <p>Order not found.</p>
-    <button class="btn btn-secondary" (click)="cancel()">Go Back</button>
+  <p class="result-sheet__abnormal" *ngIf="isAbnormal">
+    This study was flagged as abnormal. Please correlate clinically.
+  </p>
+
+  <div class="result-sheet__sign">
+    <p class="result-sheet__sign-name">{{ order.resultedBy || '—' }}</p>
+    <p class="result-sheet__sign-label">Reading Physician</p>
   </div>
-</ng-container>
+</div>
