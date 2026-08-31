@@ -2,6 +2,7 @@ using ProCreateApi.Data;
 using ProCreateApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace ProCreateApi.Services.Lis;
 
@@ -127,11 +128,14 @@ public class LisService : ILisService
             return;
         }
 
-        // Replace existing results
-        _db.LabResults.RemoveRange(order.Results);
+        var results = new List<LabResult>();
+        var narrative = new StringBuilder();
+        var abnormal = false;
 
         foreach (var obs in observations)
         {
+            if (IsAbnormalFlag(obs.AbnormalFlag)) abnormal = true;
+
             // Match parameter by code first, then by name (case-insensitive)
             var param = order.LabTest.Parameters.FirstOrDefault(p =>
                 string.Equals(p.Name, obs.Code, StringComparison.OrdinalIgnoreCase) ||
@@ -139,7 +143,12 @@ public class LisService : ILisService
 
             if (param is null)
             {
-                _logger.LogWarning("ORU^R01 OBX '{Code}/{Name}' has no matching TestParameter in order {Id} — skipped.", obs.Code, obs.Name, order.Id);
+                // Nothing to hang a measurement on. Imaging, ultrasound and
+                // heart-station studies have no parameters at all and are
+                // reported as prose, and even a bench panel can carry a
+                // free-text comment. Either way it is clinical content, so it
+                // goes to the findings rather than being dropped on the floor.
+                AppendToNarrative(narrative, obs);
                 continue;
             }
 
@@ -151,7 +160,7 @@ public class LisService : ILisService
                 else if (double.TryParse(param.NormalMax, out var max) && numVal > max) flag = "High";
             }
 
-            _db.LabResults.Add(new LabResult
+            results.Add(new LabResult
             {
                 LabOrderId = order.Id,
                 TestParameterId = param.Id,
@@ -161,13 +170,65 @@ public class LisService : ILisService
             });
         }
 
+        // A message we could make nothing of must not touch the order. Marking
+        // it resulted would show an empty reading as ready, and clearing the
+        // results first would destroy a good one already on file.
+        if (results.Count == 0 && narrative.Length == 0)
+        {
+            _logger.LogWarning(
+                "ORU^R01 for order {Id} carried {Count} OBX segment(s) but none could be interpreted — order left unchanged.",
+                order.Id, observations.Count);
+            return;
+        }
+
+        if (results.Count > 0)
+        {
+            _db.LabResults.RemoveRange(order.Results);
+            _db.LabResults.AddRange(results);
+        }
+
+        if (narrative.Length > 0)
+            order.NarrativeFindings = narrative.ToString().TrimEnd();
+
+        // This message is the reading, so its flag replaces ours outright —
+        // a corrected result that is now within limits has to clear it.
+        order.IsAbnormal = abnormal;
+
+        var interpreter = message.GetResultInterpreter();
+        if (!string.IsNullOrWhiteSpace(interpreter))
+            order.ResultedBy = interpreter;
+
         order.Status = "Resulted";
         order.ProcessedAt = DateTime.UtcNow;
         order.LisStatus = "Acknowledged";
         order.LisAckedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
-        _logger.LogInformation("ORU^R01 for order {Id} processed — {Count} results saved.", order.Id, observations.Count);
+        _logger.LogInformation(
+            "ORU^R01 for order {Id} processed — {Results} result(s), {Narrative} char(s) of findings.",
+            order.Id, results.Count, narrative.Length);
+    }
+
+    /// <summary>
+    /// Adds one observation that had no matching parameter to the findings
+    /// buffer. Report prose is concatenated as-is, since a write-up arrives
+    /// split across OBX segments and must read as continuous text; anything
+    /// else keeps its label so a stray value stays attributable.
+    /// </summary>
+    private static void AppendToNarrative(StringBuilder narrative, ObxObservation obs)
+    {
+        if (string.IsNullOrWhiteSpace(obs.Value)) return;
+
+        if (narrative.Length > 0) narrative.Append('\n');
+
+        if (obs.IsNarrative)
+        {
+            narrative.Append(obs.Value);
+            return;
+        }
+
+        var label = !string.IsNullOrWhiteSpace(obs.Name) ? obs.Name : obs.Code;
+        narrative.Append(string.IsNullOrWhiteSpace(label) ? obs.Value : $"{label}: {obs.Value}");
     }
 
     private static string MapAbnormalFlag(string lisFlag) => lisFlag.ToUpper() switch
@@ -175,5 +236,12 @@ public class LisService : ILisService
         "H" or "HH" or ">" => "High",
         "L" or "LL" or "<" => "Low",
         _ => "Normal"
+    };
+
+    /// <summary>Whether an OBX-8 flag marks the observation as out of limits.</summary>
+    private static bool IsAbnormalFlag(string lisFlag) => lisFlag.ToUpper() switch
+    {
+        "A" or "AA" or "H" or "HH" or "L" or "LL" or ">" or "<" => true,
+        _ => false
     };
 }

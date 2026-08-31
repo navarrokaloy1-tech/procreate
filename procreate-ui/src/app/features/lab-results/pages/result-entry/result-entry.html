@@ -173,7 +173,7 @@
           </p>
         </div>
 
-        <label class="abnormal-toggle" *ngIf="isNarrative">
+        <label class="abnormal-toggle">
           <input type="checkbox" [(ngModel)]="isAbnormal" [disabled]="isReadOnly" />
           Flag as Abnormal
         </label>
@@ -234,6 +234,23 @@
             <p class="text-muted text-center">No parameters are defined for this test.</p>
           </div>
         </ng-template>
+
+        <!--
+          A measured panel can still carry prose — an analyser comment, or an
+          OBX the LIS sent that matched no parameter. It is only rendered when
+          there is something to show, so the panel stays a table by default.
+        -->
+        <div class="info-card__body result-narrative" *ngIf="narrativeFindings || !isReadOnly">
+          <label class="form-label" for="narrativeExtra">Findings &amp; Comments</label>
+          <textarea
+            id="narrativeExtra"
+            class="form-control narrative-input"
+            rows="4"
+            placeholder="Optional comments on this panel..."
+            [(ngModel)]="narrativeFindings"
+            [readonly]="isReadOnly"
+          ></textarea>
+        </div>
       </ng-container>
 
       <div class="info-card__body result-remarks" *ngIf="!isReadOnly">
@@ -342,6 +359,12 @@
         </tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Comments that came with a measured panel print under the table. -->
+  <div class="result-sheet__section" *ngIf="!isNarrative && narrativeFindings">
+    <h3>Comments</h3>
+    <p class="result-sheet__narrative">{{ narrativeFindings }}</p>
   </div>
 
   <p class="result-sheet__abnormal" *ngIf="isAbnormal">
