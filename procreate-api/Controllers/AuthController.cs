@@ -28,6 +28,10 @@ public class AuthController : ControllerBase
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid username or password" });
 
+        // Drives the online/offline dot on the account list.
+        user.LastLoginAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var claims = new[]
@@ -47,7 +51,7 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             token = new JwtSecurityTokenHandler().WriteToken(token),
-            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email }
+            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email, user.MustChangePassword }
         });
     }
 

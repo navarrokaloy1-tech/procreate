@@ -26,6 +26,21 @@
     </div>
   </nav>
 
+  <!--
+    The waiting-room board. A plain anchor, not a routerLink: it opens on the
+    second screen in its own tab and must not navigate the console away.
+  -->
+  <a
+    class="sidebar__external"
+    href="/queue-display"
+    target="_blank"
+    rel="noopener"
+  >
+    <app-icon name="monitor" [size]="18"></app-icon>
+    <span>Queue Display</span>
+    <app-icon class="sidebar__external-mark" name="external-link" [size]="14"></app-icon>
+  </a>
+
   <div class="sidebar__footer">
     <p class="sidebar__footer-label">Logged in as:</p>
     <p class="sidebar__footer-user">{{ userName }}</p>

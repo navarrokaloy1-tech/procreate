@@ -139,7 +139,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
       },
       {
         label: 'Clinic Setup',
-        items: [{ label: 'Doctors', route: '/app/doctors', icon: 'stethoscope' }]
+        items: [
+          { label: 'Doctors', route: '/app/doctors', icon: 'stethoscope' },
+          { label: 'Services', route: '/app/services', icon: 'clipboard' },
+          { label: 'Inventory', route: '/app/inventory', icon: 'package' }
+        ]
+      },
+      {
+        label: 'Account settings',
+        items: [{ label: 'User Management', route: '/app/users', icon: 'users' }]
       },
       {
         label: 'Reports',

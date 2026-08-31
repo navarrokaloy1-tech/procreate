@@ -29,6 +29,10 @@ public class AppDbContext : DbContext
     public DbSet<PatientCondition> PatientConditions => Set<PatientCondition>();
     public DbSet<VitalSignRecord> VitalSignRecords => Set<VitalSignRecord>();
     public DbSet<PatientDocument> PatientDocuments => Set<PatientDocument>();
+    public DbSet<InventoryCategory> InventoryCategories => Set<InventoryCategory>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<ServiceInventoryItem> ServiceInventoryItems => Set<ServiceInventoryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +43,7 @@ public class AppDbContext : DbContext
                 Username = "admin",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 FullName = "System Administrator",
+                FirstName = "System", LastName = "Administrator",
                 Role = "Admin",
                 Email = "admin@procreate.ai",
                 IsActive = true
@@ -49,6 +54,7 @@ public class AppDbContext : DbContext
                 Username = "cashier",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("cashier123"),
                 FullName = "John Doe",
+                FirstName = "John", LastName = "Doe",
                 Role = "Cashier",
                 Email = "cashier@procreate.ai",
                 IsActive = true
@@ -59,6 +65,7 @@ public class AppDbContext : DbContext
                 Username = "doctor",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("doctor123"),
                 FullName = "Dr. Maria Lopez",
+                FirstName = "Maria", LastName = "Lopez",
                 Role = "Doctor",
                 Email = "mlopez@procreate.ai",
                 IsActive = true
@@ -172,15 +179,91 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<VitalSignRecord>().HasIndex(v => v.RecordedAt);
         modelBuilder.Entity<PatientDocument>().HasIndex(d => d.ResultDate);
 
+        // An item keeps its history when its category or supplier is removed,
+        // so both links go null rather than cascading.
+        modelBuilder.Entity<InventoryItem>()
+            .HasOne(i => i.Category)
+            .WithMany()
+            .HasForeignKey(i => i.CategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<InventoryItem>()
+            .HasOne(i => i.Supplier)
+            .WithMany()
+            .HasForeignKey(i => i.SupplierId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // The link row is meaningless without either end, so it goes with them.
+        modelBuilder.Entity<ServiceInventoryItem>()
+            .HasOne(l => l.Product)
+            .WithMany(p => p.RequiredItems)
+            .HasForeignKey(l => l.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ServiceInventoryItem>()
+            .HasOne(l => l.InventoryItem)
+            .WithMany()
+            .HasForeignKey(l => l.InventoryItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A service lists each reagent once.
+        modelBuilder.Entity<ServiceInventoryItem>()
+            .HasIndex(l => new { l.ProductId, l.InventoryItemId })
+            .IsUnique();
+
+        modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+
         modelBuilder.Entity<Product>().HasData(
-            new Product { Id = 1, Code = "PRD-1001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true },
-            new Product { Id = 2, Code = "PRD-1002", Name = "Transvaginal Ultrasound", Category = "Imaging", Price = 1500, IsActive = true },
-            new Product { Id = 3, Code = "PRD-1003", Name = "Follicle Monitoring", Category = "Fertility", Price = 1200, IsActive = true },
-            new Product { Id = 4, Code = "PRD-1004", Name = "Hormone Panel (FSH/LH/E2)", Category = "Laboratory", Price = 2800, IsActive = true },
-            new Product { Id = 5, Code = "PRD-1005", Name = "Semen Analysis", Category = "Fertility", Price = 900, IsActive = true },
-            new Product { Id = 6, Code = "PRD-1006", Name = "OB-GYN Consultation", Category = "Consultation", Price = 800, IsActive = true },
-            new Product { Id = 7, Code = "PRD-1007", Name = "Pap Smear", Category = "Laboratory", Price = 650, IsActive = true },
-            new Product { Id = 8, Code = "PRD-1008", Name = "Pelvic Ultrasound", Category = "Imaging", Price = 1300, IsActive = true }
+            new Product { Id = 1, Code = "LAB-001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 2, Code = "US-001", Name = "Transvaginal Ultrasound", Category = "Ultrasound", Price = 1500, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 3, Code = "US-002", Name = "Follicle Monitoring", Category = "Ultrasound", Price = 1200, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 4, Code = "LAB-002", Name = "Hormone Panel (FSH/LH/E2)", Category = "Laboratory", Price = 2800, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 5, Code = "LAB-003", Name = "Semen Analysis", Category = "Laboratory", Price = 900, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 6, Code = "CON-001", Name = "OB-GYN Consultation", Category = "Consultation", Price = 800, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 7, Code = "LAB-004", Name = "Pap Smear", Category = "Laboratory", Price = 650, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 8, Code = "US-003", Name = "Pelvic Ultrasound", Category = "Ultrasound", Price = 1300, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 9, Code = "XR-001", Name = "Chest X-Ray (PA)", Category = "Imaging", Price = 400, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 10, Code = "XR-002", Name = "Chest X-Ray (APL)", Category = "Imaging", Price = 600, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 11, Code = "HS-001", Name = "12-Lead ECG", Category = "Heart Station", Price = 450, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 12, Code = "HS-002", Name = "2D Echocardiogram", Category = "Heart Station", Price = 3500, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 13, Code = "CON-002", Name = "Follow-up Consultation", Category = "Consultation", Price = 350, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },
+            new Product { Id = 14, Code = "MISC-001", Name = "Fit to Work Certificate", Category = "Others", Price = 250, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 15, Code = "MISC-002", Name = "Drug Test (5 Panel)", Category = "Laboratory", Price = 500, IsActive = true, SeniorPwdDiscount = true },
+            new Product { Id = 16, Code = "US-004", Name = "Breast Ultrasound", Category = "Ultrasound", Price = 1200, IsActive = true }
+        );
+
+        modelBuilder.Entity<InventoryCategory>().HasData(
+            new InventoryCategory { Id = 1, Name = "Ultrasound Supplies", Description = "Gels, probe covers and paper" },
+            new InventoryCategory { Id = 2, Name = "Phlebotomy", Description = "Blood collection consumables" },
+            new InventoryCategory { Id = 3, Name = "Pharmacy", Description = "Dispensed medicines" }
+        );
+
+        modelBuilder.Entity<Supplier>().HasData(
+            new Supplier { Id = 1, Name = "MedGrocer Supply Co.", ContactPerson = "Ana Villanueva", ContactNumber = "09171230000", Email = "sales@medgrocer.example", IsActive = true },
+            new Supplier { Id = 2, Name = "Zuellig Pharma", ContactPerson = "Mark Tan", ContactNumber = "09281234444", Email = "orders@zuellig.example", IsActive = true }
+        );
+
+        // A spread of stock states so the dashboard tiles and the low-stock /
+        // out-of-stock alerts have something real to count on a fresh database.
+        modelBuilder.Entity<InventoryItem>().HasData(
+            new InventoryItem { Id = 1, ItemType = ItemTypes.Consumable, CategoryId = 1, SupplierId = 1, Name = "Ultrasound Gel", BrandName = "Aquasonic", UnitOfMeasure = "Bottle", Sku = "US-GEL-01", CostPrice = 180, SellingPrice = 250, CurrentStock = 24, ReorderLevel = 10, MinOrderQty = 6 },
+            new InventoryItem { Id = 2, ItemType = ItemTypes.Consumable, CategoryId = 1, SupplierId = 1, Name = "Probe Cover", BrandName = "Fit One", UnitOfMeasure = "Piece", Sku = "US-PC-01", CostPrice = 5, SellingPrice = 12, CurrentStock = 139, ReorderLevel = 50, MinOrderQty = 100 },
+            new InventoryItem { Id = 3, ItemType = ItemTypes.Consumable, CategoryId = 2, SupplierId = 1, Name = "Cotton Balls", BrandName = "Indoplas", UnitOfMeasure = "Pack", Sku = "PH-CB-01", CostPrice = 25, SellingPrice = 40, CurrentStock = 99, ReorderLevel = 20, MinOrderQty = 10 },
+            new InventoryItem { Id = 4, ItemType = ItemTypes.Consumable, CategoryId = 2, SupplierId = 1, Name = "Vacutainer Tube (EDTA)", BrandName = "BD", UnitOfMeasure = "Box", SubUnit = "Piece", ConversionFactor = 100, Sku = "PH-VT-01", CostPrice = 850, SellingPrice = 1100, CurrentStock = 6, ReorderLevel = 8, MinOrderQty = 2 },
+            new InventoryItem { Id = 5, ItemType = ItemTypes.Medicine, CategoryId = 3, SupplierId = 2, Name = "Paracetamol", BrandName = "Biogesic", Dosage = "500mg", UnitOfMeasure = "Box", SubUnit = "Tablet", ConversionFactor = 100, Sku = "MED-001", CostPrice = 150, SellingPrice = 300, CurrentStock = 0, ReorderLevel = 5, MinOrderQty = 2 },
+            new InventoryItem { Id = 6, ItemType = ItemTypes.Medicine, CategoryId = 3, SupplierId = 2, Name = "Mefenamic Acid", BrandName = "Dolfenal", Dosage = "500mg", UnitOfMeasure = "Box", SubUnit = "Capsule", ConversionFactor = 50, Sku = "MED-002", CostPrice = 140, SellingPrice = 240, CurrentStock = 0, ReorderLevel = 5, MinOrderQty = 2 },
+            new InventoryItem { Id = 7, ItemType = ItemTypes.Medicine, CategoryId = 3, SupplierId = 2, Name = "Amlodipine", BrandName = "Norvasc", Dosage = "50mg", UnitOfMeasure = "Box", SubUnit = "Tablet", ConversionFactor = 30, Sku = "MED-003", CostPrice = 150, SellingPrice = 300, CurrentStock = 40, ReorderLevel = 10, MinOrderQty = 5 },
+            new InventoryItem { Id = 8, ItemType = ItemTypes.Medicine, CategoryId = 3, SupplierId = 2, Name = "Losartan", BrandName = "Sartan", Dosage = "50mg", UnitOfMeasure = "Box", SubUnit = "Tablet", ConversionFactor = 30, Sku = "MED-004", CostPrice = 150, SellingPrice = 300, CurrentStock = 4, ReorderLevel = 10, MinOrderQty = 5 },
+            new InventoryItem { Id = 9, ItemType = ItemTypes.Asset, SupplierId = 1, Name = "Stethoscope", BrandName = "Littmann", UnitOfMeasure = "Piece", Sku = "AST-001", CostPrice = 5000, SellingPrice = 0, CurrentStock = 3, ReorderLevel = 1, MinOrderQty = 1 },
+            new InventoryItem { Id = 10, ItemType = ItemTypes.Asset, SupplierId = 1, Name = "Digital BP Monitor", BrandName = "Omron", UnitOfMeasure = "Piece", Sku = "AST-002", CostPrice = 3200, SellingPrice = 0, CurrentStock = 2, ReorderLevel = 1, MinOrderQty = 1 }
+        );
+
+        // Two services that actually draw stock, so the link is exercised.
+        modelBuilder.Entity<ServiceInventoryItem>().HasData(
+            new ServiceInventoryItem { Id = 1, ProductId = 2, InventoryItemId = 1, Quantity = 1 },
+            new ServiceInventoryItem { Id = 2, ProductId = 2, InventoryItemId = 2, Quantity = 1 },
+            new ServiceInventoryItem { Id = 3, ProductId = 1, InventoryItemId = 3, Quantity = 1 },
+            new ServiceInventoryItem { Id = 4, ProductId = 1, InventoryItemId = 4, Quantity = 1 }
         );
 
         // Categories carry the department, so a test's console tab follows from

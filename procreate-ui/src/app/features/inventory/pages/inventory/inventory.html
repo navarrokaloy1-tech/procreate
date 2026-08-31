@@ -1,0 +1,857 @@
+<section class="page-hero page-hero--tabs">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="package" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Inventory Management</h1>
+        <p class="page-hero__subtitle">
+          {{ summary?.totalItems ?? 0 }} items across all categories
+        </p>
+      </div>
+    </div>
+
+    <div class="page-hero__actions">
+      <span class="manage-wrap">
+        <button type="button" class="btn btn-hero-ghost" (click)="toggleManage($event)">
+          <app-icon name="settings" [size]="16"></app-icon>
+          Manage
+        </button>
+      </span>
+
+      <button type="button" class="btn btn-hero" (click)="openAddItem()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Item
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="hero-tabs">
+  <button
+    *ngFor="let tab of tabs"
+    type="button"
+    class="hero-tabs__tab"
+    [class.active]="activeTab === tab"
+    (click)="onTabChange(tab)"
+  >
+    {{ tab }}
+  </button>
+</div>
+
+<!--
+  The Manage dropdown, deliberately outside the banner. Inside it, .page-hero__row
+  (z-index 1) caps its stacking below the .hero-tabs strip (z-index 2), and the
+  banner clips its overflow — so it was both painted over and cut off. Out here
+  it is fixed, positioned from the button by measurement, and clipped by nothing.
+-->
+<div
+  class="manage-menu"
+  *ngIf="isManageOpen"
+  [style.top.px]="menuPos.top"
+  [style.left.px]="menuPos.left"
+>
+  <button type="button" class="manage-menu__item" (click)="openAddCategory()">
+    <app-icon name="layout-grid" [size]="16"></app-icon>
+    Add Category
+  </button>
+  <button type="button" class="manage-menu__item" (click)="openAddSupplier()">
+    <app-icon name="briefcase" [size]="16"></app-icon>
+    Add Supplier
+  </button>
+  <span class="manage-menu__divider"></span>
+  <button
+    *ngFor="let type of itemTypes"
+    type="button"
+    class="manage-menu__item"
+    (click)="showTypeFilter(type)"
+  >
+    <app-icon name="package" [size]="16"></app-icon>
+    {{ type }}s
+    <span class="manage-menu__count">{{ countFor(type) }}</span>
+  </button>
+</div>
+
+<!-- ==================== Dashboard ==================== -->
+<ng-container *ngIf="activeTab === 'Dashboard'">
+  <div class="kpi-grid">
+    <button type="button" class="stat-card stat-card--action" (click)="showAllItems()">
+      <span class="icon-square"><app-icon name="package" [size]="20"></app-icon></span>
+      <div class="stat-card-content">
+        <span class="stat-card-value">{{ summary?.totalItems ?? 0 }}</span>
+        <span class="stat-card-label">Total Items</span>
+      </div>
+    </button>
+
+    <button type="button" class="stat-card stat-card--action" (click)="showStockState('Low Stock')">
+      <span class="icon-square icon-square--warning">
+        <app-icon name="trending-up" [size]="20"></app-icon>
+      </span>
+      <div class="stat-card-content">
+        <span class="stat-card-value">{{ summary?.lowStock ?? 0 }}</span>
+        <span class="stat-card-label">Low Stock</span>
+      </div>
+    </button>
+
+    <button type="button" class="stat-card stat-card--action" (click)="showStockState('Out of Stock')">
+      <span class="icon-square icon-square--danger">
+        <app-icon name="package" [size]="20"></app-icon>
+      </span>
+      <div class="stat-card-content">
+        <span class="stat-card-value">{{ summary?.outOfStock ?? 0 }}</span>
+        <span class="stat-card-label">Out of Stock</span>
+      </div>
+    </button>
+
+    <button type="button" class="stat-card stat-card--action" (click)="openSuppliers()">
+      <span class="icon-square icon-square--info"><app-icon name="briefcase" [size]="20"></app-icon></span>
+      <div class="stat-card-content">
+        <span class="stat-card-value">{{ suppliers.length }}</span>
+        <span class="stat-card-label">Suppliers</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="alert-grid">
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="alert-circle" [size]="17"></app-icon>
+          Critical Alerts
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <button
+          type="button"
+          class="alert-line alert-line--danger"
+          *ngIf="summary && summary.outOfStock > 0"
+          (click)="showStockState('Out of Stock')"
+        >
+          <app-icon name="package" [size]="16"></app-icon>
+          {{ summary.outOfStock }} {{ summary.outOfStock === 1 ? 'item is' : 'items are' }}
+          currently out of stock.
+        </button>
+
+        <button
+          type="button"
+          class="alert-line alert-line--warning"
+          *ngIf="summary && summary.lowStock > 0"
+          (click)="showStockState('Low Stock')"
+        >
+          <app-icon name="trending-up" [size]="16"></app-icon>
+          {{ summary.lowStock }} {{ summary.lowStock === 1 ? 'item has' : 'items have' }}
+          reached reorder level.
+        </button>
+
+        <p class="text-muted" *ngIf="summary && summary.outOfStock === 0 && summary.lowStock === 0">
+          Everything is above its reorder level.
+        </p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="list" [size]="17"></app-icon>
+          Needs Reordering
+        </h3>
+      </div>
+      <div class="info-card__body">
+        <ng-container *ngIf="summary && (summary.outOfStockItems.length || summary.lowStockItems.length); else stocked">
+          <div
+            class="reorder-row"
+            *ngFor="let item of summary.outOfStockItems.concat(summary.lowStockItems)"
+          >
+            <span class="reorder-row__body">
+              <span class="reorder-row__name">{{ item.name }}</span>
+              <span class="reorder-row__sub">{{ item.brandName || 'No brand' }}</span>
+            </span>
+            <span [class]="stockClass(item)">
+              {{ item.currentStock }}
+              <small>{{ item.unitOfMeasure }}</small>
+            </span>
+          </div>
+        </ng-container>
+        <ng-template #stocked>
+          <p class="text-muted">Nothing needs reordering.</p>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ==================== Items ==================== -->
+<div class="card tab-card" *ngIf="activeTab === 'Items'">
+  <div class="toolbar">
+    <label class="toolbar__grow search-field">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by name, SKU, or brand..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search inventory"
+      />
+    </label>
+
+    <span class="select-field">
+      <select [(ngModel)]="typeFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by type">
+        <option value="">All Types</option>
+        <option *ngFor="let type of itemTypes" [value]="type">{{ type }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+
+    <span class="select-field">
+      <select
+        [(ngModel)]="categoryFilter"
+        (ngModelChange)="onFilterChange()"
+        aria-label="Filter by category"
+      >
+        <option value="">All Categories</option>
+        <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+
+    <span class="select-field">
+      <select [(ngModel)]="stockFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by stock">
+        <option value="">All Stock</option>
+        <option *ngFor="let state of stockStates" [value]="state">{{ state }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading items...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="items.length > 0; else emptyItems">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Item Name</th>
+            <th>Type / Category</th>
+            <th class="text-center">Current Stock</th>
+            <th class="text-right">Pricing</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items">
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value fw-semibold">{{ item.name }}</span>
+                <span class="cell-stack__sub">
+                  {{ item.dosage }}<ng-container *ngIf="item.dosage && item.brandName"> &middot; </ng-container>{{ item.brandName }}
+                </span>
+                <span class="cell-code" *ngIf="item.sku">SKU: {{ item.sku }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="cell-stack">
+                <span [class]="typeTag(item.itemType)">{{ item.itemType }}</span>
+                <span class="cell-stack__sub">{{ item.categoryName || 'Uncategorized' }}</span>
+              </span>
+            </td>
+
+            <td class="text-center">
+              <span [class]="stockClass(item)">
+                {{ item.currentStock }}
+                <small>{{ item.unitOfMeasure }}</small>
+              </span>
+            </td>
+
+            <td class="text-right">
+              <span class="cell-price">
+                <span class="cell-price__value">&#8369;{{ item.sellingPrice | number: '1.2-2' }}</span>
+                <span class="cell-price__sub">Cost: &#8369;{{ item.costPrice | number: '1.2-2' }}</span>
+              </span>
+            </td>
+
+            <td>
+              <span class="pill pill--success" *ngIf="item.isActive">Active</span>
+              <span class="pill" *ngIf="!item.isActive">Inactive</span>
+            </td>
+
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="openStock(item)"
+                  title="Adjust stock"
+                  aria-label="Adjust stock"
+                >
+                  <app-icon name="package" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="openEditItem(item)"
+                  title="Edit item"
+                  aria-label="Edit item"
+                >
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="removeItem(item)"
+                  title="Delete item"
+                  aria-label="Delete item"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyItems>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="package" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No items found</h3>
+        <p class="empty-rich__text">
+          {{ hasFilters
+            ? 'No items match the current search or filter.'
+            : 'The inventory is currently empty.' }}
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          *ngIf="hasFilters; else addFirstItem"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+        <ng-template #addFirstItem>
+          <button type="button" class="btn btn-primary" (click)="openAddItem()">
+            <app-icon name="plus" [size]="16"></app-icon>
+            Add Item
+          </button>
+        </ng-template>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="select-field select-field--sm">
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <span class="table-footer__range">
+          <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ totalCount }} total
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
+            <button
+              *ngIf="page >= 0"
+              type="button"
+              class="pager__btn"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </ng-container>
+
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- ==================== Not built yet ==================== -->
+<div class="card tab-card" *ngIf="activeTab === 'Stock Batches' || activeTab === 'Transactions'">
+  <div class="empty-rich">
+    <span class="empty-rich__icon">
+      <app-icon [name]="activeTab === 'Stock Batches' ? 'package' : 'history'" [size]="32"></app-icon>
+    </span>
+    <h3 class="empty-rich__title">{{ activeTab }} are not built yet</h3>
+    <p class="empty-rich__text">
+      {{ activeTab === 'Stock Batches'
+        ? 'Batch numbers and expiry tracking will live here. Stock levels are tracked per item on the Items tab in the meantime.'
+        : 'A ledger of every stock movement will live here. Adjustments are applied directly to the item for now.' }}
+    </p>
+    <button type="button" class="btn btn-primary" (click)="onTabChange('Items')">
+      Go to Items
+    </button>
+  </div>
+</div>
+
+<!-- ==================== Add / edit item ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'item'" (click)="closeSheet()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="package" [size]="19"></app-icon>
+          {{ editingId ? 'Edit Item' : 'Add New Item' }}
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="itemType">
+            Item Type <span class="required-mark">*</span>
+          </label>
+          <span class="select-field select-field--block">
+            <select id="itemType" [(ngModel)]="form.itemType">
+              <option *ngFor="let type of itemTypes" [value]="type">{{ type }}</option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemCategory">Category</label>
+          <span class="select-field select-field--block">
+            <select id="itemCategory" [(ngModel)]="form.categoryId">
+              <option [ngValue]="null">None</option>
+              <option *ngFor="let category of categories" [ngValue]="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="itemName">
+            {{ nameLabel }} <span class="required-mark">*</span>
+          </label>
+          <input
+            id="itemName"
+            type="text"
+            class="form-control"
+            placeholder="e.g. Paracetamol"
+            [(ngModel)]="form.name"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="brandName">{{ brandLabel }}</label>
+          <input
+            id="brandName"
+            type="text"
+            class="form-control"
+            placeholder="e.g. Biogesic"
+            [(ngModel)]="form.brandName"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dosage">Dosage</label>
+          <input id="dosage" type="text" class="form-control" placeholder="e.g. 500mg" [(ngModel)]="form.dosage" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="supplier">Supplier</label>
+          <span class="select-field select-field--block">
+            <select id="supplier" [(ngModel)]="form.supplierId">
+              <option [ngValue]="null">None</option>
+              <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">
+                {{ supplier.name }}
+              </option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="unit">
+            Unit of Measure <span class="required-mark">*</span>
+          </label>
+          <span class="select-field select-field--block">
+            <select id="unit" [(ngModel)]="form.unitOfMeasure">
+              <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="subUnit">Sub-Unit (Optional)</label>
+          <input
+            id="subUnit"
+            type="text"
+            class="form-control"
+            placeholder="e.g. tablet, piece"
+            [(ngModel)]="form.subUnit"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="conversion">Conversion Factor</label>
+          <input
+            id="conversion"
+            type="number"
+            min="1"
+            class="form-control"
+            [placeholder]="form.subUnit ? '100' : 'Set sub-unit first'"
+            [disabled]="!form.subUnit"
+            [(ngModel)]="form.conversionFactor"
+          />
+          <small class="field-hint">{{ conversionHint }}</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sku">SKU</label>
+          <input id="sku" type="text" class="form-control" placeholder="e.g. MED-001" [(ngModel)]="form.sku" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="costPrice">
+            Cost Price (&#8369;) <span class="required-mark">*</span>
+          </label>
+          <input
+            id="costPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            class="form-control"
+            placeholder="0.00"
+            [(ngModel)]="form.costPrice"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sellingPrice">
+            Selling Price (&#8369;) <span class="required-mark">*</span>
+          </label>
+          <input
+            id="sellingPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            class="form-control"
+            placeholder="0.00"
+            [(ngModel)]="form.sellingPrice"
+          />
+        </div>
+
+        <div class="form-group" *ngIf="!editingId">
+          <label class="form-label" for="openingStock">Opening Stock</label>
+          <input
+            id="openingStock"
+            type="number"
+            min="0"
+            class="form-control"
+            [(ngModel)]="form.currentStock"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reorderLevel">Reorder Level</label>
+          <input id="reorderLevel" type="number" min="0" class="form-control" [(ngModel)]="form.reorderLevel" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="minOrderQty">Min. Order Qty</label>
+          <input id="minOrderQty" type="number" min="1" class="form-control" [(ngModel)]="form.minOrderQty" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="itemDescription">Description</label>
+        <textarea
+          id="itemDescription"
+          class="form-control"
+          rows="2"
+          placeholder="Item description..."
+          [(ngModel)]="form.description"
+        ></textarea>
+      </div>
+
+      <label class="check-item">
+        <input type="checkbox" [(ngModel)]="form.isActive" />
+        Item is active
+      </label>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeSheet()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveItem()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Item' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Stock adjustment ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'stock'" (click)="closeSheet()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="package" [size]="19"></app-icon>
+          Adjust Stock
+        </h3>
+        <p class="modal-sheet__desc" *ngIf="stockForm.item">
+          {{ stockForm.item.name }} &middot; {{ stockForm.item.currentStock }}
+          {{ stockForm.item.unitOfMeasure }} on hand
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
+
+      <div class="form-group">
+        <label class="form-label" for="delta">Change</label>
+        <input
+          id="delta"
+          type="number"
+          class="form-control"
+          placeholder="e.g. 12 to receive, -3 to consume"
+          [(ngModel)]="stockForm.delta"
+        />
+        <small class="field-hint">Positive adds stock, negative removes it.</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reason">Reason</label>
+        <input
+          id="reason"
+          type="text"
+          class="form-control"
+          placeholder="Delivery, breakage, stock count..."
+          [(ngModel)]="stockForm.reason"
+        />
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="closeSheet()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveStock()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Apply' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Add category ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'category'" (click)="closeSheet()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="layout-grid" [size]="19"></app-icon>
+          Add Category
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
+
+      <div class="form-group">
+        <label class="form-label" for="categoryName">
+          Name <span class="required-mark">*</span>
+        </label>
+        <input
+          id="categoryName"
+          type="text"
+          class="form-control"
+          placeholder="e.g. Ultrasound Supplies"
+          [(ngModel)]="categoryForm.name"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="categoryDescription">Description</label>
+        <input
+          id="categoryDescription"
+          type="text"
+          class="form-control"
+          placeholder="What belongs in this category"
+          [(ngModel)]="categoryForm.description"
+        />
+      </div>
+
+      <div class="chip-list" *ngIf="categories.length">
+        <span class="chip" *ngFor="let category of categories">
+          {{ category.name }}
+          <small>{{ category.itemCount }}</small>
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="closeSheet()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveCategory()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Add Category' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Suppliers ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'suppliers'" (click)="closeSheet()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="briefcase" [size]="19"></app-icon>
+          Suppliers
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ suppliers.length }} {{ suppliers.length === 1 ? 'supplier' : 'suppliers' }} on file
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <ng-container *ngIf="suppliers.length > 0; else noSuppliers">
+        <div class="supplier-row" *ngFor="let supplier of suppliers">
+          <span class="supplier-row__body">
+            <span class="supplier-row__name">{{ supplier.name }}</span>
+            <span class="supplier-row__sub" *ngIf="supplier.contactPerson">
+              {{ supplier.contactPerson }}
+            </span>
+            <span class="supplier-row__meta">
+              {{ supplier.contactNumber || 'No number' }}
+              <ng-container *ngIf="supplier.email"> &middot; {{ supplier.email }}</ng-container>
+            </span>
+          </span>
+          <span class="tag tag--info">{{ supplier.itemCount }} items</span>
+        </div>
+      </ng-container>
+
+      <ng-template #noSuppliers>
+        <p class="text-muted">No suppliers on file yet.</p>
+      </ng-template>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="closeSheet()">Close</button>
+      <button type="button" class="btn btn-primary" (click)="openAddSupplier()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Supplier
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Add supplier ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'supplier'" (click)="closeSheet()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="briefcase" [size]="19"></app-icon>
+          Add Supplier
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
+
+      <div class="form-group">
+        <label class="form-label" for="supplierName">
+          Name <span class="required-mark">*</span>
+        </label>
+        <input
+          id="supplierName"
+          type="text"
+          class="form-control"
+          placeholder="e.g. MedGrocer Supply Co."
+          [(ngModel)]="supplierForm.name"
+        />
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="contactPerson">Contact Person</label>
+          <input id="contactPerson" type="text" class="form-control" [(ngModel)]="supplierForm.contactPerson" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="supplierNumber">Contact Number</label>
+          <input id="supplierNumber" type="text" class="form-control" placeholder="09123456789" [(ngModel)]="supplierForm.contactNumber" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="supplierEmail">Email</label>
+        <input id="supplierEmail" type="email" class="form-control" [(ngModel)]="supplierForm.email" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="supplierAddress">Address</label>
+        <input id="supplierAddress" type="text" class="form-control" [(ngModel)]="supplierForm.address" />
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="closeSheet()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveSupplier()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Add Supplier' }}
+      </button>
+    </div>
+  </div>
+</div>

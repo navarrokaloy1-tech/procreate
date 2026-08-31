@@ -1,0 +1,399 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="clipboard" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Service Management</h1>
+        <p class="page-hero__subtitle">
+          {{ totalCount }} {{ totalCount === 1 ? 'service' : 'services' }} available
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openAdd()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Service
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <label class="toolbar__grow search-field">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by name or code..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search services"
+      />
+    </label>
+
+    <span class="select-field">
+      <select
+        [ngModel]="categoryFilter"
+        (ngModelChange)="onCategoryFilter($event)"
+        name="categoryFilter"
+        aria-label="Filter by category"
+      >
+        <option value="">All Categories</option>
+        <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+
+    <span class="select-field">
+      <select
+        [ngModel]="statusFilter"
+        (ngModelChange)="onStatusFilter($event)"
+        name="statusFilter"
+        aria-label="Filter by status"
+      >
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading services...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="services.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Category</th>
+            <th class="text-right">Fee</th>
+            <th>Discounts</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let service of services">
+            <td>
+              <span class="cell-stack">
+                <span class="cell-stack__value fw-semibold">{{ service.name }}</span>
+                <span class="cell-code">{{ service.code }}</span>
+              </span>
+            </td>
+
+            <td>{{ service.category }}</td>
+
+            <td class="text-right">
+              <span class="cell-price__value">&#8369;{{ service.price | number: '1.2-2' }}</span>
+            </td>
+
+            <td>
+              <span class="cell-badges">
+                <span class="tag tag--info" *ngIf="service.seniorPwdDiscount">SC/PWD</span>
+                <span class="tag tag--success" *ngIf="service.philHealthCovered">PH</span>
+                <span
+                  class="cell-empty"
+                  *ngIf="!service.seniorPwdDiscount && !service.philHealthCovered"
+                >
+                  &mdash;
+                </span>
+              </span>
+            </td>
+
+            <td>
+              <span class="pill pill--success" *ngIf="service.isActive">
+                <app-icon name="check" [size]="11"></app-icon>
+                Active
+              </span>
+              <span class="pill" *ngIf="!service.isActive">Inactive</span>
+            </td>
+
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn"
+                  (click)="openEdit(service)"
+                  title="Edit service"
+                  aria-label="Edit service"
+                >
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(service)"
+                  title="Delete service"
+                  aria-label="Delete service"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="clipboard" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No services found</h3>
+        <p class="empty-rich__text">
+          {{ hasFilters
+            ? 'No services match the current search or filter.'
+            : 'The service catalogue is currently empty.' }}
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          *ngIf="hasFilters; else addFirst"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+        <ng-template #addFirst>
+          <button type="button" class="btn btn-primary" (click)="openAdd()">
+            <app-icon name="plus" [size]="16"></app-icon>
+            Add Service
+          </button>
+        </ng-template>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="select-field select-field--sm">
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            name="pageSize"
+            aria-label="Rows per page"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <span class="table-footer__range">
+          <strong>{{ rangeStart }}-{{ rangeEnd }}</strong> &middot; {{ totalCount }} total
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
+            <button
+              *ngIf="page >= 0"
+              type="button"
+              class="pager__btn"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </ng-container>
+
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Add / edit service -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="clipboard" [size]="19"></app-icon>
+          {{ editingId ? 'Edit Service' : 'Add New Service' }}
+        </h3>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="serviceName">
+            Service Name <span class="required-mark">*</span>
+          </label>
+          <input
+            id="serviceName"
+            type="text"
+            class="form-control"
+            placeholder="e.g. General Consultation"
+            [(ngModel)]="form.name"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="serviceCode">Code</label>
+          <input
+            id="serviceCode"
+            type="text"
+            class="form-control"
+            placeholder="Left blank, one is generated"
+            [(ngModel)]="form.code"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="serviceCategory">
+            Category <span class="required-mark">*</span>
+          </label>
+          <span class="select-field select-field--block">
+            <select id="serviceCategory" [(ngModel)]="form.category">
+              <option value="" disabled>Select category</option>
+              <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="serviceFee">
+            Fee (&#8369;) <span class="required-mark">*</span>
+          </label>
+          <input
+            id="serviceFee"
+            type="number"
+            min="0"
+            step="0.01"
+            class="form-control"
+            placeholder="0.00"
+            [(ngModel)]="form.price"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="serviceDescription">Description</label>
+        <textarea
+          id="serviceDescription"
+          class="form-control"
+          rows="2"
+          placeholder="Service description..."
+          [(ngModel)]="form.description"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Discounts &amp; Coverage</label>
+        <div class="check-row">
+          <label class="check-row__item">
+            <input type="checkbox" [(ngModel)]="form.seniorPwdDiscount" />
+            Senior citizen / PWD discount
+          </label>
+          <label class="check-row__item">
+            <input type="checkbox" [(ngModel)]="form.philHealthCovered" />
+            PhilHealth covered
+          </label>
+          <label class="check-row__item">
+            <input type="checkbox" [(ngModel)]="form.isActive" />
+            Active
+          </label>
+        </div>
+      </div>
+
+      <!-- Reagents and consumables this service draws down -->
+      <div class="form-group">
+        <label class="form-label form-label--section">
+          <app-icon name="package" [size]="16"></app-icon>
+          Required Inventory Items (Reagents/Consumables)
+        </label>
+
+        <label class="search-field">
+          <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+          <input
+            type="text"
+            placeholder="Search inventory items to add..."
+            autocomplete="off"
+            [value]="inventoryQuery"
+            (input)="onInventoryQuery($any($event.target).value)"
+            aria-label="Search inventory items"
+          />
+        </label>
+
+        <ul class="picker-results" *ngIf="inventoryResults.length">
+          <li *ngFor="let item of inventoryResults">
+            <button type="button" (mousedown)="$event.preventDefault(); addRequiredItem(item)">
+              <strong>{{ item.name }}</strong>
+              <small>{{ item.brandName || item.unitOfMeasure }}</small>
+            </button>
+          </li>
+        </ul>
+
+        <div class="linked-items" *ngIf="requiredItems.length > 0; else noLinked">
+          <div class="linked-items__row" *ngFor="let item of requiredItems; let i = index">
+            <span class="linked-items__name">{{ item.name }}</span>
+            <input
+              type="number"
+              min="1"
+              class="form-control linked-items__qty"
+              [value]="item.quantity"
+              (input)="onQuantityChange(item, $any($event.target).value)"
+              [attr.aria-label]="'Quantity of ' + item.name"
+            />
+            <span class="linked-items__unit">{{ item.unit }}</span>
+            <button
+              type="button"
+              class="table-actions__btn table-actions__btn--danger"
+              (click)="removeRequiredItem(i)"
+              title="Remove item"
+              aria-label="Remove item"
+            >
+              <app-icon name="trash" [size]="15"></app-icon>
+            </button>
+          </div>
+        </div>
+
+        <ng-template #noLinked>
+          <div class="linked-empty">
+            <app-icon name="package" [size]="22"></app-icon>
+            <p>No inventory items linked. Add reagents or consumables this service uses.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Service' }}
+      </button>
+    </div>
+  </div>
+</div>

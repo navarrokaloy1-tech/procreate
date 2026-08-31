@@ -1,0 +1,62 @@
+<div class="board">
+  <header class="board__head">
+    <div class="board__brand">
+      <span class="board__mark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2 L8 14 H14 L4 30 L26 14 H18 L28 2 Z" fill="currentColor" />
+        </svg>
+      </span>
+      <div>
+        <strong>Pro-Create</strong>
+        <small>Fertility, OB-GYN &amp; Diagnostics</small>
+      </div>
+    </div>
+
+    <div class="board__clock">
+      <span class="board__time">{{ clock | date: 'h:mm a' }}</span>
+      <span class="board__date">{{ clock | date: 'EEEE, MMMM d, y' }}</span>
+    </div>
+  </header>
+
+  <main class="board__main">
+    <section class="serving">
+      <p class="serving__label">Now Serving</p>
+
+      <ng-container *ngIf="nowServing as current; else noneServing">
+        <p class="serving__ticket">{{ ticket(current) }}</p>
+        <p class="serving__name">{{ displayName(current) }}</p>
+      </ng-container>
+
+      <ng-template #noneServing>
+        <p class="serving__ticket serving__ticket--idle">&mdash;&mdash;&mdash;</p>
+        <p class="serving__name">
+          {{ hasLoaded ? 'Please wait to be called' : 'Loading...' }}
+        </p>
+      </ng-template>
+    </section>
+
+    <section class="next">
+      <p class="next__label">Up Next</p>
+
+      <ol class="next__list" *ngIf="upNext.length > 0; else queueEmpty">
+        <li *ngFor="let entry of upNext">
+          <span class="next__ticket">{{ ticket(entry) }}</span>
+          <span class="next__name">{{ displayName(entry) }}</span>
+        </li>
+      </ol>
+
+      <ng-template #queueEmpty>
+        <p class="next__empty">No one is waiting.</p>
+      </ng-template>
+    </section>
+  </main>
+
+  <footer class="board__foot">
+    <span class="board__stat"><strong>{{ waiting }}</strong> waiting</span>
+    <span class="board__stat"><strong>{{ served }}</strong> served today</span>
+    <span class="board__spacer"></span>
+    <span class="board__stale" *ngIf="isOffline">
+      Reconnecting &mdash; showing the last update
+    </span>
+  </footer>
+</div>

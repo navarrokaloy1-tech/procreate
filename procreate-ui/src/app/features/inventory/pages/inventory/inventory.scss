@@ -1,0 +1,375 @@
+// Hero, tabs, cards, tables, pills and the modal sheet come from the shared
+// console pattern layer in styles.scss.
+
+// The tab strip already takes the banner overlap, so content below it only
+// needs a normal gap. Positioned so it shares a paint layer with the banner:
+// a static block paints in an earlier layer than a positioned one.
+.tab-card,
+.kpi-grid {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+}
+
+// ------------------------------------------------------------
+// Dashboard
+// ------------------------------------------------------------
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+
+  // Tiles that filter the Items tab are buttons, so they reset button chrome.
+  &--action {
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color var(--transition), box-shadow var(--transition);
+
+    &:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+  }
+}
+
+.stat-card-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-card-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.stat-card-label {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.alert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.alert-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  text-align: left;
+  cursor: pointer;
+
+  & + & { margin-top: 10px; }
+
+  &--danger {
+    background: var(--danger-light);
+    border-color: #f5c6cb;
+    color: #a71d2a;
+  }
+
+  &--warning {
+    background: var(--warning-light);
+    border-color: #ffe08a;
+    color: #856404;
+  }
+
+  &:hover { filter: brightness(0.97); }
+}
+
+.reorder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+
+  &:first-child { padding-top: 0; }
+  & + & { border-top: 1px solid var(--border-color); }
+
+  &__body { min-width: 0; }
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__sub {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+// ------------------------------------------------------------
+// Stock figures
+// ------------------------------------------------------------
+
+.stock-figure {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--success-green);
+  white-space: nowrap;
+
+  small {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  &--low { color: #856404; }
+  &--out { color: var(--danger); }
+}
+
+// ------------------------------------------------------------
+// Manage menu on the banner
+// ------------------------------------------------------------
+
+.manage-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+// Fixed rather than absolute: .page-hero clips its overflow to contain the
+// decorative ring, which would cut this menu off at the banner edge. Top and
+// right are measured from the button when the menu opens.
+.manage-menu {
+  position: fixed;
+  z-index: 1200;
+  // `left` is the button's right edge, so pulling back a full width
+  // right-aligns the menu to the button without measuring the window.
+  transform: translateX(-100%);
+  min-width: 215px;
+  padding: 5px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: none;
+    background: transparent;
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: var(--light); }
+
+    .app-icon { color: var(--primary-dark); }
+  }
+
+  &__count {
+    margin-left: auto;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--light);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  &__divider {
+    display: block;
+    height: 1px;
+    margin: 5px 0;
+    background: var(--border-color);
+  }
+}
+
+// ------------------------------------------------------------
+// Items table
+// ------------------------------------------------------------
+
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  th:first-child,
+  td:first-child { padding-left: 16px; }
+
+  th:last-child,
+  td:last-child { padding-right: 16px; }
+
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.text-center { text-align: center; }
+
+// ------------------------------------------------------------
+// Sheets
+// ------------------------------------------------------------
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.modal-sheet--narrow {
+  max-width: 520px;
+}
+
+.modal-sheet__foot-spacer {
+  flex: 1 1 auto;
+}
+
+.select-field--block {
+  display: block;
+  width: 100%;
+
+  select { width: 100%; }
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--light);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+
+  small {
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+}
+
+// ------------------------------------------------------------
+// Loading
+// ------------------------------------------------------------
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: inventory-spin 0.7s linear infinite;
+}
+
+@keyframes inventory-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ------------------------------------------------------------
+// Suppliers sheet
+// ------------------------------------------------------------
+
+.supplier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+
+  &:first-child { padding-top: 0; }
+  & + & { border-top: 1px solid var(--border-color); }
+
+  &__body { min-width: 0; }
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__sub {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  &__meta {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}

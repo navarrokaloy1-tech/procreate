@@ -183,20 +183,66 @@ public class User
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    /// <summary>Kept in step with the name parts below, so existing screens still read one field.</summary>
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = "Staff";
     public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+
+    public string FirstName { get; set; } = string.Empty;
+    public string MiddleName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Suffix { get; set; } = string.Empty;
+    public string Sex { get; set; } = string.Empty;
+    public DateTime? Birthday { get; set; }
+    public string ContactNumber { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Set to true when an administrator issues a temporary password, so the
+    /// account list can show that the holder has not chosen their own yet.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
+
+    /// <summary>Drives the online/offline dot on the account list.</summary>
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>
+/// A billable clinic service. Named Product because the cashier sells these
+/// through Order/OrderItem; Service Management is the same catalogue seen from
+/// the setup side.
+/// </summary>
 public class Product
 {
     public int Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    /// <summary>See <see cref="ServiceCategories"/>.</summary>
     public string Category { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
+
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>Eligible for the statutory 20% senior citizen / PWD discount.</summary>
+    public bool SeniorPwdDiscount { get; set; }
+    /// <summary>Claimable against PhilHealth.</summary>
+    public bool PhilHealthCovered { get; set; }
+
+    /// <summary>Reagents and consumables drawn down when the service is performed.</summary>
+    public List<ServiceInventoryItem> RequiredItems { get; set; } = new();
+}
+
+/// <summary>The service categories offered on the Add Service form, in order.</summary>
+public static class ServiceCategories
+{
+    public static readonly string[] All =
+    {
+        "Consultation", "Laboratory", "Imaging", "Ultrasound", "Heart Station",
+        "Procedure", "Vaccination", "Dental", "Physical Therapy", "Others"
+    };
 }
 
 public class Order
@@ -442,4 +488,99 @@ public class PatientDocument
     public string UploadedBy { get; set; } = string.Empty;
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public byte[] Content { get; set; } = Array.Empty<byte>();
+}
+
+// ============================================================
+// Inventory — stock the clinic consumes or owns
+// ============================================================
+
+/// <summary>What an inventory item fundamentally is, which decides how it is counted.</summary>
+public static class ItemTypes
+{
+    public const string Medicine = "Medicine";
+    public const string Consumable = "Consumable";
+    public const string Asset = "Asset";
+
+    public static readonly string[] All = { Medicine, Consumable, Asset };
+}
+
+/// <summary>A grouping the clinic defines itself, e.g. "ultrasound supplies".</summary>
+public class InventoryCategory
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class Supplier
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ContactPerson { get; set; } = string.Empty;
+    public string ContactNumber { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class InventoryItem
+{
+    public int Id { get; set; }
+
+    /// <summary>Medicine | Consumable | Asset — see <see cref="ItemTypes"/>.</summary>
+    public string ItemType { get; set; } = ItemTypes.Medicine;
+
+    /// <summary>Optional: an item may sit uncategorised.</summary>
+    public int? CategoryId { get; set; }
+    public InventoryCategory? Category { get; set; }
+
+    /// <summary>Generic name for a medicine, plain item name otherwise.</summary>
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Brand for a medicine, manufacturer otherwise.</summary>
+    public string BrandName { get; set; } = string.Empty;
+    public string Dosage { get; set; } = string.Empty;
+
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
+
+    /// <summary>How stock is held and counted, e.g. Box.</summary>
+    public string UnitOfMeasure { get; set; } = "Piece";
+    /// <summary>
+    /// Optional smaller unit the stock breaks down into, e.g. Box of Tablets.
+    /// Blank when the item is only ever handled whole.
+    /// </summary>
+    public string SubUnit { get; set; } = string.Empty;
+    /// <summary>Sub-units per unit. Only meaningful when SubUnit is set.</summary>
+    public int? ConversionFactor { get; set; }
+
+    public string Sku { get; set; } = string.Empty;
+    public decimal CostPrice { get; set; }
+    public decimal SellingPrice { get; set; }
+
+    /// <summary>Stock on hand, counted in UnitOfMeasure.</summary>
+    public int CurrentStock { get; set; }
+    /// <summary>At or below this, the item is flagged for reordering.</summary>
+    public int ReorderLevel { get; set; } = 10;
+    public int MinOrderQty { get; set; } = 1;
+
+    public string Description { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// A reagent or consumable a service draws down when performed. The quantity
+/// is expressed in the item's own unit of measure.
+/// </summary>
+public class ServiceInventoryItem
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public int InventoryItemId { get; set; }
+    public InventoryItem InventoryItem { get; set; } = null!;
+    public int Quantity { get; set; } = 1;
 }

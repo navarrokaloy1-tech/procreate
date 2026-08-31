@@ -10,6 +10,11 @@ const routes: Routes = [
     component: LoginComponent
   },
   {
+    path: 'queue-display',
+    loadChildren: () =>
+      import('./features/queue-display/queue-display-module').then(m => m.QueueDisplayModule)
+  },
+  {
     path: 'register',
     loadChildren: () =>
       import('./features/public-registration/public-registration-module').then(
@@ -45,6 +50,23 @@ const routes: Routes = [
         path: 'reception-queue',
         loadChildren: () =>
           import('./features/reception/reception-module').then(m => m.ReceptionModule)
+      },
+      {
+        path: 'services',
+        loadChildren: () =>
+          import('./features/services/services-module').then(m => m.ServicesModule)
+      },
+      {
+        path: 'inventory',
+        loadChildren: () =>
+          import('./features/inventory/inventory-module').then(m => m.InventoryModule)
+      },
+      {
+        path: 'users',
+        loadChildren: () =>
+          import('./features/user-management/user-management-module').then(
+            m => m.UserManagementModule
+          )
       },
       {
         path: 'doctors',

@@ -1,0 +1,407 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="users" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>User Management</h1>
+        <p class="page-hero__subtitle">Manage user accounts, roles, and access permissions</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openAdd()">
+        <app-icon name="user-plus" [size]="16"></app-icon>
+        Add User
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <span class="toolbar__pagesize">
+      <span class="select-field select-field--sm">
+        <select
+          [ngModel]="pageSize"
+          (ngModelChange)="onPageSizeChange($event)"
+          name="pageSize"
+          aria-label="Entries per page"
+        >
+          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+        </select>
+        <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+      </span>
+      <span class="toolbar__label">entries per page</span>
+    </span>
+
+    <span class="toolbar__spacer"></span>
+
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search users..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search users"
+      />
+    </label>
+
+    <span class="filter-wrap">
+      <button
+        type="button"
+        class="tool-btn"
+        (click)="toggleFilter()"
+        title="Filter by role"
+        aria-label="Filter by role"
+      >
+        <app-icon name="filter" [size]="17"></app-icon>
+      </button>
+
+      <div class="filter-menu" *ngIf="isFilterOpen">
+        <button type="button" class="filter-menu__item" (click)="onRoleFilter('')">
+          <app-icon name="check" [size]="14" *ngIf="!roleFilter"></app-icon>
+          All roles
+        </button>
+        <button
+          *ngFor="let role of roles"
+          type="button"
+          class="filter-menu__item"
+          (click)="onRoleFilter(role.value)"
+        >
+          <app-icon name="check" [size]="14" *ngIf="roleFilter === role.value"></app-icon>
+          {{ role.label }}
+        </button>
+      </div>
+    </span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading accounts...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="users.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created Date</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>
+              <span class="presence" [class.presence--online]="user.isOnline">
+                <span class="presence__dot"></span>
+                {{ user.isOnline ? 'Online' : 'Offline' }}
+              </span>
+            </td>
+
+            <td>
+              <div class="cell-user">
+                <span class="avatar avatar--sm">{{ initials(user.fullName) }}</span>
+                <span class="cell-user__body">
+                  <span class="cell-user__name">{{ user.fullName }}</span>
+                  <span class="cell-user__sub">{{ user.username }}</span>
+                </span>
+              </div>
+            </td>
+
+            <td>{{ user.email }}</td>
+
+            <td>
+              <span class="cell-badges">
+                <span [class]="rolePill(user.role)">{{ user.roleLabel }}</span>
+                <span class="tag tag--warning" *ngIf="user.mustChangePassword">Temp password</span>
+                <span class="tag" *ngIf="!user.isActive">Disabled</span>
+              </span>
+            </td>
+
+            <td>{{ user.createdAt | date: 'MMM d, y' }}</td>
+
+            <td class="text-right">
+              <span class="tag tag--primary" *ngIf="isCurrentUser(user); else rowActions">
+                Current Account
+              </span>
+
+              <ng-template #rowActions>
+                <div class="table-actions">
+                  <button
+                    type="button"
+                    class="table-actions__btn table-actions__btn--info"
+                    (click)="openEdit(user)"
+                    title="Edit account"
+                    aria-label="Edit account"
+                  >
+                    <app-icon name="user" [size]="16"></app-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="table-actions__btn table-actions__btn--warning"
+                    (click)="resetPassword(user)"
+                    title="Issue a temporary password"
+                    aria-label="Issue a temporary password"
+                  >
+                    <app-icon name="key" [size]="16"></app-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="table-actions__btn table-actions__btn--danger"
+                    (click)="remove(user)"
+                    title="Delete account"
+                    aria-label="Delete account"
+                  >
+                    <app-icon name="trash" [size]="16"></app-icon>
+                  </button>
+                </div>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="users" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No accounts found</h3>
+        <p class="empty-rich__text">No accounts match the current search or filter.</p>
+        <button type="button" class="btn btn-primary" (click)="openAdd()">
+          <app-icon name="user-plus" [size]="16"></app-icon>
+          Add User
+        </button>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="table-footer__range">
+          Showing <strong>{{ rangeStart }}</strong> to <strong>{{ rangeEnd }}</strong>
+          of {{ totalCount }} entries
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
+            <button
+              *ngIf="page >= 0"
+              type="button"
+              class="pager__btn"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </ng-container>
+
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Create / edit account -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="user-plus" [size]="19"></app-icon>
+          {{ editingId ? 'Edit User' : 'Create User' }}
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ editingId
+            ? 'Update the account details and role.'
+            : 'Please fill in the details below to create a new user account.' }}
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="firstName">
+            First Name <span class="required-mark">*</span>
+          </label>
+          <input id="firstName" type="text" class="form-control" placeholder="John" [(ngModel)]="form.firstName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="middleName">Middle Name</label>
+          <input id="middleName" type="text" class="form-control" placeholder="Quincy" [(ngModel)]="form.middleName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lastName">Last Name</label>
+          <input id="lastName" type="text" class="form-control" placeholder="Doe" [(ngModel)]="form.lastName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="suffix">Suffix</label>
+          <input id="suffix" type="text" class="form-control" placeholder="Jr., III, etc." [(ngModel)]="form.suffix" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sex">Sex</label>
+          <span class="select-field select-field--block">
+            <select id="sex" [(ngModel)]="form.sex">
+              <option value="">Select Sex</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="birthday">Birthday</label>
+          <input id="birthday" type="date" class="form-control" [(ngModel)]="form.birthday" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="contactNumber">Contact Number</label>
+        <input
+          id="contactNumber"
+          type="text"
+          class="form-control"
+          placeholder="09123456789"
+          [(ngModel)]="form.contactNumber"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="address">Address</label>
+        <input
+          id="address"
+          type="text"
+          class="form-control"
+          placeholder="B1 L2, Street, Barangay, City"
+          [(ngModel)]="form.address"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">
+          Email <span class="required-mark">*</span>
+        </label>
+        <input
+          id="email"
+          type="email"
+          class="form-control"
+          placeholder="john.doe@example.com"
+          [(ngModel)]="form.email"
+        />
+      </div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="role">Role</label>
+          <span class="select-field select-field--block">
+            <select id="role" [(ngModel)]="form.role">
+              <option *ngFor="let role of roles" [value]="role.value">{{ role.label }}</option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Access</label>
+          <label class="check-item">
+            <input type="checkbox" [(ngModel)]="form.isActive" />
+            Account is active
+          </label>
+        </div>
+      </div>
+
+      <p class="form-note" *ngIf="!editingId">
+        <app-icon name="info" [size]="14"></app-icon>
+        A username and a temporary password are generated on save. The password is shown once.
+      </p>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- One-time temporary password -->
+<div class="modal-backdrop" *ngIf="issued" (click)="dismissIssued()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="key" [size]="19"></app-icon>
+          Temporary Password
+        </h3>
+        <p class="modal-sheet__desc">{{ issued.message }}</p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="dismissIssued()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="credential">
+        <span class="credential__label">Username</span>
+        <span class="credential__value">{{ issued.username }}</span>
+      </div>
+      <div class="credential">
+        <span class="credential__label">Temporary password</span>
+        <span class="credential__value credential__value--strong">{{ issued.password }}</span>
+      </div>
+
+      <div class="alert alert-warning">
+        <app-icon name="alert-triangle" [size]="15"></app-icon>
+        This is the only time it is shown. Pass it to the account holder and have them change it
+        after signing in.
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="copyIssued()">
+        <app-icon name="link" [size]="16"></app-icon>
+        Copy password
+      </button>
+      <button type="button" class="btn btn-primary" (click)="dismissIssued()">Done</button>
+    </div>
+  </div>
+</div>

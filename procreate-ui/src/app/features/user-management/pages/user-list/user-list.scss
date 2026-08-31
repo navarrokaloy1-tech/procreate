@@ -1,0 +1,254 @@
+// Hero, cards, tables, pills and the modal sheet come from the shared console
+// pattern layer in styles.scss.
+
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  th:first-child,
+  td:first-child { padding-left: 16px; }
+
+  th:last-child,
+  td:last-child { padding-right: 16px; }
+
+  thead tr {
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.cell-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+// ------------------------------------------------------------
+// Presence
+// ------------------------------------------------------------
+
+.presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.2rem 0.6rem 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--light);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+
+  &__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  &--online {
+    background: var(--success-light);
+    color: #1a7a48;
+
+    .presence__dot { background: var(--success-green); }
+  }
+}
+
+// ------------------------------------------------------------
+// Toolbar
+// ------------------------------------------------------------
+
+.toolbar__pagesize {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar__label {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.toolbar__search {
+  flex: 0 1 260px;
+}
+
+// The role filter hangs off its button, so the button anchors it.
+.filter-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 190px;
+  padding: 5px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: none;
+    background: transparent;
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: var(--light); }
+
+    // Keeps labels aligned whether or not a tick is present.
+    .app-icon { color: var(--primary-dark); }
+  }
+}
+
+// ------------------------------------------------------------
+// Sheets
+// ------------------------------------------------------------
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.modal-sheet--narrow {
+  max-width: 560px;
+}
+
+.modal-sheet__foot-spacer {
+  flex: 1 1 auto;
+}
+
+.select-field--block {
+  display: block;
+  width: 100%;
+
+  select { width: 100%; }
+}
+
+.check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.6rem 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+}
+
+.form-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+
+  .app-icon { flex: 0 0 auto; margin-top: 1px; }
+}
+
+// ------------------------------------------------------------
+// One-time credential
+// ------------------------------------------------------------
+
+.credential {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+
+  & + & { margin-top: 8px; }
+
+  &__label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  &__value {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    // The password gets read aloud or copied by hand, so it must be selectable.
+    user-select: all;
+
+    &--strong {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--primary-dark);
+    }
+  }
+}
+
+.alert-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border-radius: var(--border-radius);
+  background: var(--warning-light);
+  border: 1px solid #ffe08a;
+  color: #856404;
+  font-size: var(--font-size-sm);
+
+  .app-icon { flex: 0 0 auto; margin-top: 1px; }
+}
+
+// ------------------------------------------------------------
+// Loading
+// ------------------------------------------------------------
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: user-list-spin 0.7s linear infinite;
+}
+
+@keyframes user-list-spin {
+  to { transform: rotate(360deg); }
+}
