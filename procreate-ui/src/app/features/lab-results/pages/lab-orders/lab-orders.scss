@@ -145,6 +145,14 @@
   to { transform: rotate(360deg); }
 }
 
+// Search sits left and stays compact so the stage filters keep the right of
+// the same toolbar row instead of wrapping under it.
+.toolbar__search {
+  flex: 1 1 260px;
+  width: auto;
+  max-width: 380px;
+}
+
 @media (max-width: 768px) {
   .toolbar__search { flex: 1 1 100%; }
 }

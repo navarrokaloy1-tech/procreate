@@ -1,5 +1,5 @@
 ﻿.dashboard-page {
-  padding: 24px;
+  padding: 0;
 }
 
 // Page Header
@@ -11,14 +11,14 @@
 
   .page-title {
     font-size: 24px;
-    font-weight: 700;
-    color: #343a40;
+    font-weight: 400;
+    color: var(--text-primary);
     margin: 0;
   }
 
   .page-date {
     font-size: 14px;
-    color: #6c757d;
+    color: var(--text-secondary);
   }
 }
 
@@ -40,29 +40,30 @@
 
 // Stat Card
 .stat-card {
-  background: white;
-  border-radius: 12px;
+  background: var(--white);
+  border-radius: var(--border-radius);
   padding: 20px 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  border: 1px solid var(--border-color);
   border-left: 4px solid transparent;
 
   &--blue {
-    border-left-color: #C49A6C;
+    border-left-color: var(--brand-taupe);
   }
 
   &--green {
-    border-left-color: #28a745;
+    border-left-color: var(--brand-green);
   }
 
   &--orange {
-    border-left-color: #ffc107;
+    border-left-color: var(--brand-pink);
   }
 
   &--teal {
-    border-left-color: #17a2b8;
+    border-left-color: var(--brand-black);
   }
 
   &__content {
@@ -73,13 +74,13 @@
   &__value {
     font-size: 28px;
     font-weight: 700;
-    color: #343a40;
+    color: var(--text-primary);
     margin: 4px 0;
   }
 
   &__label {
     font-size: 13px;
-    color: #6c757d;
+    color: var(--text-secondary);
   }
 
   &__icon {
@@ -89,7 +90,7 @@
 
   &__change {
     font-size: 12px;
-    color: #28a745;
+    color: var(--brand-green);
     margin-top: 4px;
   }
 }
@@ -98,20 +99,20 @@
 .loading-state {
   text-align: center;
   padding: 40px;
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 // Card
 .card {
-  background: white;
-  border-radius: 12px;
+  background: var(--white);
+  border-radius: var(--border-radius);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
   overflow: hidden;
 
   .card-header {
     padding: 16px 24px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-color);
   }
 
   .card-body {
@@ -123,7 +124,7 @@
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #343a40;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -139,14 +140,14 @@
 
   thead {
     tr {
-      background: #f8f9fa;
+      background: var(--brand-alabaster);
     }
 
     th {
       padding: 12px 16px;
       text-align: left;
       font-weight: 600;
-      color: #6c757d;
+      color: var(--text-secondary);
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -160,11 +161,11 @@
 
   tbody {
     tr {
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--border-color);
       transition: background 0.15s;
 
       &:hover {
-        background: #f8f9fa;
+        background: var(--brand-alabaster);
       }
 
       &:last-child {
@@ -174,7 +175,7 @@
 
     td {
       padding: 12px 16px;
-      color: #343a40;
+      color: var(--text-primary);
       vertical-align: middle;
 
       &.text-center {
@@ -183,7 +184,7 @@
 
       &.visit-code {
         font-weight: 600;
-        color: #C49A6C;
+        color: var(--brand-taupe);
         font-family: monospace;
       }
 
@@ -236,7 +237,7 @@
   flex-direction: column;
   align-items: center;
   padding: 48px 24px;
-  color: #6c757d;
+  color: var(--text-secondary);
 
   &__icon {
     font-size: 40px;
@@ -261,13 +262,13 @@
   gap: 8px;
   height: 120px;
   padding: 16px;
-  background: white;
+  background: var(--white);
   border-radius: 0;
 }
 
 .bar {
   flex: 1;
-  background: #C49A6C;
+  background: var(--brand-taupe);
   border-radius: 4px 4px 0 0;
   opacity: 0.8;
   transition: height 0.3s;

@@ -1,5 +1,11 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import * as QRCode from 'qrcode';
 import { ApiService } from '../../../../core/services/api';
@@ -15,6 +21,9 @@ interface RegisteredPatient {
   queued: boolean;
   queueNumber: number | null;
   queueEntryId: number | null;
+  /** Sign-in secret for the card QR. Returned once, on registration only. */
+  cardToken: string;
+  portalEnabled: boolean;
 }
 
 interface CountryOption { code: string; name: string; }
@@ -93,6 +102,7 @@ export class PatientSignup implements OnInit, OnDestroy {
       controls: [
         'emergencyContactName', 'emergencyContactRelationship',
         'emergencyContactNumber', 'emergencyContactNotes',
+        'password', 'confirmPassword',
       ],
     },
   ];
@@ -148,7 +158,31 @@ export class PatientSignup implements OnInit, OnDestroy {
       emergencyContactRelationship: [blank.emergencyContactRelationship],
       emergencyContactNumber: [blank.emergencyContactNumber],
       emergencyContactNotes: [blank.emergencyContactNotes],
-    });
+
+      // Portal sign-in. Optional: a walk-in can register without an account
+      // and have one set up at the desk later.
+      password: ['', [Validators.minLength(8)]],
+      confirmPassword: [''],
+    }, { validators: PatientSignup.passwordsMatch });
+  }
+
+  /**
+   * A confirmation that does not match is a typo in a field the patient
+   * cannot read back, so it is caught here rather than at the API.
+   */
+  private static passwordsMatch(group: AbstractControl): ValidationErrors | null {
+    const password = group.get('password')?.value ?? '';
+    const confirm = group.get('confirmPassword')?.value ?? '';
+    return password === confirm ? null : { passwordMismatch: true };
+  }
+
+  get wantsAccount(): boolean {
+    return !!this.signupForm.get('password')?.value;
+  }
+
+  get passwordMismatch(): boolean {
+    return this.signupForm.hasError('passwordMismatch') &&
+      !!this.signupForm.get('confirmPassword')?.touched;
   }
 
   ngOnInit(): void {
@@ -359,21 +393,21 @@ export class PatientSignup implements OnInit, OnDestroy {
   }
 
   /**
-   * Encodes the patient identifier, not their details.
+   * Encodes the card secret, not the patient details.
    *
-   * A card can be photographed by anyone who sees it, so putting a name, birth
-   * date or contact number in the payload would hand medical-adjacent data to
-   * whoever scans it. The identifier is enough: every scanner in the app
-   * resolves it against the API, where access is controlled. Human-readable
-   * details are printed as text beside the code instead.
+   * A card can be photographed by anyone who sees it, so a name, birth date or
+   * contact number in the payload would hand medical-adjacent data to whoever
+   * scans it. It carries CardToken rather than the patient code for a second
+   * reason: codes run in sequence, so a card holding one could be guessed by
+   * counting, and scanning the card signs its holder in.
    */
-  private qrPayload(patientCode: string): string {
-    return 'patient:' + patientCode;
+  private qrPayload(cardToken: string): string {
+    return 'procreate-card:' + cardToken;
   }
 
-  private async renderQr(patientCode: string): Promise<void> {
+  private async renderQr(cardToken: string): Promise<void> {
     try {
-      this.qrDataUrl = await QRCode.toDataURL(this.qrPayload(patientCode), {
+      this.qrDataUrl = await QRCode.toDataURL(this.qrPayload(cardToken), {
         errorCorrectionLevel: 'M',
         margin: 1,
         width: 320,
@@ -398,21 +432,26 @@ export class PatientSignup implements OnInit, OnDestroy {
     this.isSubmitting = true;
     this.errorMessage = '';
 
-    this.apiService.post<RegisteredPatient>('patients/self-register', this.signupForm.value).subscribe({
-      next: (patient) => {
-        this.registered = patient;
-        this.registeredAt = new Date();
-        this.isSubmitting = false;
-        this.cdr.markForCheck();
-        void this.renderQr(patient.patientCode);
-      },
-      error: (err) => {
-        this.errorMessage =
-          err?.error?.message || 'Registration failed. Please call a staff member for help.';
-        this.isSubmitting = false;
-        this.cdr.markForCheck();
-      },
-    });
+    // The password is not part of the patient record, so it travels beside it.
+    const { password, confirmPassword, ...record } = this.signupForm.value;
+
+    this.apiService
+      .post<RegisteredPatient>('patients/self-register', { patient: record, password })
+      .subscribe({
+        next: (patient) => {
+          this.registered = patient;
+          this.registeredAt = new Date();
+          this.isSubmitting = false;
+          this.cdr.markForCheck();
+          void this.renderQr(patient.cardToken);
+        },
+        error: (err) => {
+          this.errorMessage =
+            err?.error?.message || 'Registration failed. Please call a staff member for help.';
+          this.isSubmitting = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   registerAnother(): void {

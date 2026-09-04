@@ -1,76 +1,121 @@
-<div class="login">
-  <div class="login__panel">
-    <header class="login__brand">
-      <span class="login__mark">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 2 L8 14 H14 L4 30 L26 14 H18 L28 2 Z" fill="currentColor" />
-        </svg>
-      </span>
-      <h1 class="login__title">Pro-Create</h1>
-      <p class="login__subtitle">Fertility, OB-GYN and Diagnostic Center</p>
-    </header>
+<div class="signin">
+  <!-- Clinic photograph. Decorative, so it carries no alt text. -->
+  <div
+    class="signin__art"
+    style="background-image: url('assets/images/imageProCreate.png')"
+    role="presentation"
+  ></div>
 
-    <div class="card login__card">
-      <div class="card-body">
-        <h2 class="login__heading">Sign in to your account</h2>
+  <div class="signin__panel">
+    <div class="signin__inner">
+      <header class="signin__brand">
+        <img
+          class="signin__logo"
+          src="assets/images/cropped-Pro-create-logo.webp"
+          alt="Pro-Create Fertility and OB-GYN Clinic"
+        />
+      </header>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
-          <div class="alert alert-danger" *ngIf="errorMessage">
-            <app-icon name="alert-circle" [size]="17"></app-icon>
-            <span>{{ errorMessage }}</span>
-          </div>
+      <p class="signin__audience">Administrator</p>
 
-          <div class="form-group">
-            <label class="form-label" for="username">Username</label>
-            <input
-              id="username"
-              type="text"
-              class="form-control"
-              [class.is-invalid]="usernameControl?.invalid && usernameControl?.touched"
-              formControlName="username"
-              placeholder="Enter your username"
-              autocomplete="username"
-            />
-            <div class="invalid-feedback" *ngIf="usernameControl?.invalid && usernameControl?.touched">
-              Username is required.
-            </div>
-          </div>
+      <!-- Method choice -->
+      <ng-container *ngIf="mode === 'choose'">
+        <button type="button" class="signin__method" (click)="openScanner()">
+          <app-icon name="qr" [size]="22"></app-icon>
+          Log in with QR
+        </button>
 
-          <div class="form-group">
-            <label class="form-label" for="password">Password</label>
+        <button type="button" class="signin__method" (click)="choosePassword()">
+          <app-icon name="key" [size]="22"></app-icon>
+          Log in with password
+        </button>
+      </ng-container>
+
+      <!-- Password sign-in -->
+      <form
+        class="signin__form"
+        *ngIf="mode === 'password'"
+        [formGroup]="loginForm"
+        (ngSubmit)="onSubmit()"
+      >
+        <h2 class="signin__heading">Log in with password</h2>
+
+        <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+        <div class="form-group">
+          <label class="signin__label" for="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            class="signin__input"
+            formControlName="username"
+            placeholder="ADMIN"
+            autocomplete="username"
+          />
+          <small
+            class="invalid-feedback"
+            *ngIf="usernameControl?.touched && usernameControl?.invalid"
+          >
+            Enter your username.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label class="signin__label" for="password">Password</label>
+          <span class="signin__reveal-wrap">
             <input
               id="password"
-              type="password"
-              class="form-control"
-              [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
+              [type]="showPassword ? 'text' : 'password'"
+              class="signin__input"
               formControlName="password"
-              placeholder="Enter your password"
+              placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
               autocomplete="current-password"
             />
-            <div class="invalid-feedback" *ngIf="passwordControl?.invalid && passwordControl?.touched">
-              <span *ngIf="passwordControl?.errors?.['required']">Password is required.</span>
-              <span *ngIf="passwordControl?.errors?.['minlength']">
-                Password must be at least 4 characters.
-              </span>
-            </div>
-          </div>
+            <button
+              type="button"
+              class="signin__reveal"
+              (click)="togglePassword()"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            >
+              <app-icon name="eye" [size]="18"></app-icon>
+            </button>
+          </span>
+          <small
+            class="invalid-feedback"
+            *ngIf="passwordControl?.touched && passwordControl?.invalid"
+          >
+            Enter your password.
+          </small>
+        </div>
 
-          <button type="submit" class="btn btn-primary login__submit" [disabled]="isLoading">
-            <span class="login__spinner" *ngIf="isLoading"></span>
-            {{ isLoading ? 'Signing in...' : 'Sign In' }}
-          </button>
-        </form>
-      </div>
+        <div class="signin__row">
+          <label class="signin__check">
+            <input type="checkbox" formControlName="rememberMe" />
+            Remember Me
+          </label>
+          <a class="signin__link" routerLink="/login">Forgot Password</a>
+        </div>
 
-      <div class="card-footer login__patient">
-        <span class="login__patient-label">Are you a patient?</span>
-        <a routerLink="/register" class="btn btn-secondary">
-          <app-icon name="user-plus" [size]="16"></app-icon>
-          Self-Register &amp; Get Queue Number
-        </a>
-      </div>
+        <button type="submit" class="signin__submit" [disabled]="isLoading">
+          {{ isLoading ? 'Signing in...' : 'Login' }}
+        </button>
+
+        <button type="button" class="signin__back" (click)="back()">
+          <app-icon name="chevron-left" [size]="15"></app-icon>
+          Back
+        </button>
+      </form>
+
+      <p class="signin__footer">Pro-Create &copy; {{ year }}</p>
     </div>
-
-    <p class="login__footer">Pro-Create &copy; {{ year }}</p>
   </div>
 </div>
+
+<app-qr-scanner
+  [open]="isScannerOpen"
+  [errorMessage]="scanError"
+  title="Scan your card"
+  hint="Hold your Pro-Create card up to the camera."
+  (scanned)="onScanned($event)"
+  (closed)="closeScanner()"
+></app-qr-scanner>

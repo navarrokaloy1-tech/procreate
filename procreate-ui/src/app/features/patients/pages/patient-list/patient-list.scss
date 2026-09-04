@@ -1,8 +1,32 @@
 // Page-specific tweaks only — layout, table, and toolbar styling all come
 // from the shared console pattern layer in styles.scss.
 
+.blood-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-black);
+  color: var(--white);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
 .data-table-scroll {
   overflow-x: auto;
+}
+
+// Center the Blood Type and Actions columns (header + cells). Scoped high
+// specificity so it beats the shared `.data-table thead th` left-align.
+.data-table {
+  thead th:nth-child(4),
+  thead th:nth-child(5),
+  tbody td:nth-child(4),
+  tbody td:nth-child(5) {
+    text-align: center;
+  }
 }
 
 .data-table {

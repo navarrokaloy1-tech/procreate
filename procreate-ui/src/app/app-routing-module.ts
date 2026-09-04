@@ -10,6 +10,11 @@ const routes: Routes = [
     component: LoginComponent
   },
   {
+    path: 'portal',
+    loadChildren: () =>
+      import('./features/patient-portal/patient-portal-module').then(m => m.PatientPortalModule)
+  },
+  {
     path: 'queue-display',
     loadChildren: () =>
       import('./features/queue-display/queue-display-module').then(m => m.QueueDisplayModule)

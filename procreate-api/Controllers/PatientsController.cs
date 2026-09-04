@@ -108,11 +108,28 @@ public class PatientsController : ControllerBase
     /// state the kiosk used to leave them in while telling them otherwise.
     /// </summary>
     [HttpPost("self-register")]
-    public async Task<IActionResult> SelfRegister(Patient patient)
+    public async Task<IActionResult> SelfRegister(SelfRegisterRequest request)
     {
+        var patient = request.Patient ?? new Patient();
+
+        if (!string.IsNullOrEmpty(request.Password))
+        {
+            if (request.Password.Length < 8)
+                return BadRequest(new { message = "Choose a password of at least 8 characters." });
+
+            if (string.IsNullOrWhiteSpace(patient.Email) && string.IsNullOrWhiteSpace(patient.ContactNumber))
+                return BadRequest(new { message = "An email address or mobile number is needed to sign in with." });
+
+            patient.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            patient.PortalEnabled = true;
+        }
+
         var count = await _db.Patients.CountAsync();
         patient.PatientCode = $"PT-{DateTime.Now:yyyyMMdd}-{(count + 1):D4}";
         patient.CreatedAt = DateTime.UtcNow;
+        // Minted for every patient, so a card can be issued later without
+        // re-registering them.
+        patient.CardToken = AuthController.NewCardToken();
 
         _db.Patients.Add(patient);
         await _db.SaveChangesAsync();
@@ -131,10 +148,30 @@ public class PatientsController : ControllerBase
             patient.FirstName,
             patient.MiddleName,
             patient.LastName,
+            // Goes into the card QR. It is the sign-in secret, so it is
+            // returned once here and never listed by any other endpoint.
+            patient.CardToken,
+            patient.PortalEnabled,
             queued = entry is not null,
             queueNumber = entry?.QueueNumber,
             queueEntryId = entry?.Id
         });
+    }
+
+    /// <summary>
+    /// Issues a replacement card, rotating the token so a lost card stops
+    /// working. Returns the new secret once, for printing.
+    /// </summary>
+    [HttpPost("{id}/card")]
+    public async Task<IActionResult> ReissueCard(int id)
+    {
+        var patient = await _db.Patients.FindAsync(id);
+        if (patient is null) return NotFound();
+
+        patient.CardToken = AuthController.NewCardToken();
+        await _db.SaveChangesAsync();
+
+        return Ok(new { patient.Id, patient.PatientCode, patient.CardToken });
     }
 
     [HttpPut("{id}")]
@@ -203,3 +240,9 @@ public class PatientsController : ControllerBase
         });
     }
 }
+
+/// <summary>
+/// Kiosk registration. Password is optional: a walk-in can be registered
+/// without a portal account, and set one up later.
+/// </summary>
+public record SelfRegisterRequest(Patient? Patient, string? Password);

@@ -1,0 +1,207 @@
+<div class="portal">
+  <header class="portal__bar">
+    <img
+      class="portal__logo"
+      src="assets/images/cropped-Pro-create-logo.webp"
+      alt="Pro-Create Fertility and OB-GYN Clinic"
+    />
+    <span class="portal__spacer"></span>
+    <button type="button" class="portal__signout" (click)="signOut()">
+      <app-icon name="logout" [size]="16"></app-icon>
+      Sign out
+    </button>
+  </header>
+
+  <div class="portal__body">
+    <div class="portal__loading" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Loading your records...</p>
+    </div>
+
+    <div class="portal-card" *ngIf="!isLoading && errorMessage">
+      <p class="portal__error">{{ errorMessage }}</p>
+    </div>
+
+    <ng-container *ngIf="!isLoading && chart">
+      <!-- Who you are -->
+      <section class="portal-hero">
+        <span class="portal-hero__avatar">{{ initials(chart.patient.fullName) }}</span>
+        <div class="portal-hero__body">
+          <h1>{{ chart.patient.fullName }}</h1>
+          <p>
+            {{ chart.patient.patientCode }} &middot; {{ chart.patient.age }} years old
+            &middot; {{ chart.patient.gender || 'Not specified' }}
+            <ng-container *ngIf="chart.patient.bloodType">
+              &middot; Blood type {{ chart.patient.bloodType }}
+            </ng-container>
+          </p>
+        </div>
+      </section>
+
+      <!-- Next visit -->
+      <section class="portal-card portal-card--accent">
+        <h2 class="portal-card__title">
+          <app-icon name="calendar" [size]="18"></app-icon>
+          Next Appointment
+        </h2>
+
+        <ng-container *ngIf="nextAppointment as next; else noAppointment">
+          <p class="portal-next__when">{{ next.scheduledAt | date: 'EEEE, MMMM d, y' }}</p>
+          <p class="portal-next__time">{{ next.scheduledAt | date: 'h:mm a' }}</p>
+          <p class="portal-next__meta">
+            {{ next.service }} &middot; Dr. {{ next.doctor }} &middot; {{ next.status }}
+          </p>
+        </ng-container>
+
+        <ng-template #noAppointment>
+          <p class="portal-empty">You have no upcoming appointments.</p>
+          <button type="button" class="portal-btn portal-btn--alt" (click)="bookAppointment()">
+            <app-icon name="plus" [size]="16"></app-icon>
+            Book an appointment
+          </button>
+        </ng-template>
+      </section>
+
+      <!-- Allergies lead, as they change what is safe to prescribe -->
+      <section class="portal-card portal-card--critical" *ngIf="chart.allergies.length > 0">
+        <h2 class="portal-card__title">
+          <app-icon name="alert-triangle" [size]="18"></app-icon>
+          Your Allergies
+        </h2>
+        <ul class="portal-list">
+          <li *ngFor="let allergy of chart.allergies">
+            <strong>{{ allergy.substance }}</strong>
+            <span [class]="severityPill(allergy.severity)" *ngIf="allergy.severity">
+              {{ allergy.severity }}
+            </span>
+            <small *ngIf="allergy.reaction">{{ allergy.reaction }}</small>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Results -->
+      <section class="portal-card">
+        <h2 class="portal-card__title">
+          <app-icon name="flask" [size]="18"></app-icon>
+          Your Results
+        </h2>
+
+        <p class="portal-note">
+          <app-icon name="info" [size]="14"></app-icon>
+          Only results your doctor has released appear here. Please discuss them at your next visit.
+        </p>
+
+        <ng-container *ngIf="chart.results.length > 0; else noResults">
+          <div class="portal-result" *ngFor="let result of chart.results">
+            <button type="button" class="portal-result__head" (click)="toggleResult(result.orderCode)">
+              <span class="portal-result__body">
+                <span class="portal-result__name">{{ result.name }}</span>
+                <span class="portal-result__meta">
+                  {{ result.department }} &middot; {{ result.releasedAt | date: 'MMM d, y' }}
+                </span>
+              </span>
+              <span class="pill pill--danger" *ngIf="result.isAbnormal">Abnormal</span>
+              <app-icon
+                [name]="openResult === result.orderCode ? 'chevron-up' : 'chevron-down'"
+                [size]="18"
+              ></app-icon>
+            </button>
+
+            <div class="portal-result__detail" *ngIf="openResult === result.orderCode">
+              <p class="portal-narrative" *ngIf="result.narrativeFindings">
+                {{ result.narrativeFindings }}
+              </p>
+
+              <table class="portal-table" *ngIf="result.parameters.length > 0">
+                <thead>
+                  <tr>
+                    <th>Test</th>
+                    <th>Result</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of result.parameters">
+                    <td>{{ p.parameter }}</td>
+                    <td>
+                      {{ p.value }} <small>{{ p.unit }}</small>
+                      <span [class]="flagClass(p.flag)">{{ p.flag }}</span>
+                    </td>
+                    <td>{{ p.reference || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-template #noResults>
+          <p class="portal-empty">No released results yet.</p>
+        </ng-template>
+      </section>
+
+      <!-- Files -->
+      <section class="portal-card" *ngIf="chart.documents.length > 0">
+        <h2 class="portal-card__title">
+          <app-icon name="file-text" [size]="18"></app-icon>
+          Result Files
+        </h2>
+        <div class="portal-file" *ngFor="let doc of chart.documents">
+          <span class="portal-file__body">
+            <span class="portal-file__name">{{ doc.fileName }}</span>
+            <span class="portal-file__meta">
+              {{ doc.department }} &middot; {{ doc.resultDate | date: 'MMM d, y' }}
+              &middot; {{ fileSize(doc.sizeBytes) }}
+            </span>
+          </span>
+          <button type="button" class="portal-btn portal-btn--small" (click)="viewDocument(doc.id)">
+            <app-icon name="eye" [size]="15"></app-icon>
+            View
+          </button>
+        </div>
+      </section>
+
+      <!-- Medications -->
+      <section class="portal-card" *ngIf="chart.medications.length > 0">
+        <h2 class="portal-card__title">
+          <app-icon name="link" [size]="18"></app-icon>
+          Your Medications
+        </h2>
+        <ul class="portal-list">
+          <li *ngFor="let med of chart.medications">
+            <strong>{{ med.name }}</strong>
+            <small>
+              {{ med.dosage }}<ng-container *ngIf="med.dosage && med.frequency"> &middot; </ng-container>{{ med.frequency }}
+            </small>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Vitals -->
+      <section class="portal-card" *ngIf="chart.vitals.length > 0">
+        <h2 class="portal-card__title">
+          <app-icon name="activity" [size]="18"></app-icon>
+          Recent Vital Signs
+        </h2>
+        <table class="portal-table">
+          <thead>
+            <tr>
+              <th>Taken</th>
+              <th>BP</th>
+              <th>Heart Rate</th>
+              <th>Temp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of chart.vitals">
+              <td>{{ v.recordedAt | date: 'MMM d, y' }}</td>
+              <td>{{ bloodPressure(v) }}</td>
+              <td>{{ v.heartRate ?? '—' }}</td>
+              <td>{{ v.temperatureC ?? '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </ng-container>
+  </div>
+</div>

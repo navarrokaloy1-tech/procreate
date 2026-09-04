@@ -2,11 +2,23 @@
 // Pro-Create Global Styles
 // ============================================================
 
+// Self-hosted rather than loaded from a CDN: the clinic may run on a LAN with
+// no internet, and a missing webfont would silently fall back to a system one.
+// Latin subsets only — nothing here is set in Cyrillic or Devanagari.
+// Namespaced explicitly: @use derives one from the filename, and both
+// families ship a latin-400.css, which collides.
+@use '@fontsource/alice/latin-400.css' as alice-400;
+@use '@fontsource/poppins/latin-400.css' as poppins-400;
+@use '@fontsource/poppins/latin-500.css' as poppins-500;
+@use '@fontsource/poppins/latin-500-italic.css' as poppins-500-italic;
+@use '@fontsource/poppins/latin-600.css' as poppins-600;
+@use '@fontsource/poppins/latin-700.css' as poppins-700;
+
 // CSS Custom Properties
 :root {
-  --primary: #C49A6C;
-  --primary-dark: #A67C52;
-  --primary-light: #F5EDE0;
+  --primary: #B9916E;
+  --primary-dark: #5F6E50;
+  --primary-light: #F0EBE1;
   --secondary: #6c757d;
   --success: #28a745;
   --success-light: #d4edda;
@@ -16,21 +28,47 @@
   --danger-light: #f8d7da;
   --info: #17a2b8;
   --info-light: #d1ecf1;
-  --light: #FAF5EE;
-  --dark: #3d2b1f;
+  --light: #F0EBE1;
+  --dark: #1E1E19;
   --white: #ffffff;
-  --body-bg: #F5EFE6;
+  --body-bg: #F0EBE1;
   --card-bg: #ffffff;
-  --border-color: #E8DDD0;
-  --text-primary: #2D1B0E;
-  --text-secondary: #7A6652;
-  --text-muted: #B8A898;
-  --sidebar-bg: #F3ECE1;
-  --sidebar-text: #5A4A3A;
-  --sidebar-active: #C49A6C;
-  --header-bg: #F7F1E8;
+  --border-color: #DDD4C7;
+  --text-primary: #1E1E19;
+  --text-secondary: #5F6E50;
+  --text-muted: #78826D;
+  --sidebar-bg: #5F6E50;
+  --sidebar-text: #F0EBE1;
+  --sidebar-active: #E69696;
+  --header-bg: #ffffff;
   --success-green: #1FA971;
   --success-green-dark: #178a5c;
+
+  // ----------------------------------------------------------
+  // Brand palette, from the clinic identity sheet. Used by the two
+  // sign-in screens; the console keeps the espresso scheme above.
+  // ----------------------------------------------------------
+  --brand-pink: #E69696;        // Ruddy Pink
+  --brand-pink-dark: #d97f7f;
+  --brand-black: #1E1E19;       // Eerie Black
+  --brand-taupe: #B9916E;       // Light Taupe
+  --brand-green: #5F6E50;       // Axolotl
+  --brand-green-dark: #4d5a41;
+  --brand-alabaster: #F0EBE1;   // Alabaster
+
+  // Framing for the clinic photograph behind the patient-facing screens
+  // (portal sign-in and self-registration). Both read these, so reframing the
+  // shot is a one-line change here.
+  //
+  // `cover` rather than a fixed percentage. A percentage is measured against
+  // the viewport WIDTH, so on a wide, short window it overflowed the height
+  // far enough to clip the wall wordmark off the bottom. `cover` scales to
+  // whichever edge needs it, so the wordmark stays in frame at any size.
+  //
+  // Zoom in from here with a percentage above 100% — 105%, 110% — accepting
+  // that a short window will start cropping the bottom of the room again.
+  --patient-bg-size: cover;
+  --patient-bg-position: left top;
   --header-height: 64px;
   --sidebar-width: 260px;
   --border-radius: 8px;
@@ -40,7 +78,10 @@
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
   --transition: 0.2s ease;
-  --font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-heading: 'Alice', Georgia, 'Times New Roman', serif;
+  // Poppins Medium is the body weight, per the type sheet.
+  --font-weight-body: 500;
   --font-size-base: 14px;
   --font-size-sm: 12px;
   --font-size-lg: 16px;
@@ -69,6 +110,7 @@ html {
 
 body {
   font-family: var(--font-family);
+  font-weight: var(--font-weight-body);
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   color: var(--text-primary);
@@ -113,7 +155,12 @@ textarea {
 // ============================================================
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
+  font-family: var(--font-family-heading);
+  // Alice ships a single weight. font-synthesis stops the browser faking a
+  // bold for any rule further down that still asks for 600 or 700, which
+  // renders as a smeared outline rather than a heavier face.
+  font-weight: 400;
+  font-synthesis: none;
   line-height: 1.3;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
@@ -710,16 +757,16 @@ textarea.form-control {
 
 .filter-tabs {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  background-color: var(--light);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-color);
-  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  background-color: #F1EADF;
+  border-radius: var(--border-radius);
+  border: 1px solid #E4D8C6;
+  overflow: hidden;
 }
 
 .filter-tab {
-  padding: 0.375rem 0.875rem;
+  padding: 0.5rem 0.875rem;
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-secondary);
@@ -732,13 +779,11 @@ textarea.form-control {
 
   &:hover {
     color: var(--text-primary);
-    background-color: var(--white);
   }
 
   &.active {
-    color: var(--primary);
-    background-color: var(--white);
-    box-shadow: var(--shadow-sm);
+    color: var(--brand-black);
+    background-color: #C4A585;
     font-weight: 600;
   }
 
@@ -1383,8 +1428,8 @@ textarea.form-control {
 // ============================================================
 
 :root {
-  --hero-bg: linear-gradient(135deg, var(--text-primary) 0%, var(--dark) 100%);
-  --hero-glow: radial-gradient(circle at 88% 15%, rgba(196, 154, 108, 0.28) 0%, rgba(196, 154, 108, 0) 60%);
+  --hero-bg: linear-gradient(135deg, #B9916E 0%, #CDAF92 100%);
+  --hero-glow: radial-gradient(circle at 88% 15%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 60%);
   --hero-height: 200px;
   --hero-overlap: 96px;
 
@@ -1455,10 +1500,11 @@ textarea.form-control {
   h1 {
     margin: 0;
     font-size: var(--font-size-3xl);
-    font-weight: 700;
+    // Alice has one weight; asking for 700 here would only be synthesised.
+    font-weight: 400;
     line-height: 1.2;
     color: var(--white);
-    letter-spacing: -0.4px;
+    letter-spacing: 0;
   }
 
   &__subtitle {
@@ -1494,29 +1540,29 @@ textarea.form-control {
 
   // Buttons sitting on the banner
   .btn-hero {
-    background: var(--white);
-    border-color: var(--white);
-    color: var(--text-primary);
-    font-weight: 600;
-    padding: 0.55rem 1.1rem;
-
-    &:hover:not(:disabled) {
-      background: var(--light);
-      border-color: var(--light);
-      color: var(--text-primary);
-    }
-  }
-
-  .btn-hero-ghost {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.28);
+    background: var(--brand-green);
+    border-color: var(--brand-green);
     color: var(--white);
     font-weight: 600;
     padding: 0.55rem 1.1rem;
 
     &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.24);
-      border-color: rgba(255, 255, 255, 0.4);
+      background: var(--brand-green-dark);
+      border-color: var(--brand-green-dark);
+      color: var(--white);
+    }
+  }
+
+  .btn-hero-ghost {
+    background: var(--brand-green);
+    border-color: var(--brand-green);
+    color: var(--white);
+    font-weight: 600;
+    padding: 0.55rem 1.1rem;
+
+    &:hover:not(:disabled) {
+      background: var(--brand-green-dark);
+      border-color: var(--brand-green-dark);
       color: var(--white);
     }
   }
@@ -1574,18 +1620,17 @@ textarea.form-control {
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 4px;
-  padding: 6px;
+  gap: 0;
+  padding: 0;
   margin-top: calc(var(--hero-tab-overlap) * -1);
-  // Opaque, and the same tint as .filter-tabs. A translucent strip picks up
-  // whatever it happens to sit over — the banner glow on the right, the page
-  // background on the few pixels below the banner edge — so the trough looked
-  // unevenly lit and lost its contrast against the white active tab.
-  background: var(--light);
-  border: 1px solid var(--border-color);
+  // Soft taupe trough: warm enough that the rounded active-tab corners blend
+  // into it instead of exposing a near-white sliver.
+  background: #F1EADF;
+  border: 1px solid #E4D8C6;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
-  overflow-x: auto;
+  // Clip the full-height active tab to the strip's rounded corners.
+  overflow: hidden;
 
   &__tab {
     flex: 1 1 0;
@@ -1593,7 +1638,7 @@ textarea.form-control {
     align-items: center;
     justify-content: center;
     gap: 7px;
-    padding: 0.6rem 1rem;
+    padding: 0.85rem 1rem;
     border: none;
     background: transparent;
     border-radius: var(--border-radius);
@@ -1608,10 +1653,9 @@ textarea.form-control {
     &:hover { color: var(--text-primary); }
 
     &.active {
-      background: var(--white);
-      color: var(--primary-dark);
+      background: #C4A585;
+      color: var(--brand-black);
       font-weight: 600;
-      box-shadow: var(--shadow-sm);
     }
   }
 
@@ -1620,19 +1664,19 @@ textarea.form-control {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 10px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
     background: var(--border-color);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
   }
 
   &__tab.active &__count {
-    background: var(--primary-light);
-    color: var(--primary-dark);
+    background: rgba(30, 30, 25, 0.35);
+    color: var(--white);
   }
 }
 
@@ -2704,7 +2748,7 @@ textarea.form-control {
   &__title {
     margin: 0;
     font-size: var(--font-size-2xl);
-    font-weight: 700;
+    font-weight: 400;
     color: var(--text-primary);
   }
 

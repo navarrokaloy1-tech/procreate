@@ -42,10 +42,11 @@
   &__btn {
     display: inline-flex;
     align-items: center;
+    gap: 10px;
     padding: 0;
     border: none;
     background: transparent;
-    border-radius: 50%;
+    border-radius: 24px;
     cursor: pointer;
     transition: box-shadow var(--transition);
 
@@ -53,6 +54,27 @@
     &:focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.3);
+    }
+  }
+
+  &__greeting {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.2;
+    text-align: right;
+
+    small {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+    }
+
+    strong {
+      font-size: var(--font-size-base);
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      white-space: nowrap;
     }
   }
 }

@@ -1,0 +1,110 @@
+<div class="portal-signin">
+  <header class="portal-signin__brand">
+    <img
+      class="portal-signin__logo"
+      src="assets/images/cropped-Pro-create-logo.webp"
+      alt="Pro-Create Fertility and OB-GYN Clinic"
+    />
+  </header>
+
+  <div class="portal-signin__card">
+    <!-- Method choice -->
+    <ng-container *ngIf="mode === 'choose'">
+      <button type="button" class="portal-signin__method" (click)="openScanner()">
+        <app-icon name="qr" [size]="22"></app-icon>
+        Log in with QR
+      </button>
+
+      <button type="button" class="portal-signin__method" (click)="choosePassword()">
+        <app-icon name="key" [size]="22"></app-icon>
+        Log in with password
+      </button>
+
+      <p class="portal-signin__prompt">Don't have an account?</p>
+
+      <a class="portal-signin__method portal-signin__method--alt" routerLink="/register">
+        <app-icon name="user-plus" [size]="22"></app-icon>
+        Self-Register and book an appointment
+      </a>
+    </ng-container>
+
+    <!-- Password sign-in -->
+    <form
+      class="portal-signin__form"
+      *ngIf="mode === 'password'"
+      [formGroup]="loginForm"
+      (ngSubmit)="onSubmit()"
+    >
+      <h2 class="portal-signin__heading">Log in with password</h2>
+
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <div class="form-group">
+        <label class="portal-signin__label" for="identifier">
+          Email, mobile number or patient ID
+        </label>
+        <input
+          id="identifier"
+          type="text"
+          class="portal-signin__input"
+          formControlName="identifier"
+          placeholder="you@example.com"
+          autocomplete="username"
+        />
+        <small
+          class="invalid-feedback"
+          *ngIf="identifierControl?.touched && identifierControl?.invalid"
+        >
+          Enter the email, number or patient ID you registered with.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label class="portal-signin__label" for="portalPassword">Password</label>
+        <span class="portal-signin__reveal-wrap">
+          <input
+            id="portalPassword"
+            [type]="showPassword ? 'text' : 'password'"
+            class="portal-signin__input"
+            formControlName="password"
+            placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="portal-signin__reveal"
+            (click)="togglePassword()"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+          >
+            <app-icon name="eye" [size]="18"></app-icon>
+          </button>
+        </span>
+        <small
+          class="invalid-feedback"
+          *ngIf="passwordControl?.touched && passwordControl?.invalid"
+        >
+          Enter your password.
+        </small>
+      </div>
+
+      <button type="submit" class="portal-signin__submit" [disabled]="isLoading">
+        {{ isLoading ? 'Signing in...' : 'Login' }}
+      </button>
+
+      <button type="button" class="portal-signin__back" (click)="back()">
+        <app-icon name="chevron-left" [size]="15"></app-icon>
+        Back
+      </button>
+    </form>
+  </div>
+
+</div>
+
+<app-qr-scanner
+  [open]="isScannerOpen"
+  [errorMessage]="scanError"
+  title="Scan your card"
+  hint="Hold your Pro-Create patient card up to the camera."
+  (scanned)="onScanned($event)"
+  (closed)="closeScanner()"
+></app-qr-scanner>

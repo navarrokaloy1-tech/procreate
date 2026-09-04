@@ -39,6 +39,19 @@
 
 <div class="card lab-card">
   <div class="toolbar">
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search by order #, test, or patient..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search diagnostic orders"
+      />
+    </label>
+
+    <span class="toolbar__spacer"></span>
+
     <div class="filter-tabs">
       <button
         *ngFor="let stage of stageFilters"
@@ -50,19 +63,6 @@
         {{ stage }}
       </button>
     </div>
-
-    <span class="toolbar__spacer"></span>
-
-    <label class="search-field toolbar__search">
-      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
-      <input
-        type="search"
-        placeholder="Search by order #, test, or patient..."
-        [value]="searchTerm"
-        (input)="onSearch($any($event.target).value)"
-        aria-label="Search diagnostic orders"
-      />
-    </label>
   </div>
 
   <!-- What a scan narrowed the list to, and how to get back -->

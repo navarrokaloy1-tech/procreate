@@ -69,8 +69,8 @@
             <th>Patient</th>
             <th>Contact</th>
             <th>Age / Gender</th>
-            <th>Blood Type</th>
-            <th class="text-right">Actions</th>
+            <th class="text-center">Blood Type</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -110,14 +110,14 @@
               </span>
             </td>
 
-            <td>
-              <span class="pill pill--primary" *ngIf="patient.bloodType; else noBlood">
+            <td class="text-center">
+              <span class="blood-badge" *ngIf="patient.bloodType; else noBlood">
                 {{ patient.bloodType }}
               </span>
               <ng-template #noBlood><span class="cell-empty">&mdash;</span></ng-template>
             </td>
 
-            <td class="text-right">
+            <td class="text-center">
               <div class="table-actions">
                 <button
                   type="button"

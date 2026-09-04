@@ -47,7 +47,7 @@ export class PatientListComponent implements OnInit, OnDestroy {
   patients: Patient[] = [];
   totalCount = 0;
   pageIndex = 0;
-  pageSize = 15;
+  pageSize = 10;
   searchTerm = '';
   genderFilter = '';
   isLoading = false;
@@ -56,7 +56,7 @@ export class PatientListComponent implements OnInit, OnDestroy {
   isFormOpen = false;
   formPatientId: number | null = null;
 
-  readonly pageSizeOptions = [15, 25, 50, 100];
+  readonly pageSizeOptions = [5, 10, 15, 20];
 
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();

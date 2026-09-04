@@ -43,6 +43,26 @@ public class Patient
     public List<Visit> Visits { get; set; } = new();
     // LIS integration fields
     public DateTime? LisRegisteredAt { get; set; }  // when ADT^A01 was last sent
+
+    // ----------------------------------------------------------
+    // Portal sign-in. Separate from User, which is staff: a patient signs in
+    // to see their own record and nothing else.
+    // ----------------------------------------------------------
+
+    /// <summary>Blank until the patient sets one, so an account is optional.</summary>
+    public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Secret printed as the QR on the patient card. Deliberately NOT the
+    /// patient code: codes run in sequence, so a card carrying one could be
+    /// guessed by counting. Rotated whenever a replacement card is issued.
+    /// </summary>
+    public string CardToken { get; set; } = string.Empty;
+
+    public DateTime? LastLoginAt { get; set; }
+
+    /// <summary>Whether the patient can sign in at all.</summary>
+    public bool PortalEnabled { get; set; }
 }
 
 public class Visit

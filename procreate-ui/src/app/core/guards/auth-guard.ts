@@ -7,8 +7,11 @@ export class AuthGuard implements CanActivate {
   constructor(private auth: AuthService, private router: Router) {}
 
   canActivate(): boolean {
-    if (this.auth.isLoggedIn) return true;
-    this.router.navigate(['/login']);
+    // A patient session must not reach the console: its token is rejected by
+    // every staff endpoint, so the screens would load empty.
+    if (this.auth.isLoggedIn && !this.auth.isPatient) return true;
+
+    this.router.navigate([this.auth.isPatient ? '/portal' : '/login']);
     return false;
   }
 }

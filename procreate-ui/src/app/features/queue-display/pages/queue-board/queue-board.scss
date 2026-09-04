@@ -29,7 +29,10 @@
 
     strong {
       display: block;
+      // The wordmark, so it takes the display face like everywhere else.
+      font-family: var(--font-family-heading);
       font-size: 1.6rem;
+      font-weight: 400;
       line-height: 1.1;
     }
 

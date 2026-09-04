@@ -1,0 +1,372 @@
+// The patient-facing portal. Its own shell — no console sidebar or header —
+// and the brand palette rather than the espresso console scheme.
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--brand-alabaster);
+}
+
+.portal {
+  min-height: 100vh;
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--white);
+    border-bottom: 1px solid rgba(30, 30, 25, 0.1);
+  }
+
+  &__logo {
+    height: 34px;
+    width: auto;
+  }
+
+  &__spacer { flex: 1 1 auto; }
+
+  &__signout {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--brand-taupe);
+    border-radius: var(--border-radius);
+    background: transparent;
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--brand-taupe);
+    cursor: pointer;
+    transition: all var(--transition);
+
+    &:hover {
+      background: var(--brand-taupe);
+      color: var(--white);
+    }
+  }
+
+  &__body {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+  }
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 64px 24px;
+    color: var(--brand-taupe);
+  }
+
+  &__error {
+    margin: 0;
+    color: var(--danger);
+  }
+}
+
+// ------------------------------------------------------------
+// Identity
+// ------------------------------------------------------------
+
+.portal-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--brand-green);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  &__body {
+    min-width: 0;
+
+    h1 {
+      margin: 0;
+      font-size: var(--font-size-2xl);
+      color: var(--brand-black);
+    }
+
+    p {
+      margin: 2px 0 0;
+      font-size: var(--font-size-base);
+      color: var(--brand-taupe);
+    }
+  }
+}
+
+// ------------------------------------------------------------
+// Cards
+// ------------------------------------------------------------
+
+.portal-card {
+  padding: 20px;
+  margin-bottom: 16px;
+  border-radius: var(--border-radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 14px;
+    font-size: var(--font-size-xl);
+    color: var(--brand-black);
+
+    .app-icon { color: var(--brand-green); }
+  }
+
+  // The next visit is what most patients open the portal for.
+  &--accent {
+    background: var(--brand-green);
+
+    .portal-card__title,
+    .portal-card__title .app-icon { color: var(--white); }
+  }
+
+  &--critical {
+    border: 1px solid var(--brand-pink);
+
+    .portal-card__title,
+    .portal-card__title .app-icon { color: #a71d2a; }
+  }
+}
+
+.portal-next {
+  &__when {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    color: var(--white);
+  }
+
+  &__time {
+    margin: 0;
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--white);
+  }
+
+  &__meta {
+    margin: 6px 0 0;
+    font-size: var(--font-size-base);
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+.portal-empty {
+  margin: 0;
+  color: var(--brand-taupe);
+}
+
+.portal-card--accent .portal-empty {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.portal-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius);
+  background: var(--brand-alabaster);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+
+  .app-icon { flex: 0 0 auto; margin-top: 1px; }
+}
+
+// ------------------------------------------------------------
+// Lists, results, files
+// ------------------------------------------------------------
+
+.portal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+
+    & + li { border-top: 1px solid rgba(30, 30, 25, 0.08); }
+
+    strong { color: var(--brand-black); }
+
+    small {
+      flex: 1 1 100%;
+      font-size: var(--font-size-sm);
+      color: var(--brand-taupe);
+    }
+  }
+}
+
+.portal-result {
+  border: 1px solid rgba(30, 30, 25, 0.1);
+  border-radius: var(--border-radius);
+
+  & + & { margin-top: 10px; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    .app-icon { color: var(--brand-taupe); }
+  }
+
+  &__body { flex: 1 1 auto; min-width: 0; }
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--brand-black);
+  }
+
+  &__meta {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--brand-taupe);
+  }
+
+  &__detail {
+    padding: 0 14px 14px;
+  }
+}
+
+.portal-narrative {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background: var(--brand-alabaster);
+  // Findings are written with line breaks that must survive.
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: var(--brand-black);
+}
+
+.portal-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 9px 8px;
+    text-align: left;
+    font-size: var(--font-size-base);
+    border-bottom: 1px solid rgba(30, 30, 25, 0.08);
+  }
+
+  th {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--brand-taupe);
+  }
+
+  td small { color: var(--brand-taupe); }
+
+  tr:last-child td { border-bottom: none; }
+}
+
+.portal-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+
+  &:first-of-type { padding-top: 0; }
+  & + & { border-top: 1px solid rgba(30, 30, 25, 0.08); }
+
+  &__body { flex: 1 1 auto; min-width: 0; }
+
+  &__name {
+    display: block;
+    font-weight: 600;
+    color: var(--brand-black);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--brand-taupe);
+  }
+}
+
+// ------------------------------------------------------------
+// Buttons
+// ------------------------------------------------------------
+
+.portal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--brand-green);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--white);
+  cursor: pointer;
+  transition: background-color var(--transition);
+
+  &:hover { background: var(--brand-green-dark); }
+
+  &--alt {
+    margin-top: 12px;
+    background: var(--brand-pink);
+    color: var(--brand-black);
+
+    &:hover { background: var(--brand-pink-dark); }
+  }
+
+  &--small {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.8rem;
+    font-size: var(--font-size-sm);
+  }
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(185, 145, 110, 0.3);
+  border-top-color: var(--brand-green);
+  border-radius: 50%;
+  animation: portal-spin 0.7s linear infinite;
+}
+
+@keyframes portal-spin {
+  to { transform: rotate(360deg); }
+}

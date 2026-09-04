@@ -9,9 +9,9 @@
   </nav>
 
   <div class="header__right" *ngIf="currentUser$ | async as user">
-    <button type="button" class="header__icon-btn" aria-label="Support">
+    <!-- <button type="button" class="header__icon-btn" aria-label="Support">
       <app-icon name="headset" [size]="20"></app-icon>
-    </button>
+    </button> -->
 
     <div class="user-pill" [class.open]="menuOpen">
       <button
@@ -21,6 +21,10 @@
         [attr.aria-expanded]="menuOpen"
         [attr.aria-label]="'Account menu for ' + user.fullName"
       >
+        <span class="user-pill__greeting">
+          <small>Welcome,</small>
+          <strong>{{ user.fullName }}</strong>
+        </span>
         <span class="avatar avatar--dark">
           {{ initials(user.fullName) }}
           <span class="avatar__dot"></span>

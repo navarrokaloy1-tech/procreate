@@ -1,14 +1,10 @@
 <div class="kiosk">
   <header class="kiosk__brand no-print">
-    <span class="kiosk__mark">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 2 L8 14 H14 L4 30 L26 14 H18 L28 2 Z" fill="currentColor" />
-      </svg>
-    </span>
-    <div class="kiosk__brand-text">
-      <strong>Pro-Create</strong>
-      <small>Patient Self-Registration</small>
-    </div>
+    <img
+      class="kiosk__logo"
+      src="assets/images/cropped-Pro-create-logo.webp"
+      alt="Pro-Create Fertility and OB-GYN Clinic"
+    />
   </header>
 
   <!-- ============ FORM ============ -->
@@ -365,6 +361,55 @@
             placeholder="Any additional information..."
             rows="3"
           ></textarea>
+        </div>
+
+        <!--
+          Optional portal account. Left blank the patient is still registered
+          and still gets a queue number; they just cannot sign in yet.
+        -->
+        <p class="form-section">
+          <span class="form-section__dot"></span>
+          Online Account (optional)
+        </p>
+
+        <p class="form-hint">
+          Set a password to check your results online later. You can skip this
+          and ask the front desk to set it up for you.
+        </p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              class="form-control"
+              formControlName="password"
+              placeholder="At least 8 characters"
+              autocomplete="new-password"
+            />
+            <small
+              class="invalid-feedback"
+              *ngIf="signupForm.get('password')?.touched && signupForm.get('password')?.errors?.['minlength']"
+            >
+              Use at least 8 characters.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirmPassword">Confirm Password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              class="form-control"
+              formControlName="confirmPassword"
+              placeholder="Re-enter your password"
+              autocomplete="new-password"
+            />
+            <small class="invalid-feedback" *ngIf="passwordMismatch">
+              The two passwords do not match.
+            </small>
+          </div>
         </div>
       </ng-container>
     </div>

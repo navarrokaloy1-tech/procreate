@@ -1,0 +1,244 @@
+// Patient sign-in: the clinic frontage full-bleed, with a translucent taupe
+// card over it. Brand palette from the identity sheet.
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.portal-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 32px 20px 40px;
+  // Decorative, so it is a background rather than an <img> with alt text.
+  background-color: var(--brand-alabaster);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)),
+    url('/assets/images/imageNormalUserLogin.jpg');
+  // Framed by --patient-bg-* in styles.scss, shared with self-registration.
+  // Anchored to the top so the floor drops out of frame and the page logo
+  // sits over the ceiling rather than the tiles.
+  background-size: var(--patient-bg-size, cover);
+  background-position: var(--patient-bg-position, center top);
+  background-repeat: no-repeat;
+
+  // 116% of width only covers the height on a landscape screen; a phone is
+  // far taller than that, so it fills instead of leaving a band.
+  @media (max-width: 900px) {
+    --patient-bg-size: cover;
+    --patient-bg-position: center top;
+  }
+
+  &__brand {
+    text-align: center;
+    margin-bottom: 26px;
+  }
+
+  &__logo {
+    display: block;
+    width: 100%;
+    max-width: 330px;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  // ----------------------------------------------------------
+  // The card
+  // ----------------------------------------------------------
+
+  &__card {
+    width: 100%;
+    max-width: 780px;
+    // Sat dead centre before. A fixed top gap with the slack pushed to the
+    // bottom lifts it clear of the middle; raise or lower with this one value.
+    margin-top: var(--portal-card-offset, 4vh);
+    margin-bottom: auto;
+    padding: 36px;
+    border-radius: var(--border-radius-lg);
+    // Taupe at partial opacity, so the frontage reads through it.
+    background: rgba(185, 145, 110, 0.78);
+    box-shadow: var(--shadow-lg);
+
+    @media (max-width: 600px) {
+      padding: 22px 18px;
+    }
+  }
+
+  &__method {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--brand-green);
+    font-family: inherit;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--white);
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--transition);
+
+    & + & { margin-top: 16px; }
+
+    &:hover { background: var(--brand-green-dark); }
+
+    &:focus-visible {
+      outline: 2px solid var(--white);
+      outline-offset: 2px;
+    }
+
+    // Self-registration is a different kind of action, so it takes the pink.
+    // The label and its icon are white; the icon draws with currentColor, so
+    // the one declaration covers both.
+    &--alt {
+      background: var(--brand-pink);
+      color: var(--white);
+
+      &:hover { background: var(--brand-pink-dark); }
+    }
+  }
+
+  &__prompt {
+    margin: 26px 0 14px;
+    text-align: center;
+    font-size: var(--font-size-lg);
+    color: var(--white);
+  }
+
+  // ----------------------------------------------------------
+  // Password form
+  // ----------------------------------------------------------
+
+  &__form {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  &__heading {
+    margin: 0 0 18px;
+    font-size: var(--font-size-2xl);
+    font-weight: 400;
+    text-align: center;
+    color: var(--white);
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--brand-alabaster);
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--brand-alabaster);
+    border-radius: var(--border-radius-lg);
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    color: var(--brand-black);
+    background: var(--brand-alabaster);
+
+    &::placeholder { color: var(--brand-taupe); }
+
+    &:focus {
+      outline: none;
+      border-color: var(--brand-green);
+      box-shadow: 0 0 0 3px rgba(95, 110, 80, 0.3);
+    }
+  }
+
+  &__reveal-wrap {
+    position: relative;
+    display: block;
+
+    .portal-signin__input { padding-right: 3rem; }
+  }
+
+  &__reveal {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--brand-black);
+    cursor: pointer;
+  }
+
+  &__submit {
+    display: block;
+    min-width: 180px;
+    margin: 4px auto 0;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--brand-green);
+    font-family: inherit;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--white);
+    cursor: pointer;
+    transition: background-color var(--transition);
+
+    &:hover:not(:disabled) { background: var(--brand-green-dark); }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
+  &__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 22px;
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    color: var(--brand-alabaster);
+    cursor: pointer;
+
+    &:hover { color: var(--white); }
+  }
+
+}
+
+.alert-danger {
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid #f5c6cb;
+  border-radius: var(--border-radius);
+  background: var(--danger-light);
+  color: #721c24;
+  font-size: var(--font-size-base);
+}
+
+.invalid-feedback {
+  display: block;
+  margin-top: 5px;
+  font-size: var(--font-size-sm);
+  color: #7a1420;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}

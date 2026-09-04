@@ -1,141 +1,263 @@
-// Sign-in. Uses the same background, card and controls as the console, so
-// the first screen looks like the app it leads into. Everything resolves to a
-// token in :root — the previous version hardcoded its own browns.
+// Staff sign-in: photograph on the left, panel on the right.
+//
+// Uses the brand palette from the identity sheet rather than the console
+// espresso scheme — this screen sits in front of the app, next to signage.
 
-.login {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.signin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100vh;
-  padding: 32px 20px;
-  // Matches layout__content, so signing in is not a jarring colour change.
-  background:
-    radial-gradient(120% 90% at 85% 115%, rgba(233, 170, 175, 0.35) 0%, rgba(233, 170, 175, 0) 55%),
-    var(--body-bg);
+  background: var(--white);
 
-  &__panel {
-    width: 100%;
-    max-width: 400px;
+  // Below this the photograph would be a thin strip, so the panel takes over.
+  @media (max-width: 900px) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  &__brand {
-    text-align: center;
-    margin-bottom: 20px;
-  }
+  &__art {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 
-  &__mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    margin-bottom: 10px;
-    border-radius: 50%;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    color: var(--primary-dark);
-
-    svg {
-      width: 24px;
-      height: 24px;
+    @media (max-width: 900px) {
+      display: none;
     }
   }
 
-  &__title {
-    margin: 0;
-    font-size: var(--font-size-3xl);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.4px;
-    color: var(--text-primary);
+  &__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
   }
 
-  &__subtitle {
-    margin: 2px 0 0;
-    font-size: var(--font-size-base);
-    color: var(--text-secondary);
+  &__inner {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
   }
 
-  &__card {
-    box-shadow: var(--shadow-lg);
+  // ----------------------------------------------------------
+  // Brand lockup
+  // ----------------------------------------------------------
+
+  &__brand {
+    margin-bottom: 28px;
+  }
+
+  &__logo {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  &__audience {
+    margin: 0 0 18px;
+    font-size: var(--font-size-lg);
+    color: var(--brand-black);
+  }
+
+  // ----------------------------------------------------------
+  // Method choice
+  // ----------------------------------------------------------
+
+  &__method {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--brand-green);
+    font-family: inherit;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--white);
+    cursor: pointer;
+    transition: background-color var(--transition);
+
+    & + & { margin-top: 14px; }
+
+    &:hover { background: var(--brand-green-dark); }
+
+    &:focus-visible {
+      outline: 2px solid var(--brand-taupe);
+      outline-offset: 2px;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Password form
+  // ----------------------------------------------------------
+
+  &__form {
+    text-align: left;
   }
 
   &__heading {
     margin: 0 0 18px;
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    color: var(--text-primary);
+    font-size: var(--font-size-2xl);
+    font-weight: 400;
+    text-align: center;
+    color: var(--brand-black);
   }
 
-  &__submit {
+  &__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--brand-taupe);
+  }
+
+  &__input {
     width: 100%;
-    margin-top: 4px;
-    padding: 0.7rem 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--brand-taupe);
+    border-radius: var(--border-radius-lg);
+    font-family: inherit;
     font-size: var(--font-size-lg);
-    font-weight: 600;
-  }
+    color: var(--brand-black);
+    background: var(--white);
 
-  &__spinner {
-    width: 15px;
-    height: 15px;
-    border: 2px solid rgba(255, 255, 255, 0.45);
-    border-top-color: var(--white);
-    border-radius: 50%;
-    animation: login-spin 0.7s linear infinite;
-  }
+    &::placeholder {
+      color: var(--brand-taupe);
+      text-transform: uppercase;
+      font-style: italic;
+    }
 
-  // Patient route out, kept visually secondary to staff sign-in.
-  &__patient {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    justify-content: flex-start;
-
-    .btn {
-      width: 100%;
+    &:focus {
+      outline: none;
+      border-color: var(--brand-green);
+      box-shadow: 0 0 0 3px rgba(95, 110, 80, 0.18);
     }
   }
 
-  &__patient-label {
-    text-align: center;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+  // The reveal button sits inside the field, so the field reserves room for it.
+  &__reveal-wrap {
+    position: relative;
+    display: block;
+
+    .signin__input { padding-right: 3rem; }
   }
 
+  &__reveal {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--brand-black);
+    cursor: pointer;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--font-size-base);
+    color: var(--brand-taupe);
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--brand-taupe);
+      cursor: pointer;
+    }
+  }
+
+  &__link {
+    font-size: var(--font-size-base);
+    color: var(--brand-taupe);
+    text-decoration: underline;
+  }
+
+  &__submit {
+    display: block;
+    min-width: 180px;
+    margin: 0 auto;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--brand-green);
+    font-family: inherit;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--white);
+    cursor: pointer;
+    transition: background-color var(--transition);
+
+    &:hover:not(:disabled) { background: var(--brand-green-dark); }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
+  &__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 26px;
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    color: var(--brand-taupe);
+    cursor: pointer;
+
+    &:hover { color: var(--brand-green); }
+  }
+
+  // ----------------------------------------------------------
+  // Footer
+  // ----------------------------------------------------------
+
   &__footer {
-    margin: 16px 0 0;
-    text-align: center;
+    margin: 8px 0 0;
     font-size: var(--font-size-sm);
     color: var(--text-muted);
   }
 }
 
-.alert.alert-danger {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 16px;
-  padding: 11px 13px;
+.alert-danger {
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid #f5c6cb;
   border-radius: var(--border-radius);
   background: var(--danger-light);
-  border: 1px solid #f5c6cb;
   color: #721c24;
   font-size: var(--font-size-base);
-
-  .app-icon {
-    flex: 0 0 auto;
-  }
 }
 
-@keyframes login-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.invalid-feedback {
+  display: block;
+  margin-top: 5px;
+  font-size: var(--font-size-sm);
+  color: var(--danger);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .login__spinner {
-    animation: none;
-  }
+.form-group {
+  margin-bottom: 16px;
 }

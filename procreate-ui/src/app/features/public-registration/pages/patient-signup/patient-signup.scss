@@ -1,17 +1,33 @@
 // Public kiosk. Uses the same sheet, tabs and controls as the staff
 // Add Patient modal so both surfaces look and behave alike.
 
+// The same clinic photograph and framing knob as the portal sign-in, so the
+// two patient-facing screens read as one surface.
 :host {
   display: block;
   min-height: 100vh;
   padding: 28px 20px 40px;
-  background:
-    radial-gradient(120% 90% at 85% 115%, rgba(233, 170, 175, 0.35) 0%, rgba(233, 170, 175, 0) 55%),
-    var(--body-bg);
+  background-color: var(--brand-alabaster);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.28)),
+    url('/assets/images/imageNormalUserLogin.jpg');
+  // Framed by --patient-bg-* in styles.scss, shared with the portal sign-in.
+  background-size: var(--patient-bg-size, cover);
+  background-position: var(--patient-bg-position, center top);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  // 116% of width only covers the height on a landscape screen; a phone is
+  // far taller than that, so it fills instead of leaving a band.
+  @media (max-width: 900px) {
+    --patient-bg-size: cover;
+    --patient-bg-position: center top;
+  }
 }
 
 .kiosk {
-  max-width: 880px;
+  // Matches the mockup, where the sheet spans roughly 63% of a 2000px viewport.
+  max-width: 1260px;
   margin: 0 auto;
 
   &__brand {
@@ -22,41 +38,70 @@
     margin-bottom: 20px;
   }
 
-  &__mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    color: var(--primary-dark);
-
-    svg { width: 22px; height: 22px; }
-  }
-
-  &__brand-text {
-    strong {
-      display: block;
-      font-size: var(--font-size-2xl);
-      font-weight: 700;
-      line-height: 1.2;
-      color: var(--text-primary);
-    }
-
-    small {
-      display: block;
-      font-size: var(--font-size-base);
-      color: var(--text-secondary);
-    }
+  &__logo {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    height: auto;
   }
 
   // The sheet is a page element here, not an overlay, so it needs its own
   // frame rather than inheriting the modal backdrop's.
   &__sheet {
     max-height: none;
-    border: 1px solid var(--border-color);
+    // .modal-sheet caps at 680px and does not centre itself, so the sheet was
+    // sitting left of centre inside the wider kiosk column.
+    max-width: 100%;
+    margin-inline: auto;
+    border: none;
+    background: rgba(185, 145, 110, 0.82);
+    box-shadow: var(--shadow-lg);
+
+    .modal-sheet__title,
+    .modal-sheet__title > .app-icon,
+    .modal-sheet__desc {
+      color: var(--white);
+    }
+
+    .modal-sheet__desc strong { color: var(--white); }
+
+    // Labels sit on taupe, so they take the light tint rather than the
+    // console's muted brown, which would disappear into it.
+    .form-label,
+    .form-section {
+      color: var(--brand-alabaster);
+    }
+
+    .form-hint { color: rgba(255, 255, 255, 0.8); }
+
+    .form-control {
+      border-color: transparent;
+      border-radius: var(--border-radius-lg);
+      background: var(--white);
+    }
+
+    .modal-sheet__tabs {
+      background: var(--brand-alabaster);
+      border-radius: var(--border-radius);
+    }
+
+    .modal-sheet__foot {
+      background: transparent;
+      border-top-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .modal-sheet__foot__note { color: var(--brand-alabaster); }
+
+    // Register is the one action on the page, so it takes the brand green.
+    .btn-primary {
+      background: var(--brand-green);
+      border-color: var(--brand-green);
+
+      &:hover:not(:disabled) {
+        background: var(--brand-green-dark);
+        border-color: var(--brand-green-dark);
+      }
+    }
   }
 
   &__staff {
@@ -309,4 +354,12 @@ textarea.form-control {
     font-weight: 600;
     color: #856404;
   }
+}
+
+// Explains the optional account section, so a blank password does not read
+// as a field the patient has missed.
+.form-hint {
+  margin: -4px 0 12px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }

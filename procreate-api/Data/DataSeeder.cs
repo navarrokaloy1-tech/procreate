@@ -24,7 +24,14 @@ public static class DataSeeder
             PatientCode = $"PT-{Stamp(1)}-0001", FirstName = "Maria", MiddleName = "Cruz", LastName = "Santos",
             DateOfBirth = new DateTime(1990, 5, 14), Gender = "Female", ContactNumber = "09171234567",
             Email = "maria.santos@example.com", Address = "12 Mabini St, Makati City", BloodType = "O+",
-            EmergencyContactName = "Jose Santos", EmergencyContactNumber = "09181234567", CreatedAt = today.AddHours(-5)
+            EmergencyContactName = "Jose Santos", EmergencyContactNumber = "09181234567", CreatedAt = today.AddHours(-5),
+            // Demo portal account, alongside the seeded staff logins. The card
+            // token is fixed here so the same payload keeps working across the
+            // database resets this project needs on every model change; a real
+            // one is random per patient.
+            PortalEnabled = true,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("patient123"),
+            CardToken = "demo-card-maria-santos"
         };
         var juan = new Patient
         {

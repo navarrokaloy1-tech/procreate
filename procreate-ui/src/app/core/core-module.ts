@@ -8,6 +8,7 @@ import { SidebarComponent } from './components/sidebar/sidebar';
 import { HeaderComponent } from './components/header/header';
 import { LoginComponent } from './pages/login/login';
 import { IconComponent } from './components/icon/icon';
+import { QrScannerComponent } from './components/qr-scanner/qr-scanner';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { IconComponent } from './components/icon/icon';
     RouterModule,
     ReactiveFormsModule,
     HttpClientModule,
-    IconComponent
+    IconComponent,
+    QrScannerComponent
   ],
   exports: [
     LayoutComponent,
