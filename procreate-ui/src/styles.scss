@@ -325,9 +325,11 @@ small {
     outline-offset: 2px;
   }
 
+  // Small in footprint, not in type: these sit in table rows beside the
+  // status pills, and reading a row means reading both.
   &-sm {
-    padding: 0.3rem 0.625rem;
-    font-size: var(--font-size-sm);
+    padding: 0.35rem 0.75rem;
+    font-size: var(--font-size-base);
     border-radius: var(--border-radius-sm);
   }
 
@@ -1844,17 +1846,19 @@ textarea.form-control {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0.2rem 0.6rem;
+  gap: 6px;
+  // A status is the thing people scan a table for, so it carries the body
+  // size rather than the small one, with the padding grown to match.
+  padding: 0.32rem 0.8rem;
   border-radius: 999px;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 600;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: nowrap;
 
   &__dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: currentColor;
     flex: 0 0 auto;
