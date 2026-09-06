@@ -91,9 +91,9 @@
             <th>Order</th>
             <th>Patient</th>
             <th>Study</th>
-            <th>Status</th>
+            <th class="text-center">Status</th>
             <th>Ordered</th>
-            <th class="text-right">Actions</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -128,7 +128,7 @@
               </span>
             </td>
 
-            <td>
+            <td class="text-center">
               <span class="cell-badges">
                 <span [class]="stagePill(order.stage)">{{ order.stage }}</span>
                 <span class="pill pill--danger" *ngIf="order.isAbnormal">
@@ -140,7 +140,7 @@
 
             <td>{{ order.orderedDate | date: 'MMM d, y' }}</td>
 
-            <td class="text-right">
+            <td class="text-center">
               <div class="row-actions" (click)="$event.stopPropagation()">
                 <button
                   *ngIf="order.stage === 'Pending'"

@@ -247,6 +247,13 @@ small {
       color: var(--text-secondary);
       white-space: nowrap;
 
+      // The alignment helpers are a single class, and this selector is not,
+      // so the left above used to win. Every header that asked to be centred
+      // or right-aligned stayed left while its column moved without it.
+      &.text-center { text-align: center; }
+      &.text-right  { text-align: right; }
+      &.text-left   { text-align: left; }
+
       &.sortable {
         cursor: pointer;
         user-select: none;
