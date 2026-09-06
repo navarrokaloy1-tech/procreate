@@ -1302,27 +1302,27 @@ textarea.form-control {
 // ============================================================
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--light);
-  border-radius: 3px;
+  background: transparent;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c8d0;
-  border-radius: 3px;
+  background: var(--brand-taupe);
+  border-radius: 4px;
 
   &:hover {
-    background: var(--secondary);
+    background: var(--primary-dark);
   }
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c1c8d0 var(--light);
+  scrollbar-color: var(--brand-taupe) transparent;
 }
 
 // ============================================================
