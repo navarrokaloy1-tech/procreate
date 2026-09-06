@@ -1,0 +1,340 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close()">
+  <div class="modal-sheet delivery" (click)="$event.stopPropagation()">
+    <div class="delivery__head">
+      <div class="delivery__tabs">
+        <button
+          type="button"
+          class="delivery__tab"
+          [class.active]="mode === 'email'"
+          (click)="setMode('email')"
+        >
+          <app-icon name="mail" [size]="18"></app-icon>
+          Send Email Result
+        </button>
+        <button
+          type="button"
+          class="delivery__tab"
+          [class.active]="mode === 'print'"
+          (click)="setMode('print')"
+        >
+          <app-icon name="printer" [size]="18"></app-icon>
+          Print Result
+        </button>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="close()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <!-- Patient: fixed, this is their chart -->
+      <div class="form-group">
+        <label class="form-label" for="deliveryPatient">Patient</label>
+        <input
+          id="deliveryPatient"
+          type="text"
+          class="form-control"
+          [value]="patient ? patient.name + '   ' + patient.patientCode : ''"
+          disabled
+          readonly
+        />
+      </div>
+
+      <!-- Results -->
+      <div class="form-group">
+        <label class="form-label">
+          Results <span class="required-mark">*</span>
+        </label>
+
+        <p class="delivery-note" *ngIf="nothingAvailable">
+          <app-icon name="info" [size]="14"></app-icon>
+          This patient has no released results or uploaded files yet. Only
+          released results can be sent.
+        </p>
+
+        <ng-container *ngIf="!nothingAvailable">
+          <div class="delivery-row" *ngFor="let row of rows; let i = index; trackBy: trackRow">
+            <span class="select-field delivery-row__select">
+              <select
+                [ngModel]="row.key"
+                (ngModelChange)="onRowChange(i, $event)"
+                [name]="'result-' + i"
+                [attr.aria-label]="'Result ' + (i + 1)"
+              >
+                <option value="">Please select lab results to be sent</option>
+
+                <optgroup label="Lab results" *ngIf="labResults.length">
+                  <option
+                    *ngFor="let result of labResults"
+                    [value]="'lab:' + result.id"
+                    [disabled]="isTaken('lab:' + result.id, i)"
+                  >
+                    {{ result.label }} — {{ result.department }} ·
+                    {{ result.releasedAt | date: 'MMM d, y' }}{{ result.isAbnormal ? ' (Abnormal)' : '' }}
+                  </option>
+                </optgroup>
+
+                <optgroup label="Uploaded files" *ngIf="documents.length">
+                  <option
+                    *ngFor="let doc of documents"
+                    [value]="'doc:' + doc.id"
+                    [disabled]="isTaken('doc:' + doc.id, i)"
+                  >
+                    {{ doc.label }} — {{ doc.department }} · {{ fileSize(doc.sizeBytes) }}
+                  </option>
+                </optgroup>
+              </select>
+              <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+            </span>
+
+            <button
+              type="button"
+              class="tool-btn"
+              (click)="removeRow(i)"
+              *ngIf="rows.length > 1"
+              aria-label="Remove this result"
+            >
+              <app-icon name="x" [size]="15"></app-icon>
+            </button>
+          </div>
+
+          <button type="button" class="delivery-add" (click)="addRow()" aria-label="Add another result">
+            <app-icon name="plus" [size]="18"></app-icon>
+          </button>
+        </ng-container>
+      </div>
+
+      <!-- Email-only fields -->
+      <ng-container *ngIf="mode === 'email'">
+        <div class="form-group">
+          <label class="form-label" for="deliveryTo">
+            Send to <span class="required-mark">*</span>
+          </label>
+          <input
+            id="deliveryTo"
+            type="email"
+            class="form-control"
+            placeholder="patient@example.com"
+            [(ngModel)]="toAddress"
+            name="toAddress"
+          />
+          <small class="delivery-hint" *ngIf="!patient?.email">
+            No email address is on file for this patient, so enter one.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="deliveryMessage">Message (optional)</label>
+          <textarea
+            id="deliveryMessage"
+            class="form-control"
+            rows="2"
+            placeholder="A short note to go above the results..."
+            [(ngModel)]="message"
+            name="message"
+          ></textarea>
+        </div>
+      </ng-container>
+
+      <!-- Attending doctor -->
+      <div class="form-group">
+        <label class="form-label" for="deliveryDoctor">
+          Attending Doctor <span class="required-mark">*</span>
+        </label>
+        <span class="select-field">
+          <select
+            id="deliveryDoctor"
+            [(ngModel)]="doctorId"
+            name="doctorId"
+          >
+            <option value="">Select doctor</option>
+            <option *ngFor="let doctor of doctors" [value]="doctor.id">
+              {{ doctor.fullName }} — {{ doctor.specialty }}
+            </option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+        </span>
+
+        <label class="delivery-sign">
+          <input type="checkbox" [(ngModel)]="includeSignature" name="includeSignature" />
+          Attach signature
+        </label>
+      </div>
+
+      <!-- Preview -->
+      <section class="delivery-preview" *ngIf="preview">
+        <header class="delivery-preview__head">
+          <h4>Preview</h4>
+          <button type="button" class="tool-btn" (click)="hidePreview()" aria-label="Close preview">
+            <app-icon name="x" [size]="15"></app-icon>
+          </button>
+        </header>
+
+        <div class="delivery-sheet">
+          <div class="delivery-sheet__brand">
+            <h1>Pro-Create</h1>
+            <p>Fertility, OB-GYN and Diagnostic Center</p>
+          </div>
+
+          <div class="delivery-sheet__patient">
+            <strong>{{ preview.patient.name }}</strong>
+            <span>
+              {{ preview.patient.patientCode }} &middot; {{ preview.patient.age }} years old
+              &middot; {{ preview.patient.gender || 'Not specified' }}
+            </span>
+          </div>
+
+          <article class="delivery-sheet__result" *ngFor="let result of preview.results">
+            <header>
+              <strong>{{ result.testName }}</strong>
+              <span class="delivery-flag" *ngIf="result.isAbnormal">Abnormal</span>
+              <small>
+                {{ result.department }} &middot; Released
+                {{ result.releasedAt | date: 'MMM d, y' }}
+              </small>
+            </header>
+
+            <p class="delivery-sheet__narrative" *ngIf="result.narrativeFindings">
+              {{ result.narrativeFindings }}
+            </p>
+
+            <table class="delivery-sheet__table" *ngIf="result.parameters.length">
+              <thead>
+                <tr><th>Test</th><th>Result</th><th>Reference</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of result.parameters">
+                  <td>{{ p.parameterName }}</td>
+                  <td [class]="flagClass(p.flag)">{{ p.value }} {{ p.unit }} {{ p.flag }}</td>
+                  <td>{{ p.reference || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+
+          <p class="delivery-sheet__files" *ngIf="preview.documents.length">
+            Attached files:
+            <span *ngFor="let doc of preview.documents; let last = last">
+              {{ doc.fileName }}{{ last ? '' : ', ' }}
+            </span>
+          </p>
+
+          <div class="delivery-sheet__sign" *ngIf="preview.includeSignature">
+            <strong>{{ preview.doctor.name }}</strong>
+            <small>{{ preview.doctor.specialty }}</small>
+            <small *ngIf="preview.doctor.prcLicenseNumber">
+              PRC No. {{ preview.doctor.prcLicenseNumber }}
+            </small>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="close()" [disabled]="isWorking">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="showPreview()"
+        [disabled]="isWorking || nothingAvailable"
+      >
+        <app-icon name="eye" [size]="16"></app-icon>
+        Preview
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        *ngIf="mode === 'email'"
+        (click)="send()"
+        [disabled]="isWorking || nothingAvailable"
+      >
+        <app-icon name="mail" [size]="16"></app-icon>
+        {{ isWorking ? 'Sending...' : 'Send' }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        *ngIf="mode === 'print'"
+        (click)="print()"
+        [disabled]="isWorking || nothingAvailable"
+      >
+        <app-icon name="printer" [size]="16"></app-icon>
+        {{ isWorking ? 'Preparing...' : 'Print' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- The printed sheet. Hidden on screen; printing-slip on <body> reveals it. -->
+<div class="print-only delivery-print" *ngIf="printPackage">
+  <header class="delivery-print__head">
+    <h1>Pro-Create</h1>
+    <p>Fertility, OB-GYN and Diagnostic Center</p>
+    <p class="delivery-print__contact">procreate.clinic&#64;gmail.com</p>
+  </header>
+
+  <hr />
+
+  <div class="delivery-print__patient">
+    <div>
+      <strong>{{ printPackage.patient.name }}</strong>
+      <span>{{ printPackage.patient.patientCode }}</span>
+    </div>
+    <div>
+      <span>{{ printPackage.patient.age }} years old &middot;
+        {{ printPackage.patient.gender || 'Not specified' }}</span>
+      <span>Printed {{ printPackage.generatedAt | date: 'MMM d, y' }}</span>
+    </div>
+  </div>
+
+  <article class="delivery-print__result" *ngFor="let result of printPackage.results">
+    <h3>
+      {{ result.testName }}
+      <span class="delivery-flag" *ngIf="result.isAbnormal">Abnormal</span>
+    </h3>
+    <p class="delivery-print__meta">
+      {{ result.department }} &middot; {{ result.categoryName }}
+      <ng-container *ngIf="result.specimen"> &middot; {{ result.specimen }}</ng-container>
+      &middot; Released {{ result.releasedAt | date: 'MMM d, y' }}
+    </p>
+
+    <p class="delivery-print__narrative" *ngIf="result.narrativeFindings">
+      {{ result.narrativeFindings }}
+    </p>
+
+    <table class="delivery-print__table" *ngIf="result.parameters.length">
+      <thead>
+        <tr><th>Test</th><th>Result</th><th>Unit</th><th>Reference</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of result.parameters">
+          <td>{{ p.parameterName }}</td>
+          <td [class]="flagClass(p.flag)">{{ p.value }} {{ p.flag }}</td>
+          <td>{{ p.unit }}</td>
+          <td>{{ p.reference || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </article>
+
+  <p class="delivery-print__files" *ngIf="printPackage.documents.length">
+    Issued with this printout:
+    <span *ngFor="let doc of printPackage.documents; let last = last">
+      {{ doc.fileName }}{{ last ? '' : ', ' }}
+    </span>
+  </p>
+
+  <div class="delivery-print__sign" *ngIf="printPackage.includeSignature">
+    <div class="delivery-print__sign-line"></div>
+    <strong>{{ printPackage.doctor.name }}</strong>
+    <small>{{ printPackage.doctor.specialty }}</small>
+    <small *ngIf="printPackage.doctor.prcLicenseNumber">
+      PRC No. {{ printPackage.doctor.prcLicenseNumber }}
+    </small>
+  </div>
+</div>

@@ -1,5 +1,4 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 import { ComboOption } from '../../../../core/components/combo-select/combo-select';
@@ -20,19 +19,6 @@ interface Certificate {
   isWalkIn: boolean;
 }
 
-interface DoctorOption {
-  id: number;
-  fullName: string;
-  specialty: string;
-}
-
-interface PatientOption {
-  id: number;
-  patientCode: string;
-  firstName: string;
-  lastName: string;
-}
-
 @Component({
   selector: 'app-certificate-list',
   standalone: false,
@@ -47,7 +33,6 @@ export class CertificateListComponent implements OnInit {
   ];
 
   certificates: Certificate[] = [];
-  doctors: DoctorOption[] = [];
   totalCount = 0;
   pageIndex = 0;
   pageSize = 10;
@@ -58,29 +43,15 @@ export class CertificateListComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
-  // --- Issue modal ---
+  /** The issue sheet itself lives in app-certificate-form. */
   isModalOpen = false;
-  isSaving = false;
-  modalError = '';
-  /** 'registered' issues against a patient record; 'walkin' takes a free name. */
-  recipientMode: 'registered' | 'walkin' = 'registered';
 
-  form = this.blankForm();
-
-  patientQuery = '';
-  patientResults: PatientOption[] = [];
-  private patientSearch$ = new Subject<string>();
   private searchSubject = new Subject<string>();
 
   /** The certificate currently rendered into the print-only sheet. */
   printing: Certificate | null = null;
 
-  constructor(
-    private api: ApiService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => {
@@ -89,50 +60,7 @@ export class CertificateListComponent implements OnInit {
       this.load();
     });
 
-    this.patientSearch$
-      .pipe(debounceTime(250), distinctUntilChanged())
-      .subscribe((term) => this.runPatientSearch(term));
-
-    this.loadDoctors();
     this.load();
-
-    // Arriving from a patient chart with ?patientId= means "issue one for
-    // them": open the sheet on the Registered Patient tab with that patient
-    // already chosen, then drop the parameter so a reload starts clean.
-    const patientId = Number(this.route.snapshot.queryParamMap.get('patientId'));
-    if (patientId) this.openModalForPatient(patientId);
-  }
-
-  /** Opens the issue sheet with a registered patient pre-selected. */
-  private openModalForPatient(patientId: number): void {
-    this.api.get<PatientOption>(`patients/${patientId}`).subscribe({
-      next: (patient) => {
-        this.openModal();
-        this.choosePatient(patient);
-        this.router.navigate([], { queryParams: {}, replaceUrl: true });
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        // The chart link is stale or the patient is gone. The list still
-        // works, so say nothing and leave the sheet closed.
-        this.router.navigate([], { queryParams: {}, replaceUrl: true });
-      },
-    });
-  }
-
-  private blankForm() {
-    return {
-      patientId: 0,
-      walkInName: '',
-      walkInAge: '',
-      walkInAddress: '',
-      doctorId: 0,
-      issueDate: new Date().toISOString().substring(0, 10),
-      template: 'General',
-      diagnosis: '',
-      recommendation: '',
-      remarks: '',
-    };
   }
 
   // ----------------------------------------------------------
@@ -163,30 +91,6 @@ export class CertificateListComponent implements OnInit {
           this.cdr.markForCheck();
         },
       });
-  }
-
-  private loadDoctors(): void {
-    this.api
-      .get<{ data: DoctorOption[] }>('doctors', { isActive: true, pageSize: 100 })
-      .subscribe({
-        next: (res) => {
-          this.doctors = res.data;
-          // The sheet can be opened from a patient chart before this call
-          // lands, which would leave the physician combo empty.
-          if (this.isModalOpen && !this.form.doctorId) {
-            this.form.doctorId = this.doctors[0]?.id ?? 0;
-          }
-          this.cdr.markForCheck();
-        },
-        error: () => this.cdr.markForCheck(),
-      });
-  }
-
-  get doctorOptions(): ComboOption[] {
-    return this.doctors.map((d) => ({
-      value: String(d.id),
-      label: `${d.fullName} — ${d.specialty}`,
-    }));
   }
 
   get templateOptions(): ComboOption[] {
@@ -221,120 +125,22 @@ export class CertificateListComponent implements OnInit {
   }
 
   // ----------------------------------------------------------
-  // Issue modal
+  // Issue sheet
   // ----------------------------------------------------------
 
   openModal(): void {
-    this.form = this.blankForm();
-    this.form.doctorId = this.doctors[0]?.id ?? 0;
-    this.recipientMode = 'registered';
-    this.patientQuery = '';
-    this.patientResults = [];
-    this.modalError = '';
     this.isModalOpen = true;
   }
 
   closeModal(): void {
     this.isModalOpen = false;
-    this.modalError = '';
   }
 
-  setRecipientMode(mode: 'registered' | 'walkin'): void {
-    this.recipientMode = mode;
-    // Clear the other side so only one recipient is ever submitted.
-    if (mode === 'registered') {
-      this.form.walkInName = '';
-      this.form.walkInAge = '';
-      this.form.walkInAddress = '';
-    } else {
-      this.form.patientId = 0;
-      this.patientQuery = '';
-      this.patientResults = [];
-    }
-  }
-
-  selectTemplate(id: string): void {
-    this.form.template = id;
-  }
-
-  onPatientQuery(term: string): void {
-    this.patientQuery = term;
-    this.form.patientId = 0;
-    this.patientSearch$.next(term);
-  }
-
-  private runPatientSearch(term: string): void {
-    if (!term.trim()) {
-      this.patientResults = [];
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.api
-      .get<{ data: PatientOption[] }>('patients', { search: term, pageSize: 8 })
-      .subscribe({
-        next: (res) => {
-          this.patientResults = res.data;
-          this.cdr.markForCheck();
-        },
-        error: () => this.cdr.markForCheck(),
-      });
-  }
-
-  choosePatient(patient: PatientOption): void {
-    this.form.patientId = patient.id;
-    this.patientQuery = `${patient.firstName} ${patient.lastName} · ${patient.patientCode}`;
-    this.patientResults = [];
-  }
-
-  save(): void {
-    if (this.recipientMode === 'registered' && !this.form.patientId) {
-      this.modalError = 'Please choose a patient.';
-      return;
-    }
-    if (this.recipientMode === 'walkin' && !this.form.walkInName.trim()) {
-      this.modalError = 'Please enter the walk-in name.';
-      return;
-    }
-    if (!this.form.doctorId) {
-      this.modalError = 'Please choose an attending physician.';
-      return;
-    }
-    if (!this.form.diagnosis.trim()) {
-      this.modalError = 'Diagnosis / medical findings is required.';
-      return;
-    }
-
-    this.isSaving = true;
-    this.modalError = '';
-
-    this.api
-      .post<Certificate>('medicalcertificates', {
-        patientId: this.recipientMode === 'registered' ? this.form.patientId : null,
-        walkInName: this.recipientMode === 'walkin' ? this.form.walkInName : null,
-        walkInAge: this.form.walkInAge,
-        walkInAddress: this.form.walkInAddress,
-        doctorId: this.form.doctorId,
-        issueDate: this.form.issueDate,
-        template: this.form.template,
-        diagnosis: this.form.diagnosis,
-        recommendation: this.form.recommendation,
-        remarks: this.form.remarks,
-      })
-      .subscribe({
-        next: () => {
-          this.isSaving = false;
-          this.isModalOpen = false;
-          this.pageIndex = 0;
-          this.load();
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.modalError = err?.error?.message ?? 'Could not issue the certificate.';
-          this.isSaving = false;
-          this.cdr.markForCheck();
-        },
-      });
+  /** A new certificate exists, so the first page is the one to show. */
+  onIssued(): void {
+    this.isModalOpen = false;
+    this.pageIndex = 0;
+    this.load();
   }
 
   remove(certificate: Certificate): void {

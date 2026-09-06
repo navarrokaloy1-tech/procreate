@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Email;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Locations;
 using ProCreateApi.Services.Queue;
@@ -28,6 +29,12 @@ builder.Services.AddHttpClient<ILocationService, PsgcLocationService>(client =>
     client.BaseAddress = new Uri(psgcOptions.BaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(psgcOptions.TimeoutSeconds + 2);
 });
+
+// Outgoing result emails. Blank settings are valid: sending is refused with a
+// clear message rather than silently doing nothing.
+var emailSettings = builder.Configuration.GetSection("Email").Get<EmailSettings>() ?? new EmailSettings();
+builder.Services.AddSingleton(emailSettings);
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 builder.Services.AddScoped<QueueAllocator>();
 

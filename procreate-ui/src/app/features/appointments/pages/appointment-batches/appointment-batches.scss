@@ -1,0 +1,350 @@
+// The batch board. Blocks side by side, each a drop list, so a patient can be
+// dragged down within a block or across into a later one.
+
+// Matches the lab console: the tab strip is pulled up into the banner, so the
+// card below it needs its own gap back.
+.batch-card {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding: 20px;
+}
+
+// The tab strip is styled for buttons; these are links to the sibling page.
+.hero-tabs__tab { text-decoration: none; }
+
+.date-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &__input {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    background: var(--white);
+  }
+}
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  &__day {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__count {
+    margin: 0;
+    margin-left: auto;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+  }
+
+  &__saving {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: #1a7a48;
+  }
+}
+
+.batch-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius);
+  background: var(--light);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+
+  .app-icon { flex: 0 0 auto; margin-top: 1px; }
+}
+
+.batch-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+
+// ------------------------------------------------------------
+// Blocks
+// ------------------------------------------------------------
+
+.batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.batch {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  background: var(--white);
+  overflow: hidden;
+
+  &--closed { opacity: 0.75; }
+
+  &--full .batch__head { background: var(--warning-light); }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--light);
+  }
+
+  &__title {
+    min-width: 0;
+    flex: 1 1 auto;
+
+    h3 {
+      margin: 0;
+      font-size: var(--font-size-lg);
+      color: var(--text-primary);
+    }
+  }
+
+  &__meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  &__tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  // A little breathing room at the bottom so there is somewhere to drop
+  // a patient at the end of a list.
+  &__list {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  &__empty {
+    margin: 0;
+    padding: 18px 8px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+// ------------------------------------------------------------
+// A patient in a block
+// ------------------------------------------------------------
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--white);
+  cursor: default;
+
+  & + & { margin-top: 8px; }
+
+  // Whoever is here already is the obvious person to serve next.
+  &--arrived { border-left: 3px solid var(--success); }
+
+  // Cancelled and no-shows stay visible but stop competing for attention.
+  &--released {
+    opacity: 0.6;
+
+    .slot__name { text-decoration: line-through; }
+  }
+
+  &__handle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    cursor: grab;
+
+    &:active { cursor: grabbing; }
+  }
+
+  &__position {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--primary-dark);
+
+    // Cancellations and no-shows are not in the queue, so they show a dash.
+    &--none {
+      background: var(--light);
+      color: var(--text-muted);
+    }
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__name {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__code {
+    margin-left: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  &__meta {
+    margin: 2px 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__flags {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+// ------------------------------------------------------------
+// Drag states
+// ------------------------------------------------------------
+
+// The row under the cursor. cdkDragPreview is appended to <body>, outside this
+// component, so it cannot be styled from here without ::ng-deep.
+::ng-deep .cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  opacity: 0.95;
+}
+
+// The gap left behind, showing where it would land.
+.slot__placeholder {
+  min-height: 54px;
+  margin: 0;
+  border: 2px dashed var(--primary);
+  border-radius: var(--border-radius);
+  background: var(--primary-light);
+}
+
+::ng-deep .cdk-drag-animating {
+  transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.batch__list.cdk-drop-list-dragging .slot:not(.cdk-drag-placeholder) {
+  transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// While a drag is in flight, show which blocks would take it.
+.batch__list.cdk-drop-list-receiving {
+  background: var(--success-light);
+  border-radius: var(--border-radius);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: batch-spin 0.7s linear infinite;
+}
+
+@keyframes batch-spin {
+  to { transform: rotate(360deg); }
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.check-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+}
+
+// Same espresso backdrop and two-column field row as the calendar modal in
+// this feature, so the two sheets look like siblings.
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(45, 27, 14, 0.45);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

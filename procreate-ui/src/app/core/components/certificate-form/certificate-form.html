@@ -1,0 +1,185 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="file-text" [size]="19"></app-icon>
+          Issue Medical Certificate
+        </h3>
+        <p class="modal-sheet__desc" *ngIf="recipient">
+          For {{ recipient.firstName }} {{ recipient.lastName }} &middot;
+          {{ recipient.patientCode }}
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="close()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <!-- Opened from a chart, the recipient is already decided, so there is
+         nothing to choose between. -->
+    <div class="modal-sheet__tabs" *ngIf="!isLocked">
+      <button
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="recipientMode === 'registered'"
+        (click)="setRecipientMode('registered')"
+      >
+        Registered Patient
+      </button>
+      <button
+        type="button"
+        class="modal-sheet__tab"
+        [class.active]="recipientMode === 'walkin'"
+        (click)="setRecipientMode('walkin')"
+      >
+        Express Walk-in
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <!-- Recipient -->
+      <div class="form-group patient-picker" *ngIf="recipientMode === 'registered'">
+        <label class="form-label" for="certPatient">
+          Select Patient <span class="required-mark" *ngIf="!isLocked">*</span>
+        </label>
+        <input
+          id="certPatient"
+          type="text"
+          class="form-control"
+          placeholder="Search patient name or ID..."
+          autocomplete="off"
+          [value]="patientQuery"
+          [disabled]="isLocked"
+          [readonly]="isLocked"
+          (input)="onPatientQuery($any($event.target).value)"
+        />
+        <small class="field-note" *ngIf="isLocked">
+          <app-icon name="info" [size]="13"></app-icon>
+          Issuing from this patient's chart, so the recipient is fixed.
+        </small>
+        <ul class="patient-picker__results" *ngIf="!isLocked && patientResults.length">
+          <li *ngFor="let patient of patientResults">
+            <button type="button" (mousedown)="$event.preventDefault(); choosePatient(patient)">
+              <strong>{{ patient.firstName }} {{ patient.lastName }}</strong>
+              <small>{{ patient.patientCode }}</small>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="form-row" *ngIf="recipientMode === 'walkin'">
+        <div class="form-group">
+          <label class="form-label" for="walkInName">
+            Full Name <span class="required-mark">*</span>
+          </label>
+          <input
+            id="walkInName"
+            type="text"
+            class="form-control"
+            placeholder="Juan Dela Cruz"
+            [(ngModel)]="form.walkInName"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="walkInAge">Age</label>
+          <input id="walkInAge" type="text" class="form-control" placeholder="35" [(ngModel)]="form.walkInAge" />
+        </div>
+        <div class="form-group form-group--full">
+          <label class="form-label" for="walkInAddress">Address</label>
+          <input
+            id="walkInAddress"
+            type="text"
+            class="form-control"
+            placeholder="B1 L2, Street, Barangay, City"
+            [(ngModel)]="form.walkInAddress"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="certIssueDate">Issue Date</label>
+          <input id="certIssueDate" type="date" class="form-control" [(ngModel)]="form.issueDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="certDoctor">
+            Attending Physician <span class="required-mark">*</span>
+          </label>
+          <app-combo-select
+            inputId="certDoctor"
+            placeholder="Select physician"
+            [options]="doctorOptions"
+            [ngModel]="form.doctorId ? form.doctorId.toString() : ''"
+            (ngModelChange)="form.doctorId = +$event"
+          ></app-combo-select>
+        </div>
+      </div>
+
+      <!-- Template picker -->
+      <div class="form-group">
+        <label class="form-label">Certificate Template</label>
+        <div class="template-grid">
+          <button
+            *ngFor="let template of templates"
+            type="button"
+            class="template-card"
+            [class.active]="form.template === template.id"
+            (click)="selectTemplate(template.id)"
+          >
+            <app-icon [name]="template.icon" [size]="20"></app-icon>
+            <span>{{ template.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certDiagnosis">
+          Diagnosis / Medical Findings <span class="required-mark">*</span>
+        </label>
+        <textarea
+          id="certDiagnosis"
+          class="form-control"
+          rows="2"
+          placeholder="Acute Respiratory Infection, etc..."
+          [(ngModel)]="form.diagnosis"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certRecommendation">Recommendation / Advice</label>
+        <textarea
+          id="certRecommendation"
+          class="form-control"
+          rows="2"
+          placeholder="Bed rest for 3 days, Fit to work, etc..."
+          [(ngModel)]="form.recommendation"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="certRemarks">Remarks (Internal or Footer Notes)</label>
+        <textarea
+          id="certRemarks"
+          class="form-control"
+          rows="2"
+          placeholder="Optional notes not usually in the cert body"
+          [(ngModel)]="form.remarks"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="close()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Generate & Save' }}
+      </button>
+    </div>
+  </div>
+</div>

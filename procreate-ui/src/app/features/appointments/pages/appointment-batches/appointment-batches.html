@@ -1,0 +1,268 @@
+<section class="page-hero page-hero--tabs">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="clock" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Appointment Batches</h1>
+        <p class="page-hero__subtitle">
+          Session blocks for the day, in the order patients are seen
+        </p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <div class="date-nav">
+        <button type="button" class="tool-btn" (click)="shiftDay(-1)" aria-label="Previous day">
+          <app-icon name="chevron-left" [size]="16"></app-icon>
+        </button>
+        <input
+          type="date"
+          class="date-nav__input"
+          [value]="apiDate"
+          (change)="onDateChange($any($event.target).value)"
+          aria-label="Date"
+        />
+        <button type="button" class="tool-btn" (click)="shiftDay(1)" aria-label="Next day">
+          <app-icon name="chevron-right" [size]="16"></app-icon>
+        </button>
+      </div>
+      <button type="button" class="btn btn-hero" (click)="goToToday()" [disabled]="isToday">
+        Today
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="hero-tabs">
+  <a class="hero-tabs__tab" routerLink="/app/appointments">
+    <app-icon name="calendar" [size]="16"></app-icon>
+    Calendar
+  </a>
+  <a class="hero-tabs__tab active" routerLink="/app/appointments/batches">
+    <app-icon name="clock" [size]="16"></app-icon>
+    Batches
+    <span class="hero-tabs__count" *ngIf="totalBooked > 0">{{ totalBooked }}</span>
+  </a>
+</div>
+
+<div class="card batch-card">
+  <div class="batch-bar">
+    <p class="batch-bar__day">
+      {{ selectedDate | date: 'EEEE, MMMM d, y' }}
+      <span class="pill pill--primary" *ngIf="isToday">Today</span>
+    </p>
+    <p class="batch-bar__count" *ngIf="batches.length > 0">
+      {{ totalBooked }} of {{ totalCapacity }} slots booked
+    </p>
+    <span class="batch-bar__saving" *ngIf="isSaving">
+      <app-icon name="save" [size]="14"></app-icon>
+      Saving...
+    </span>
+    <span class="batch-bar__saved" *ngIf="!isSaving && noticeMessage">
+      <app-icon name="check" [size]="14"></app-icon>
+      {{ noticeMessage }}
+    </span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <p class="batch-hint">
+    <app-icon name="info" [size]="14"></app-icon>
+    Patients are listed first come, first served. Drag anyone who has not
+    arrived further down, or into a later block, and the new order saves itself.
+  </p>
+
+  <div class="batch-loading" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading the day...</p>
+  </div>
+
+  <!-- No blocks defined for this weekday -->
+  <div class="empty-state" *ngIf="!isLoading && batches.length === 0">
+    <span class="empty-state__icon"><app-icon name="clock" [size]="30"></app-icon></span>
+    <h3>No session blocks for this day</h3>
+    <p>
+      The clinic is not scheduled to run blocks on
+      {{ selectedDate | date: 'EEEE' }}s. Add them to the weekly pattern to open
+      the day for booking.
+    </p>
+  </div>
+
+  <div class="batch-grid" *ngIf="!isLoading && batches.length > 0" cdkDropListGroup>
+    <section
+      class="batch"
+      *ngFor="let batch of batches; trackBy: trackBatch"
+      [class.batch--closed]="batch.isClosed"
+      [class.batch--full]="batch.remaining === 0 && !batch.isClosed"
+    >
+      <header class="batch__head">
+        <div class="batch__title">
+          <h3>{{ batch.label }}</h3>
+          <span class="batch__meta">
+            {{ batch.booked }} / {{ batch.capacity }} patients
+          </span>
+        </div>
+
+        <div class="batch__tools">
+          <span class="pill pill--neutral" *ngIf="batch.isClosed">Closed</span>
+          <span
+            class="pill pill--warning"
+            *ngIf="!batch.isClosed && batch.remaining === 0"
+          >Full</span>
+          <span
+            class="pill pill--success"
+            *ngIf="!batch.isClosed && batch.remaining > 0"
+          >{{ batch.remaining }} left</span>
+
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="toggleClosed(batch)"
+            [attr.aria-label]="batch.isClosed ? 'Reopen this block' : 'Close this block'"
+            [title]="batch.isClosed ? 'Reopen for bookings' : 'Close for bookings'"
+          >
+            <app-icon [name]="batch.isClosed ? 'check' : 'x'" [size]="15"></app-icon>
+          </button>
+          <button
+            type="button"
+            class="tool-btn"
+            (click)="openEdit(batch)"
+            aria-label="Edit this block"
+            title="Edit times and capacity"
+          >
+            <app-icon name="edit" [size]="15"></app-icon>
+          </button>
+        </div>
+      </header>
+
+      <div
+        class="batch__list"
+        cdkDropList
+        [id]="dropListId(batch)"
+        [cdkDropListData]="batch.slots"
+        [cdkDropListConnectedTo]="dropListIds"
+        [cdkDropListEnterPredicate]="canReceive"
+        (cdkDropListDropped)="onDrop($event)"
+      >
+        <article
+          class="slot"
+          *ngFor="let slot of batch.slots; trackBy: trackSlot"
+          cdkDrag
+          [cdkDragData]="slot"
+          [class.slot--released]="isReleased(slot.status)"
+          [class.slot--arrived]="slot.hasArrived"
+        >
+          <div class="slot__placeholder" *cdkDragPlaceholder></div>
+
+          <span class="slot__handle" cdkDragHandle aria-label="Drag to reorder">
+            <app-icon name="grip-vertical" [size]="16"></app-icon>
+          </span>
+
+          <span class="slot__position" [class.slot__position--none]="slot.position === 0">
+            {{ slot.position === 0 ? '—' : slot.position }}
+          </span>
+
+          <div class="slot__body">
+            <p class="slot__name">
+              {{ slot.patientName }}
+              <span class="slot__code">{{ slot.patientCode }}</span>
+            </p>
+            <p class="slot__meta">
+              {{ slot.service }} &middot; {{ slot.doctorName }}
+            </p>
+          </div>
+
+          <div class="slot__flags">
+            <span
+              class="pill pill--success slot__arrived"
+              *ngIf="slot.hasArrived"
+              title="Patient is here"
+            >
+              <app-icon name="check" [size]="12"></app-icon>
+              Present
+            </span>
+            <span [class]="statusClass(slot.status)">{{ statusLabel(slot.status) }}</span>
+          </div>
+        </article>
+
+        <p class="batch__empty" *ngIf="batch.slots.length === 0">
+          Nobody booked into this block yet.
+        </p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Edit block -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="clock" [size]="19"></app-icon>
+          Edit {{ editingBatch?.label }}
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ selectedDate | date: 'EEEE, d MMMM y' }} only — the weekly pattern
+          other days inherit is left alone.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="startTime">Starts</label>
+          <input
+            id="startTime"
+            type="time"
+            class="form-control"
+            [(ngModel)]="form.startTime"
+            name="startTime"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="endTime">Ends</label>
+          <input
+            id="endTime"
+            type="time"
+            class="form-control"
+            [(ngModel)]="form.endTime"
+            name="endTime"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="capacity">Patients per block</label>
+        <input
+          id="capacity"
+          type="number"
+          min="1"
+          class="form-control"
+          [(ngModel)]="form.capacity"
+          name="capacity"
+        />
+        <small class="field-hint">
+          Cannot be set below the {{ editingBatch?.booked }} already booked in.
+        </small>
+      </div>
+
+      <label class="check-line">
+        <input type="checkbox" [(ngModel)]="form.isClosed" name="isClosed" />
+        Closed for new bookings
+      </label>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="saveBatch()" [disabled]="isSaving">
+        {{ isSaving ? 'Saving...' : 'Save block' }}
+      </button>
+    </div>
+  </div>
+</div>

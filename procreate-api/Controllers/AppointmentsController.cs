@@ -23,11 +23,18 @@ public class AppointmentsController : ControllerBase
     public record AppointmentDto(
         int Id, string AppointmentCode, int PatientId, string PatientName, string PatientCode,
         int DoctorId, string DoctorName, string Service, DateTime ScheduledAt,
-        string Type, string Status, string ChiefComplaint, string Notes, bool IsArchived);
+        string Type, string Status, string ChiefComplaint, string Notes, bool IsArchived,
+        int? BatchId, int QueuePosition);
 
+    /// <summary>
+    /// <paramref name="BatchId"/> books into a session block, which sets the
+    /// time from the block and puts the patient at the back of its queue. Left
+    /// null, the appointment keeps its exact <paramref name="ScheduledAt"/> and
+    /// stays off the batch board — walk-ins and legacy bookings work that way.
+    /// </summary>
     public record AppointmentWriteRequest(
         int PatientId, int DoctorId, string Service, DateTime ScheduledAt,
-        string Type, string Status, string ChiefComplaint, string Notes);
+        string Type, string Status, string ChiefComplaint, string Notes, int? BatchId);
 
     /// <summary>
     /// Appointments in a window. Pass `from`/`to` for a calendar month, or
@@ -111,22 +118,30 @@ public class AppointmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AppointmentWriteRequest request)
     {
-        var validation = await ValidateAsync(request);
+        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, null);
+        if (batchError is not null) return batchError;
+
+        var scheduledAt = ScheduledAtFor(request, batch);
+
+        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, batch is not null);
         if (validation is not null) return validation;
 
         var appointment = new Appointment
         {
-            AppointmentCode = await NextCodeAsync(request.ScheduledAt),
+            AppointmentCode = await NextCodeAsync(scheduledAt),
             PatientId = request.PatientId,
             DoctorId = request.DoctorId,
             Service = string.IsNullOrWhiteSpace(request.Service)
                 ? "General Consultation"
                 : request.Service.Trim(),
-            ScheduledAt = request.ScheduledAt,
+            ScheduledAt = scheduledAt,
             Type = string.IsNullOrWhiteSpace(request.Type) ? "Scheduled" : request.Type,
             Status = string.IsNullOrWhiteSpace(request.Status) ? "Scheduled" : request.Status,
             ChiefComplaint = request.ChiefComplaint?.Trim() ?? "",
-            Notes = request.Notes?.Trim() ?? ""
+            Notes = request.Notes?.Trim() ?? "",
+            BatchId = batch?.Id,
+            // Back of the queue: booking order is the default order of service.
+            QueuePosition = batch is null ? 0 : NextPosition(batch)
         };
 
         _db.Appointments.Add(appointment);
@@ -141,15 +156,28 @@ public class AppointmentsController : ControllerBase
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment is null) return NotFound();
 
-        var validation = await ValidateAsync(request);
+        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, id);
+        if (batchError is not null) return batchError;
+
+        var scheduledAt = ScheduledAtFor(request, batch);
+
+        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, batch is not null, id);
         if (validation is not null) return validation;
+
+        // Moving into a different block puts the patient at the back of it; the
+        // front desk reorders from the board rather than from this form.
+        if (batch is not null && appointment.BatchId != batch.Id)
+            appointment.QueuePosition = NextPosition(batch);
+
+        appointment.BatchId = batch?.Id;
+        if (batch is null) appointment.QueuePosition = 0;
 
         appointment.PatientId = request.PatientId;
         appointment.DoctorId = request.DoctorId;
         appointment.Service = string.IsNullOrWhiteSpace(request.Service)
             ? appointment.Service
             : request.Service.Trim();
-        appointment.ScheduledAt = request.ScheduledAt;
+        appointment.ScheduledAt = scheduledAt;
         appointment.Type = request.Type ?? appointment.Type;
         appointment.Status = request.Status ?? appointment.Status;
         appointment.ChiefComplaint = request.ChiefComplaint?.Trim() ?? "";
@@ -197,10 +225,64 @@ public class AppointmentsController : ControllerBase
     }
 
     /// <summary>
+    /// Resolves the requested session block and checks there is room in it.
+    /// Returns (null, null) when no block was asked for, which is a valid
+    /// booking — it simply keeps its exact time and stays off the board.
+    /// </summary>
+    private async Task<(AppointmentBatch? Batch, IActionResult? Error)> ResolveBatchAsync(
+        int? batchId, int patientId, int? excludeAppointmentId)
+    {
+        if (batchId is null) return (null, null);
+
+        var batch = await _db.AppointmentBatches
+            .Include(b => b.Appointments)
+            .FirstOrDefaultAsync(b => b.Id == batchId.Value);
+
+        if (batch is null)
+            return (null, BadRequest(new { message = "Selected time block does not exist." }));
+
+        var label = $"{AppointmentBatchesController.Display(batch.StartTime)}"
+                  + $"–{AppointmentBatchesController.Display(batch.EndTime)}";
+
+        if (batch.IsClosed)
+            return (null, Conflict(new { message = $"The {label} block is closed for bookings." }));
+
+        var occupants = batch.Appointments
+            .Where(a => a.Id != excludeAppointmentId && !a.IsArchived)
+            .Where(a => !AppointmentBatchesController.ReleasedStatuses.Contains(a.Status))
+            .ToList();
+
+        if (occupants.Count >= batch.Capacity)
+            return (null, Conflict(new
+            {
+                message = $"The {label} block is full — it takes {batch.Capacity} patients."
+            }));
+
+        if (occupants.Any(a => a.PatientId == patientId))
+            return (null, Conflict(new
+            {
+                message = $"That patient is already booked into the {label} block."
+            }));
+
+        return (batch, null);
+    }
+
+    /// <summary>A block fixes the time; without one the caller's stands.</summary>
+    private static DateTime ScheduledAtFor(AppointmentWriteRequest request, AppointmentBatch? batch) =>
+        batch is null
+            ? request.ScheduledAt
+            : batch.BatchDate.Add(AppointmentBatchesController.ParseTime(batch.StartTime));
+
+    /// <summary>Next free place at the back of a block's queue.</summary>
+    private static int NextPosition(AppointmentBatch batch) =>
+        batch.Appointments.Count == 0 ? 1 : batch.Appointments.Max(a => a.QueuePosition) + 1;
+
+    /// <summary>
     /// Rejects unknown patients/doctors, out-of-hours slots, and double-booking
     /// the same practitioner at the same time.
     /// </summary>
-    private async Task<IActionResult?> ValidateAsync(AppointmentWriteRequest request)
+    private async Task<IActionResult?> ValidateAsync(
+        AppointmentWriteRequest request, bool batched = false, int? excludeAppointmentId = null)
     {
         if (request.ScheduledAt == default)
             return BadRequest(new { message = "A date and time is required." });
@@ -234,9 +316,17 @@ public class AppointmentsController : ControllerBase
             });
         }
 
+        // Exact-time double booking only means something for an appointment
+        // booked at an exact time. Everyone in a session block shares its start
+        // time by design, so this check would reject all but the first of them;
+        // capacity and the patient-already-in-this-block check cover those.
+        if (batched) return null;
+
         var clash = await _db.Appointments.AnyAsync(a =>
             a.DoctorId == request.DoctorId &&
             a.ScheduledAt == request.ScheduledAt &&
+            a.Id != excludeAppointmentId &&
+            a.BatchId == null &&
             !a.IsArchived &&
             a.Status != "Cancelled" && a.Status != "NoShow");
 
@@ -262,7 +352,8 @@ public class AppointmentsController : ControllerBase
         a.DoctorId,
         ("Dr. " + a.Doctor.FirstName + " " + a.Doctor.LastName).Trim(),
         a.Service, a.ScheduledAt, a.Type, a.Status,
-        a.ChiefComplaint, a.Notes, a.IsArchived);
+        a.ChiefComplaint, a.Notes, a.IsArchived,
+        a.BatchId, a.QueuePosition);
 
     private async Task<string> NextCodeAsync(DateTime scheduledAt)
     {

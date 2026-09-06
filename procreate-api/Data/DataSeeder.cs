@@ -132,6 +132,84 @@ public static class DataSeeder
 
         // ---------- Cashier Orders (Product/Order domain) ----------
         SeedOrders(db, juan, today);
+
+        // ---------- Today's session blocks, with patients in them ----------
+        SeedBatchDay(db, new[] { maria, juan, ana });
+    }
+
+    /// <summary>
+    /// Materialises today's blocks from the weekly template and books the
+    /// sample patients into them, so the batch board opens with something to
+    /// rearrange rather than three empty columns.
+    /// </summary>
+    private static void SeedBatchDay(AppDbContext db, Patient[] patients)
+    {
+        // Today when the clinic is open, otherwise the next day it is. Seeding
+        // strictly today would leave the board empty for anyone who set the
+        // project up on a Sunday.
+        var day = DateTime.Today;
+        var templates = new List<AppointmentBatchTemplate>();
+
+        for (var offset = 0; offset < 7; offset++)
+        {
+            var candidate = DateTime.Today.AddDays(offset);
+
+            templates = db.AppointmentBatchTemplates
+                .Where(t => t.DayOfWeek == (int)candidate.DayOfWeek && t.IsActive)
+                .OrderBy(t => t.StartTime)
+                .ToList();
+
+            if (templates.Count > 0) { day = candidate; break; }
+        }
+
+        if (templates.Count == 0) return;
+
+        var batches = templates.Select(t => new AppointmentBatch
+        {
+            BatchDate = day,
+            StartTime = t.StartTime,
+            EndTime = t.EndTime,
+            Capacity = t.Capacity,
+            TemplateId = t.Id
+        }).ToList();
+
+        db.AppointmentBatches.AddRange(batches);
+        db.SaveChanges();
+
+        var doctor = db.Doctors.OrderBy(d => d.Id).First();
+
+        // Two in the morning — one already checked in, one still to arrive, so
+        // the "drag the absent one down" case is visible on first load.
+        var bookings = new (AppointmentBatch Batch, Patient Patient, string Service, string Status)[]
+        {
+            (batches[0], patients[0], "Prenatal Check-up",      "CheckedIn"),
+            (batches[0], patients[1], "General Consultation",   "Scheduled"),
+            (batches[0], patients[2], "Fertility Consultation", "Confirmed"),
+        };
+
+        var counter = 0;
+        var position = 0;
+        var currentBatch = bookings[0].Batch;
+
+        foreach (var (batch, patient, service, status) in bookings)
+        {
+            if (batch.Id != currentBatch.Id) { currentBatch = batch; position = 0; }
+
+            db.Appointments.Add(new Appointment
+            {
+                AppointmentCode = $"APT-{day:yyyyMMdd}-{++counter:D4}",
+                PatientId = patient.Id,
+                DoctorId = doctor.Id,
+                Service = service,
+                ScheduledAt = day.Add(TimeSpan.Parse(batch.StartTime)),
+                Type = "Scheduled",
+                Status = status,
+                BatchId = batch.Id,
+                QueuePosition = ++position
+            });
+        }
+
+        db.SaveChanges();
     }
 
     /// <summary>

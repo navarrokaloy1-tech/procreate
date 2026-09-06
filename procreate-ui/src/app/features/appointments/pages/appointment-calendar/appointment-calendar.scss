@@ -1,4 +1,8 @@
+// Sits under the tab strip, which is pulled up into the banner.
 .appointments-grid {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   gap: 16px;
@@ -356,4 +360,14 @@
 
 textarea.form-control {
   resize: vertical;
+}
+
+// The strip is styled for buttons; these are links to the sibling page.
+.hero-tabs__tab { text-decoration: none; }
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }

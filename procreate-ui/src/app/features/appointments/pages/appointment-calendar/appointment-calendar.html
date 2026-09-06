@@ -1,4 +1,4 @@
-<section class="page-hero">
+<section class="page-hero page-hero--tabs">
   <div class="page-hero__row">
     <div class="page-hero__title-group">
       <span class="page-hero__icon"><app-icon name="calendar" [size]="24"></app-icon></span>
@@ -28,7 +28,18 @@
   </div>
 </section>
 
-<div class="appointments-grid hero-overlap">
+<div class="hero-tabs">
+  <a class="hero-tabs__tab active" routerLink="/app/appointments">
+    <app-icon name="calendar" [size]="16"></app-icon>
+    Calendar
+  </a>
+  <a class="hero-tabs__tab" routerLink="/app/appointments/batches">
+    <app-icon name="clock" [size]="16"></app-icon>
+    Batches
+  </a>
+</div>
+
+<div class="appointments-grid">
   <!-- Month calendar -->
   <div class="card">
     <div class="card-header calendar-head">
@@ -236,14 +247,49 @@
           <label class="form-label" for="apptDate">
             Date <span class="required-mark">*</span>
           </label>
-          <input id="apptDate" type="date" class="form-control" [(ngModel)]="form.date" />
+          <input
+            id="apptDate"
+            type="date"
+            class="form-control"
+            [ngModel]="form.date"
+            (ngModelChange)="onFormDateChange($event)"
+          />
         </div>
         <div class="form-group">
           <label class="form-label" for="apptTime">
-            Time <span class="required-mark">*</span>
+            Time <span class="required-mark" *ngIf="!form.batchId">*</span>
           </label>
-          <input id="apptTime" type="time" class="form-control" [(ngModel)]="form.time" />
+          <input
+            id="apptTime"
+            type="time"
+            class="form-control"
+            [(ngModel)]="form.time"
+            [disabled]="!!form.batchId"
+          />
         </div>
+      </div>
+
+      <!-- Session block. Chosen, it sets the time and the queue place. -->
+      <div class="form-group">
+        <label class="form-label" for="apptBatch">Time block</label>
+        <select
+          id="apptBatch"
+          class="form-control"
+          [ngModel]="form.batchId"
+          (ngModelChange)="onBatchChange($event)"
+        >
+          <option value="">Exact time (not in a block)</option>
+          <option *ngFor="let batch of availableBatches" [value]="batch.id">
+            {{ batch.label }} — {{ batch.remaining }} of {{ batch.capacity }} left
+          </option>
+        </select>
+        <small class="field-hint" *ngIf="isLoadingBatches">Checking which blocks have room...</small>
+        <small class="field-hint" *ngIf="!isLoadingBatches && availableBatches.length === 0 && form.date">
+          No block has room on this day. Book an exact time, or free a place first.
+        </small>
+        <small class="field-hint" *ngIf="form.batchId">
+          The patient joins the back of this block. Reorder from the Batches tab.
+        </small>
       </div>
 
       <div class="form-group">

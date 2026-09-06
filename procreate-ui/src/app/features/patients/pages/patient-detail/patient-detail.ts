@@ -1,7 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
 import { AuthService } from '../../../../core/services/auth';
+import { CertificateRecipient } from '../../../../core/components/certificate-form/certificate-form';
+import { DeliveryPatient } from '../../../../core/components/result-delivery/result-delivery';
 
 export interface ChartPatient {
   id: number;
@@ -114,7 +116,7 @@ type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' |
   templateUrl: './patient-detail.html',
   styleUrl: './patient-detail.scss',
 })
-export class PatientDetailComponent implements OnInit {
+export class PatientDetailComponent implements OnInit, OnDestroy {
   patientId!: number;
   chart: PatientChart | null = null;
   isLoading = true;
@@ -122,6 +124,17 @@ export class PatientDetailComponent implements OnInit {
 
   /** Demographic edit reuses the registration sheet from the patient list. */
   isFormOpen = false;
+
+  /** The issue-certificate sheet, opened over the chart for this patient. */
+  isCertificateOpen = false;
+
+  /** The send/print-results sheet. Both hero buttons open it, on different tabs. */
+  isDeliveryOpen = false;
+  deliveryMode: 'email' | 'print' = 'email';
+
+  /** Shared by the sheets above — they all confirm the same way. */
+  notice = '';
+  private noticeTimer?: ReturnType<typeof setTimeout>;
 
   // --- Editors ---
   editor: Editor = null;
@@ -193,11 +206,86 @@ export class PatientDetailComponent implements OnInit {
     this.router.navigate(['/app/patients']);
   }
 
-  /** Opens the certificate sheet with this patient already selected. */
+  /**
+   * Opens the certificate sheet over the chart, fixed to this patient.
+   *
+   * It used to navigate to the Medical Certificates list to do this, which
+   * meant losing the chart you were reading to issue a certificate for the
+   * patient whose chart it was.
+   */
   issueCertificate(): void {
-    this.router.navigate(['/app/medical-records/certificates'], {
-      queryParams: { patientId: this.patientId },
-    });
+    this.isCertificateOpen = true;
+  }
+
+  closeCertificate(): void {
+    this.isCertificateOpen = false;
+    // Zoneless: the emit that got us here came out of the child's HTTP
+    // callback, so nothing has marked this view dirty.
+    this.cdr.markForCheck();
+  }
+
+  /** Fixes the sheet's recipient to the chart being read. */
+  get certificateRecipient(): CertificateRecipient | null {
+    const patient = this.chart?.patient;
+    if (!patient) return null;
+
+    return {
+      id: patient.id,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      patientCode: patient.patientCode,
+    };
+  }
+
+  onCertificateIssued(): void {
+    this.isCertificateOpen = false;
+    this.flashNotice('Medical certificate issued.');
+  }
+
+  // ----------------------------------------------------------
+  // Send / print results
+  // ----------------------------------------------------------
+
+  openDelivery(mode: 'email' | 'print'): void {
+    this.deliveryMode = mode;
+    this.isDeliveryOpen = true;
+  }
+
+  closeDelivery(): void {
+    this.isDeliveryOpen = false;
+    // Zoneless: the emit came out of the child, which has not marked this view.
+    this.cdr.markForCheck();
+  }
+
+  onDelivered(message: string): void {
+    this.isDeliveryOpen = false;
+    this.flashNotice(message);
+  }
+
+  /** Enough of the patient to address a delivery, without a second lookup. */
+  get deliveryPatient(): DeliveryPatient | null {
+    const patient = this.chart?.patient;
+    if (!patient) return null;
+
+    return {
+      id: patient.id,
+      patientCode: patient.patientCode,
+      name: patient.fullName,
+      email: patient.email,
+    };
+  }
+
+  /** Confirms an action that closed its own sheet, then clears itself. */
+  private flashNotice(message: string): void {
+    this.notice = message;
+    this.cdr.markForCheck();
+
+    clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => {
+      this.notice = '';
+      // Zoneless: a bare timer callback would not trigger a re-render.
+      this.cdr.markForCheck();
+    }, 3500);
   }
 
   editPatient(): void {
@@ -586,5 +674,9 @@ export class PatientDetailComponent implements OnInit {
     const p = this.chart?.patient;
     if (!p) return false;
     return !!(p.philHealthNumber || p.seniorCitizenId || p.pwdId || p.hmoProvider);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.noticeTimer);
   }
 }

@@ -6,6 +6,7 @@ import { MedicalRecordsRoutingModule } from './medical-records-routing-module';
 import { CertificateListComponent } from './pages/certificate-list/certificate-list';
 import { IconComponent } from '../../core/components/icon/icon';
 import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
+import { CertificateFormComponent } from '../../core/components/certificate-form/certificate-form';
 
 @NgModule({
   declarations: [CertificateListComponent],
@@ -15,6 +16,7 @@ import { ComboSelectComponent } from '../../core/components/combo-select/combo-s
     FormsModule,
     IconComponent,
     ComboSelectComponent,
+    CertificateFormComponent,
   ],
 })
 export class MedicalRecordsModule {}

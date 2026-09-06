@@ -23,6 +23,9 @@ public class AppDbContext : DbContext
     public DbSet<Doctor> Doctors => Set<Doctor>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<ResultDelivery> ResultDeliveries => Set<ResultDelivery>();
+    public DbSet<AppointmentBatch> AppointmentBatches => Set<AppointmentBatch>();
+    public DbSet<AppointmentBatchTemplate> AppointmentBatchTemplates => Set<AppointmentBatchTemplate>();
     public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
     public DbSet<PatientAllergy> PatientAllergies => Set<PatientAllergy>();
     public DbSet<PatientMedication> PatientMedications => Set<PatientMedication>();
@@ -110,6 +113,30 @@ public class AppDbContext : DbContext
             }).ToArray()
         );
 
+        // Three session blocks a day, five patients each. Sunday is defined but
+        // inactive, so opening it is a matter of flipping a flag rather than
+        // inventing the blocks.
+        modelBuilder.Entity<AppointmentBatchTemplate>().HasData(
+            Enumerable.Range(0, 7).SelectMany(day => new[]
+            {
+                new AppointmentBatchTemplate
+                {
+                    Id = 1 + (day * 3), DayOfWeek = day,
+                    StartTime = "09:00", EndTime = "12:00", Capacity = 5, IsActive = day != 0
+                },
+                new AppointmentBatchTemplate
+                {
+                    Id = 2 + (day * 3), DayOfWeek = day,
+                    StartTime = "12:00", EndTime = "15:00", Capacity = 5, IsActive = day != 0
+                },
+                new AppointmentBatchTemplate
+                {
+                    Id = 3 + (day * 3), DayOfWeek = day,
+                    StartTime = "15:00", EndTime = "18:00", Capacity = 5, IsActive = day != 0
+                }
+            }).ToArray()
+        );
+
         // A doctor's login may be cleared without deleting the practitioner record.
         modelBuilder.Entity<Doctor>()
             .HasOne(d => d.User)
@@ -137,6 +164,45 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Appointment>()
             .HasIndex(a => a.ScheduledAt);
+
+        // Deleting a block releases its appointments rather than taking them
+        // with it — a booking is the patient's, not the block's.
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.Batch)
+            .WithMany(b => b.Appointments)
+            .HasForeignKey(a => a.BatchId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(a => new { a.BatchId, a.QueuePosition });
+
+        // One block per start time per day. Days materialise their blocks from
+        // the template on first open, and two simultaneous opens would
+        // otherwise each insert a set.
+        // The audit trail outlives nothing: a delivery row is meaningless
+        // without the patient it was for, so it goes when they do.
+        modelBuilder.Entity<ResultDelivery>()
+            .HasOne(d => d.Patient)
+            .WithMany()
+            .HasForeignKey(d => d.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ResultDelivery>()
+            .HasOne(d => d.Doctor)
+            .WithMany()
+            .HasForeignKey(d => d.DoctorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ResultDelivery>()
+            .HasIndex(d => new { d.PatientId, d.CreatedAt });
+
+        modelBuilder.Entity<AppointmentBatch>()
+            .HasIndex(b => new { b.BatchDate, b.StartTime })
+            .IsUnique();
+
+        modelBuilder.Entity<AppointmentBatchTemplate>()
+            .HasIndex(t => new { t.DayOfWeek, t.StartTime })
+            .IsUnique();
 
         // A certificate outlives the patient record it was issued against, and
         // walk-in certificates have no patient at all.

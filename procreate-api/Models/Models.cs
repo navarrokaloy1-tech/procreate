@@ -414,6 +414,95 @@ public class Appointment
     public string Notes { get; set; } = string.Empty;
     public bool IsArchived { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// The session block this appointment sits in. Null for appointments booked
+    /// before batching existed, and for any booked at an exact time outside the
+    /// blocks — both still work, they simply do not appear in the batch board.
+    /// </summary>
+    public int? BatchId { get; set; }
+    public AppointmentBatch? Batch { get; set; }
+
+    /// <summary>
+    /// Order of service within the batch, 1-based and contiguous. Assigned on
+    /// booking as the next free number, so the default is first come, first
+    /// served; the front desk overrides it by dragging when someone is late.
+    /// </summary>
+    public int QueuePosition { get; set; }
+}
+
+/// <summary>
+/// A record that results left the clinic — emailed to the patient or printed
+/// for them. Results are patient information, so who released what, to whom
+/// and when has to be answerable afterwards; a failed send is kept too.
+/// </summary>
+public class ResultDelivery
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+    public int DoctorId { get; set; }
+    public Doctor Doctor { get; set; } = null!;
+
+    /// <summary>Email | Print</summary>
+    public string Channel { get; set; } = "Email";
+    /// <summary>Where it went. Blank for a printout.</summary>
+    public string SentTo { get; set; } = string.Empty;
+
+    /// <summary>Comma-separated ids of what was included, for the audit trail.</summary>
+    public string LabOrderIds { get; set; } = string.Empty;
+    public string DocumentIds { get; set; } = string.Empty;
+
+    public bool IncludeSignature { get; set; }
+
+    /// <summary>Sent | Printed | Failed</summary>
+    public string Status { get; set; } = "Sent";
+    public string FailureReason { get; set; } = string.Empty;
+
+    /// <summary>Username of the staff member who did it.</summary>
+    public string SentBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ============================================================
+// Appointment batches — the clinic works in session blocks
+// ============================================================
+
+/// <summary>
+/// The standing definition of a block for one weekday: "Monday, 9:00–12:00,
+/// five patients". Days inherit these, so nobody has to lay out the blocks
+/// every morning.
+/// </summary>
+public class AppointmentBatchTemplate
+{
+    public int Id { get; set; }
+    /// <summary>0 = Sunday through 6 = Saturday, matching <see cref="System.DayOfWeek"/>.</summary>
+    public int DayOfWeek { get; set; }
+    /// <summary>Wall-clock "HH:mm", as with <see cref="DoctorSchedule"/> — no timezone conversion wanted.</summary>
+    public string StartTime { get; set; } = "09:00";
+    public string EndTime { get; set; } = "12:00";
+    public int Capacity { get; set; } = 5;
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>
+/// A block on a specific date. Copied from the template the first time that
+/// date is opened rather than referencing it, so editing today's capacity
+/// does not rewrite history or change next week.
+/// </summary>
+public class AppointmentBatch
+{
+    public int Id { get; set; }
+    /// <summary>Date only; the time of day lives in StartTime/EndTime.</summary>
+    public DateTime BatchDate { get; set; }
+    public string StartTime { get; set; } = "09:00";
+    public string EndTime { get; set; } = "12:00";
+    public int Capacity { get; set; } = 5;
+    /// <summary>Closed blocks keep their patients but accept no new bookings.</summary>
+    public bool IsClosed { get; set; }
+    /// <summary>Which template it came from, or null when added by hand for one day.</summary>
+    public int? TemplateId { get; set; }
+    public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 }
 
 // ============================================================

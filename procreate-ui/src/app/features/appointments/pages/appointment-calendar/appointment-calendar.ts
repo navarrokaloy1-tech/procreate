@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 
 export interface Appointment {
@@ -32,6 +32,17 @@ interface PatientOption {
   patientCode: string;
   firstName: string;
   lastName: string;
+}
+
+/** A session block on the chosen date that still has room. */
+interface BatchOption {
+  id: number;
+  startTime: string;
+  endTime: string;
+  label: string;
+  capacity: number;
+  booked: number;
+  remaining: number;
 }
 
 /** One cell in the month grid. */
@@ -92,12 +103,21 @@ export class AppointmentCalendarComponent implements OnInit {
     type: 'Scheduled',
     chiefComplaint: '',
     notes: '',
+    /** Blank books at an exact time instead of joining a session block. */
+    batchId: '' as number | '',
   };
+
+  /** Blocks with room left on the chosen date. */
+  availableBatches: BatchOption[] = [];
+  isLoadingBatches = false;
 
   patientQuery = '';
   patientResults: PatientOption[] = [];
   selectedPatientLabel = '';
   private patientSearch$ = new Subject<string>();
+
+  /** Date to fetch bookable blocks for; switchMapped so only the latest wins. */
+  private batchDate$ = new Subject<string>();
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -105,6 +125,18 @@ export class AppointmentCalendarComponent implements OnInit {
     this.patientSearch$
       .pipe(debounceTime(250), distinctUntilChanged())
       .subscribe((term) => this.runPatientSearch(term));
+
+    this.batchDate$
+      .pipe(
+        switchMap((date) =>
+          this.api
+            .get<{ data: BatchOption[] }>('appointment-batches/available', { date })
+            // A failed lookup must not kill the stream, or the picker would
+            // stay stuck empty for the rest of the session.
+            .pipe(catchError(() => of({ data: [] as BatchOption[] }))),
+        ),
+      )
+      .subscribe((res) => this.applyAvailableBatches(res.data ?? []));
 
     this.loadDoctors();
     this.loadMonth();
@@ -320,7 +352,53 @@ export class AppointmentCalendarComponent implements OnInit {
       type: 'Scheduled',
       chiefComplaint: '',
       notes: '',
+      batchId: '',
     };
+
+    this.loadAvailableBatches();
+  }
+
+  /**
+   * Blocks with room on the chosen day, for the block picker.
+   *
+   * Goes through a switchMap rather than subscribing per call: opening the
+   * sheet and then changing the date puts two requests in flight, and without
+   * cancelling the first, whichever answers last wins — which showed the
+   * previous day's blocks whenever the earlier response was the slower one.
+   */
+  loadAvailableBatches(): void {
+    if (!this.form.date) {
+      this.availableBatches = [];
+      return;
+    }
+
+    this.isLoadingBatches = true;
+    this.batchDate$.next(this.form.date);
+  }
+
+  private applyAvailableBatches(batches: BatchOption[]): void {
+    this.availableBatches = batches;
+
+    // A block chosen for the old date may not exist on the new one.
+    if (!this.availableBatches.some((b) => b.id === this.form.batchId)) {
+      this.form.batchId = '';
+    }
+
+    this.isLoadingBatches = false;
+    this.cdr.markForCheck();
+  }
+
+  onFormDateChange(value: string): void {
+    this.form.date = value;
+    this.loadAvailableBatches();
+  }
+
+  /** Picking a block fixes the time, so the time field steps aside. */
+  onBatchChange(value: number | ''): void {
+    this.form.batchId = value === '' ? '' : Number(value);
+
+    const batch = this.availableBatches.find((b) => b.id === this.form.batchId);
+    if (batch) this.form.time = batch.startTime;
   }
 
   closeModal(): void {
@@ -369,8 +447,12 @@ export class AppointmentCalendarComponent implements OnInit {
       this.modalError = 'Please choose a doctor.';
       return;
     }
-    if (!this.form.date || !this.form.time) {
-      this.modalError = 'Please set a date and time.';
+    if (!this.form.date) {
+      this.modalError = 'Please set a date.';
+      return;
+    }
+    if (!this.form.batchId && !this.form.time) {
+      this.modalError = 'Please choose a time block, or set an exact time.';
       return;
     }
 
@@ -383,11 +465,13 @@ export class AppointmentCalendarComponent implements OnInit {
         doctorId: this.form.doctorId,
         service: this.form.service,
         // Send local wall-clock time; the API compares it against clinic hours.
-        scheduledAt: `${this.form.date}T${this.form.time}:00`,
+        // With a block chosen the API overrides this with the block's start.
+        scheduledAt: `${this.form.date}T${this.form.time || '09:00'}:00`,
         type: this.form.type,
         status: 'Scheduled',
         chiefComplaint: this.form.chiefComplaint,
         notes: this.form.notes,
+        batchId: this.form.batchId === '' ? null : this.form.batchId,
       })
       .subscribe({
         next: (created) => {

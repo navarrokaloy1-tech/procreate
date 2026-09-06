@@ -30,10 +30,22 @@
         <app-icon name="edit" [size]="16"></app-icon>
         Edit
       </button>
+      <button type="button" class="btn btn-hero-ghost" (click)="openDelivery('email')">
+        <app-icon name="mail" [size]="16"></app-icon>
+        Send
+      </button>
+      <button type="button" class="btn btn-hero-ghost" (click)="openDelivery('print')">
+        <app-icon name="printer" [size]="16"></app-icon>
+        Print
+      </button>
       <button type="button" class="btn btn-hero" (click)="issueCertificate()">
         <app-icon name="file-text" [size]="16"></app-icon>
         Issue certificate
       </button>
+      <span class="cert-issued" *ngIf="notice">
+        <app-icon name="check" [size]="14"></app-icon>
+        {{ notice }}
+      </span>
     </div>
   </div>
 </section>
@@ -982,3 +994,21 @@
   (saved)="onFormSaved()"
   (cancelled)="onFormCancelled()"
 ></app-patient-form>
+
+<!-- Issued from here rather than on the certificates page, so the chart stays
+     open and the recipient is fixed to this patient. -->
+<app-certificate-form
+  [open]="isCertificateOpen"
+  [recipient]="certificateRecipient"
+  (closed)="closeCertificate()"
+  (issued)="onCertificateIssued()"
+></app-certificate-form>
+
+<!-- Send or print this patient's released results. -->
+<app-result-delivery
+  [open]="isDeliveryOpen"
+  [patient]="deliveryPatient"
+  [mode]="deliveryMode"
+  (closed)="closeDelivery()"
+  (delivered)="onDelivered($event)"
+></app-result-delivery>
