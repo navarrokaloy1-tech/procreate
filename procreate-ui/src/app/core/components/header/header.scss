@@ -43,10 +43,16 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 0;
+    // The hover ring traces this box. With no padding it ran flush around the
+    // avatar, so a rounded rectangle cut across a circle. The inset gives the
+    // ring something to curve through; more on the left because that side ends
+    // in text rather than a circle that already has its own curve.
+    padding: 5px 5px 5px 16px;
     border: none;
     background: transparent;
-    border-radius: 24px;
+    // A true pill rather than a fixed 24px, which stopped matching as soon as
+    // the box grew.
+    border-radius: 999px;
     cursor: pointer;
     transition: box-shadow var(--transition);
 
