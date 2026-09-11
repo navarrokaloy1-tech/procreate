@@ -1,18 +1,28 @@
-// A public screen, not a console page: dark, high contrast, and sized to be
-// read across a waiting room rather than from a desk.
+// The waiting-room board: the clinic frontage full-bleed, with translucent
+// pink panels over it. Sized to be read across a room rather than from a desk,
+// so the type scales with the viewport instead of sitting at fixed sizes.
 
 :host {
   display: block;
   min-height: 100vh;
-  background: var(--hero-bg, linear-gradient(135deg, #2D1B0E 0%, #3d2b1f 100%));
+
+  // One place to tune the panels. Higher reads more solid and keeps the
+  // numbers legible from across the room; lower shows more of the frontage.
+  --panel-pink: rgba(230, 150, 150, 0.82);
 }
 
 .board {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 28px 36px;
   color: var(--white);
+
+  // Decorative, so it is a background rather than an <img> with alt text.
+  background-color: var(--brand-alabaster);
+  background-image: url('/assets/images/Procreate-building-front-page-2.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 
   &__head {
     display: flex;
@@ -20,89 +30,81 @@
     justify-content: space-between;
     gap: 20px;
     flex-wrap: wrap;
+    padding: 2.2vh 2.4vw 0;
   }
 
-  &__brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-
-    strong {
-      display: block;
-      // The wordmark, so it takes the display face like everywhere else.
-      font-family: var(--font-family-heading);
-      font-size: 1.6rem;
-      font-weight: 400;
-      line-height: 1.1;
-    }
-
-    small {
-      display: block;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
-
-  &__mark {
-    display: inline-flex;
-    width: 44px;
-    height: 44px;
-    color: var(--primary);
-
-    svg { width: 100%; height: 100%; }
+  // The wordmark is dark, and it sits over the pale sky at the top of the
+  // photograph rather than over a panel.
+  &__logo {
+    width: clamp(180px, 16vw, 300px);
+    height: auto;
   }
 
   &__clock {
     text-align: right;
+    color: var(--brand-black);
   }
 
   &__time {
     display: block;
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 2.9vw, 2.75rem);
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1;
   }
 
   &__date {
     display: block;
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin-top: 0.3rem;
+    font-size: clamp(0.9rem, 1.3vw, 1.4rem);
+    font-weight: 600;
   }
 
   &__main {
     flex: 1 1 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: 28px;
+    // The called number is the point of the screen, so it takes the room.
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 1.2vw;
     align-items: stretch;
-    margin: 28px 0;
+    padding: 2.4vh 2.4vw;
 
     @media (max-width: 900px) {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
+  // Full-bleed strip, so it reads as part of the frame rather than a panel.
   &__foot {
     display: flex;
     align-items: center;
-    gap: 22px;
-    padding-top: 18px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.75);
+    gap: 1.6vw;
     flex-wrap: wrap;
+    padding: 1.4vh 2.4vw;
+    background: var(--panel-pink);
+    font-size: clamp(0.85rem, 1.15vw, 1.25rem);
+    color: rgba(255, 255, 255, 0.92);
   }
 
   &__stat strong {
-    font-size: 1.3rem;
+    margin-right: 0.2rem;
+    font-size: clamp(1.1rem, 1.5vw, 1.7rem);
+    font-weight: 700;
     color: var(--white);
   }
 
   &__spacer { flex: 1 1 auto; }
 
-  &__stale {
-    color: #ffd08a;
-  }
+  &__stale { color: #fff3d6; }
+}
+
+// ------------------------------------------------------------
+// Shared panel treatment
+// ------------------------------------------------------------
+
+// Pink at partial opacity, so the frontage reads through it.
+%panel {
+  border-radius: 28px;
+  background: var(--panel-pink);
 }
 
 // ------------------------------------------------------------
@@ -110,41 +112,52 @@
 // ------------------------------------------------------------
 
 .serving {
+  @extend %panel;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 36px 24px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 3vh 2vw;
   text-align: center;
 
   &__label {
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 3px;
+    font-size: clamp(1.2rem, 2.6vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--primary);
   }
 
   &__ticket {
-    margin: 8px 0 0;
     // Fills the panel on a big screen without overflowing a small one.
-    font-size: clamp(5rem, 18vw, 13rem);
-    font-weight: 800;
+    margin: 0.4rem 0 0;
+    font-size: clamp(5rem, 15vw, 15rem);
+    font-weight: 700;
     line-height: 1;
-    letter-spacing: 4px;
+    letter-spacing: 6px;
     font-variant-numeric: tabular-nums;
 
-    &--idle { color: rgba(255, 255, 255, 0.35); }
+    &--idle { color: rgba(255, 255, 255, 0.5); }
   }
 
   &__name {
-    margin: 10px 0 0;
-    font-size: clamp(1.2rem, 3vw, 2rem);
-    color: rgba(255, 255, 255, 0.85);
+    margin: 0.6rem 0 0;
+    font-size: clamp(1.4rem, 3.4vw, 3.4rem);
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  // Sits at the foot of the panel rather than under the name, so the gap
+  // between them absorbs whatever height is left over.
+  &__caption {
+    margin: auto 0 0;
+    padding-top: 3vh;
+    font-size: clamp(0.85rem, 1.3vw, 1.4rem);
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.95);
   }
 }
 
@@ -153,18 +166,19 @@
 // ------------------------------------------------------------
 
 .next {
-  padding: 28px 24px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  @extend %panel;
+
+  display: flex;
+  flex-direction: column;
+  padding: 2.6vh 2vw;
 
   &__label {
-    margin: 0 0 14px;
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 3px;
+    margin: 0 0 1.6vh;
+    font-size: clamp(0.9rem, 1.3vw, 1.4rem);
+    font-weight: 500;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.95);
   }
 
   &__list {
@@ -175,29 +189,31 @@
     li {
       display: flex;
       align-items: baseline;
-      gap: 16px;
-      padding: 12px 0;
+      gap: 1.2vw;
+      padding: 1.6vh 0;
 
-      & + li { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+      // A hairline in white rather than the border colour, which would
+      // disappear into the pink.
+      & + li { border-top: 1px solid rgba(255, 255, 255, 0.45); }
     }
   }
 
   &__ticket {
-    font-size: 2rem;
+    font-size: clamp(1.6rem, 3vw, 3rem);
     font-weight: 700;
     line-height: 1;
+    letter-spacing: 2px;
     font-variant-numeric: tabular-nums;
-    color: var(--primary);
   }
 
   &__name {
-    font-size: 1.15rem;
-    color: rgba(255, 255, 255, 0.8);
+    font-size: clamp(1.1rem, 2vw, 2rem);
+    font-weight: 400;
   }
 
   &__empty {
     margin: 0;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
+    color: rgba(255, 255, 255, 0.85);
   }
 }
