@@ -124,9 +124,15 @@
     color: var(--brand-black);
     background: var(--white);
 
+    // No uppercasing: the placeholders are sentences now, and shouting them
+    // as PLEASE ENTER YOUR USERNAME reads as an error rather than a prompt.
+    //
+    // Faint on purpose. Both fields carry a visible label above them, so the
+    // placeholder repeats what is already there rather than being the only
+    // cue — it can sit back without anything being lost. Raise the alpha if
+    // it turns out too pale on a bright screen.
     &::placeholder {
-      color: var(--brand-taupe);
-      text-transform: uppercase;
+      color: rgba(185, 145, 110, 0.55);
       font-style: italic;
     }
 
