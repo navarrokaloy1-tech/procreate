@@ -298,3 +298,25 @@
   color: #1a7a48;
   white-space: nowrap;
 }
+
+// The Lab Results History footer carries the send/print actions and reads as
+// part of the card rather than a separate strip, so it drops the shared
+// footer's grey fill. It keeps the rule, which divides it from the content the
+// same way the header's does.
+.info-card__foot {
+  background: var(--white);
+
+  // btn-secondary is white with a border, which all but disappears against a
+  // white footer. A soft fill from the warm palette keeps them findable
+  // without competing with the primary actions in the banner.
+  .btn-secondary {
+    background-color: var(--light);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+
+    &:hover:not(:disabled) {
+      background-color: var(--border-color);
+      border-color: var(--secondary);
+    }
+  }
+}
