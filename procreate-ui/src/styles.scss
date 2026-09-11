@@ -516,6 +516,27 @@ select.form-control {
   }
 }
 
+// Edge draws its own reveal eye and clear cross inside text and password
+// inputs. Every password field here already has an app-drawn reveal button
+// beside it, so the native one arrived as a second, differently-styled eye
+// sitting next to ours. Applied to all inputs rather than .form-control, since
+// the two sign-in pages style their fields with their own classes.
+// Kept as two rules, not one comma-separated selector: an unrecognised
+// selector invalidates the entire rule it appears in, so pairing them would
+// mean the reveal fix silently doing nothing in any browser that knows one
+// pseudo-element but not the other.
+input::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+input::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 textarea.form-control {
   resize: vertical;
   min-height: 80px;
