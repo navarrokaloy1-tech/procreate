@@ -38,30 +38,162 @@
         </div>
       </section>
 
-      <!-- Next visit -->
-      <section class="portal-card portal-card--accent">
-        <h2 class="portal-card__title">
-          <app-icon name="calendar" [size]="18"></app-icon>
-          Next Appointment
-        </h2>
+      <div class="portal-grid">
+        <!-- Left: the appointment, and the booking panel it opens -->
+        <div class="portal-grid__col portal-grid__col--booking">
+          <section class="portal-card portal-card--accent">
+            <h2 class="portal-card__title">
+              <app-icon name="calendar" [size]="18"></app-icon>
+              Next Appointment
+            </h2>
 
-        <ng-container *ngIf="nextAppointment as next; else noAppointment">
-          <p class="portal-next__when">{{ next.scheduledAt | date: 'EEEE, MMMM d, y' }}</p>
-          <p class="portal-next__time">{{ next.scheduledAt | date: 'h:mm a' }}</p>
-          <p class="portal-next__meta">
-            {{ next.service }} &middot; Dr. {{ next.doctor }} &middot; {{ next.status }}
+            <ng-container *ngIf="nextAppointment as next; else noAppointment">
+              <p class="portal-next__when">{{ next.scheduledAt | date: 'EEEE, MMMM d, y' }}</p>
+              <p class="portal-next__time">{{ next.scheduledAt | date: 'h:mm a' }}</p>
+              <p class="portal-next__meta">
+                {{ next.service }} &middot; Dr. {{ next.doctor }} &middot; {{ next.status }}
+              </p>
+            </ng-container>
+
+            <ng-template #noAppointment>
+              <p class="portal-empty">You have no upcoming appointments.</p>
+            </ng-template>
+
+            <button
+              type="button"
+              class="portal-btn portal-btn--alt"
+              *ngIf="!isBookingOpen"
+              (click)="bookAppointment()"
+            >
+              <app-icon name="plus" [size]="16"></app-icon>
+              Book an appointment
+            </button>
+          </section>
+
+          <p class="portal-booked" *ngIf="bookingNotice">
+            <app-icon name="check" [size]="15"></app-icon>
+            {{ bookingNotice }}
           </p>
-        </ng-container>
 
-        <ng-template #noAppointment>
-          <p class="portal-empty">You have no upcoming appointments.</p>
-          <button type="button" class="portal-btn portal-btn--alt" (click)="bookAppointment()">
-            <app-icon name="plus" [size]="16"></app-icon>
-            Book an appointment
-          </button>
-        </ng-template>
-      </section>
+          <!-- Opens under the card, inside this column only -->
+          <section class="portal-card booking" *ngIf="isBookingOpen">
+            <div class="booking__head">
+              <h2 class="portal-card__title">
+                <app-icon name="calendar" [size]="18"></app-icon>
+                Book an appointment
+              </h2>
+              <button type="button" class="booking__close" (click)="closeBooking()" aria-label="Close">
+                <app-icon name="x" [size]="17"></app-icon>
+              </button>
+            </div>
 
+            <div class="alert alert-danger" *ngIf="bookingError">{{ bookingError }}</div>
+
+            <div class="booking__month">
+              <button type="button" class="booking__nav" (click)="shiftMonth(-1)" aria-label="Previous month">
+                <app-icon name="chevron-left" [size]="16"></app-icon>
+              </button>
+              <strong>{{ viewMonth | date: 'MMMM y' }}</strong>
+              <button type="button" class="booking__nav" (click)="shiftMonth(1)" aria-label="Next month">
+                <app-icon name="chevron-right" [size]="16"></app-icon>
+              </button>
+            </div>
+
+            <div class="booking__loading" *ngIf="isLoadingMonth">Loading the calendar...</div>
+
+            <div class="booking__calendar" *ngIf="!isLoadingMonth">
+              <div class="booking__weekdays">
+                <span *ngFor="let label of weekdayLabels">{{ label }}</span>
+              </div>
+              <div class="booking__week" *ngFor="let week of weeks">
+                <button
+                  type="button"
+                  class="booking__day"
+                  *ngFor="let day of week; trackBy: trackDay"
+                  [class.booking__day--out]="!day.inMonth"
+                  [class.booking__day--open]="day.openSeats > 0"
+                  [class.booking__day--picked]="selectedDate === day.key"
+                  [disabled]="day.openSeats === 0"
+                  [attr.aria-label]="(day.date | date: 'EEEE d MMMM') +
+                    (day.openSeats > 0 ? ', ' + day.openSeats + ' slots free' : ', unavailable')"
+                  (click)="selectDay(day)"
+                >
+                  {{ day.date | date: 'd' }}
+                </button>
+              </div>
+            </div>
+
+            <p class="booking__hint" *ngIf="!isLoadingMonth && !selectedDate">
+              Pick a highlighted day to see its times.
+            </p>
+
+            <ng-container *ngIf="selectedDate">
+              <p class="booking__picked">{{ selectedDateLabel }}</p>
+
+              <div class="booking__loading" *ngIf="isLoadingSlots">Loading times...</div>
+
+              <div class="booking__slots" *ngIf="!isLoadingSlots">
+                <button
+                  type="button"
+                  class="booking__slot"
+                  *ngFor="let slot of slots; trackBy: trackSlot"
+                  [class.booking__slot--picked]="batchId === slot.id"
+                  [disabled]="slotDisabled(slot)"
+                  (click)="selectSlot(slot)"
+                >
+                  <span class="booking__slot-time">{{ slot.label }}</span>
+                  <span class="booking__slot-note" *ngIf="slot.alreadyBooked">Already booked</span>
+                  <span class="booking__slot-note" *ngIf="!slot.alreadyBooked && slot.isClosed">Closed</span>
+                  <span class="booking__slot-note" *ngIf="!slot.alreadyBooked && !slot.isClosed">
+                    {{ slot.remaining === 0 ? 'Full' : slot.remaining + ' left' }}
+                  </span>
+                </button>
+
+                <p class="portal-empty" *ngIf="slots.length === 0">
+                  No times are open on this day.
+                </p>
+              </div>
+
+              <div class="booking__field">
+                <label for="bookService">What is it for?</label>
+                <select id="bookService" [(ngModel)]="service" name="service">
+                  <option *ngFor="let option of services" [value]="option">{{ option }}</option>
+                </select>
+              </div>
+
+              <div class="booking__field">
+                <label for="bookDoctor">Doctor</label>
+                <select id="bookDoctor" [(ngModel)]="doctorId" name="doctorId">
+                  <option *ngFor="let doctor of doctors" [value]="doctor.id">
+                    {{ doctor.name }} &mdash; {{ doctor.specialty }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="booking__field">
+                <label for="bookNotes">Anything the clinic should know? (optional)</label>
+                <textarea id="bookNotes" rows="2" [(ngModel)]="notes" name="notes"></textarea>
+              </div>
+
+              <button
+                type="button"
+                class="portal-btn booking__confirm"
+                [disabled]="isBooking || !batchId"
+                (click)="confirmBooking()"
+              >
+                {{ isBooking ? 'Requesting...' : 'Request this appointment' }}
+              </button>
+
+              <p class="booking__foot">
+                The clinic will confirm your request. You will see it here as Pending
+                until they do.
+              </p>
+            </ng-container>
+          </section>
+        </div>
+
+        <!-- Right: the record itself -->
+        <div class="portal-grid__col">
       <!-- Allergies lead, as they change what is safe to prescribe -->
       <section class="portal-card portal-card--critical" *ngIf="chart.allergies.length > 0">
         <h2 class="portal-card__title">
@@ -201,7 +333,9 @@
             </tr>
           </tbody>
         </table>
-      </section>
+        </section>
+        </div>
+      </div>
     </ng-container>
   </div>
 </div>

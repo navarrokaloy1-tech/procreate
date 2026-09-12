@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Appointments;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,13 @@ public class AppointmentsController : ControllerBase
 {
     private readonly AppDbContext _db;
 
-    public AppointmentsController(AppDbContext db) { _db = db; }
+    private readonly BatchBooking _booking;
+
+    public AppointmentsController(AppDbContext db, BatchBooking booking)
+    {
+        _db = db;
+        _booking = booking;
+    }
 
     /// <summary>Statuses shown in the calendar legend, in workflow order.</summary>
     private static readonly string[] Statuses =
@@ -234,48 +241,31 @@ public class AppointmentsController : ControllerBase
     {
         if (batchId is null) return (null, null);
 
-        var batch = await _db.AppointmentBatches
-            .Include(b => b.Appointments)
-            .FirstOrDefaultAsync(b => b.Id == batchId.Value);
+        var batch = await _booking.FindAsync(batchId.Value);
 
         if (batch is null)
             return (null, BadRequest(new { message = "Selected time block does not exist." }));
 
-        var label = $"{AppointmentBatchesController.Display(batch.StartTime)}"
-                  + $"–{AppointmentBatchesController.Display(batch.EndTime)}";
+        // The same check the patient portal books under, so the two cannot
+        // drift into disagreeing about what a full block is.
+        var refusal = BatchBooking.Check(batch, patientId, excludeAppointmentId);
 
-        if (batch.IsClosed)
-            return (null, Conflict(new { message = $"The {label} block is closed for bookings." }));
-
-        var occupants = batch.Appointments
-            .Where(a => a.Id != excludeAppointmentId && !a.IsArchived)
-            .Where(a => !AppointmentBatchesController.ReleasedStatuses.Contains(a.Status))
-            .ToList();
-
-        if (occupants.Count >= batch.Capacity)
-            return (null, Conflict(new
-            {
-                message = $"The {label} block is full — it takes {batch.Capacity} patients."
-            }));
-
-        if (occupants.Any(a => a.PatientId == patientId))
-            return (null, Conflict(new
-            {
-                message = $"That patient is already booked into the {label} block."
-            }));
+        if (refusal is not null)
+        {
+            return (null, refusal.IsConflict
+                ? Conflict(new { message = refusal.Message })
+                : BadRequest(new { message = refusal.Message }));
+        }
 
         return (batch, null);
     }
 
     /// <summary>A block fixes the time; without one the caller's stands.</summary>
     private static DateTime ScheduledAtFor(AppointmentWriteRequest request, AppointmentBatch? batch) =>
-        batch is null
-            ? request.ScheduledAt
-            : batch.BatchDate.Add(AppointmentBatchesController.ParseTime(batch.StartTime));
+        batch is null ? request.ScheduledAt : BatchBooking.StartsAt(batch);
 
     /// <summary>Next free place at the back of a block's queue.</summary>
-    private static int NextPosition(AppointmentBatch batch) =>
-        batch.Appointments.Count == 0 ? 1 : batch.Appointments.Max(a => a.QueuePosition) + 1;
+    private static int NextPosition(AppointmentBatch batch) => BatchBooking.NextPosition(batch);
 
     /// <summary>
     /// Rejects unknown patients/doctors, out-of-hours slots, and double-booking

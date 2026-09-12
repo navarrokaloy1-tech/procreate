@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Appointments;
 using ProCreateApi.Services.Email;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Locations;
@@ -35,6 +36,10 @@ builder.Services.AddHttpClient<ILocationService, PsgcLocationService>(client =>
 var emailSettings = builder.Configuration.GetSection("Email").Get<EmailSettings>() ?? new EmailSettings();
 builder.Services.AddSingleton(emailSettings);
 builder.Services.AddScoped<IEmailSender, EmailSender>();
+
+// Shared by the front-desk and patient booking paths so both enforce the
+// same idea of a full block.
+builder.Services.AddScoped<BatchBooking>();
 
 builder.Services.AddScoped<QueueAllocator>();
 

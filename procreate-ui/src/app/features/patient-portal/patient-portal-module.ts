@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { PatientPortalRoutingModule } from './patient-portal-routing-module';
 import { PortalLoginComponent } from './pages/portal-login/portal-login';
@@ -14,6 +14,7 @@ import { QrScannerComponent } from '../../core/components/qr-scanner/qr-scanner'
     CommonModule,
     PatientPortalRoutingModule,
     ReactiveFormsModule,
+    FormsModule,
     IconComponent,
     QrScannerComponent,
   ],
