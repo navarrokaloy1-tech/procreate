@@ -1,13 +1,22 @@
 <div class="dashboard-page">
 
-  <!-- Page Header -->
-  <div class="page-header">
-    <h1 class="page-title">Dashboard</h1>
-    <span class="page-date">{{ currentDate | date:'EEEE, MMMM d, yyyy' }}</span>
-  </div>
+  <section class="page-hero">
+    <div class="page-hero__row">
+      <div class="page-hero__title-group">
+        <span class="page-hero__icon"><app-icon name="layout-grid" [size]="24"></app-icon></span>
+        <div class="page-hero__heading">
+          <h1>Dashboard</h1>
+          <p class="page-hero__subtitle">Today at a glance across the clinic</p>
+        </div>
+      </div>
+      <div class="page-hero__actions">
+        <span class="page-hero__date">{{ currentDate | date: 'EEEE, MMMM d, y' }}</span>
+      </div>
+    </div>
+  </section>
 
   <!-- Stats Grid -->
-  <div class="stats-grid">
+  <div class="stats-grid hero-overlap">
     <div class="stat-card stat-card--blue">
       <div class="stat-card__content">
         <div class="stat-card__label">Total Patients</div>

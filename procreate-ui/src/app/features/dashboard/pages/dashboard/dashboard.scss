@@ -2,24 +2,12 @@
   padding: 0;
 }
 
-// Page Header
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .page-title {
-    font-size: 24px;
-    font-weight: 400;
-    color: var(--text-primary);
-    margin: 0;
-  }
-
-  .page-date {
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
+// The date sits in the banner now, where other pages put their actions.
+.page-hero__date {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
 }
 
 // Stats Grid
