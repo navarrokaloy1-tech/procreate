@@ -193,7 +193,98 @@
 
   <!-- ==================== Right column: the chart ==================== -->
   <div class="detail-grid__col">
-    <!-- Allergies lead the chart: they change what is safe to prescribe. -->
+    <!-- Results lead the chart: they are what a visit is usually about,
+         and what gets sent or printed from here. -->
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="flask" [size]="17"></app-icon>
+          Lab Results History
+        </h3>
+
+        <div class="filter-tabs filter-tabs--sm">
+          <button
+            type="button"
+            class="filter-tab"
+            [class.active]="labFilter === 'All'"
+            (click)="onLabFilter('All')"
+          >
+            All
+          </button>
+          <button
+            *ngFor="let department of departments"
+            type="button"
+            class="filter-tab"
+            [class.active]="labFilter === department"
+            (click)="onLabFilter(department)"
+          >
+            {{ department }}
+          </button>
+        </div>
+      </div>
+
+      <div class="info-card__body" *ngIf="labHistory.length > 0; else noLabs">
+        <div class="lab-row" *ngFor="let entry of labHistory" (click)="openOrder(entry)">
+          <span class="icon-square icon-square--sm">
+            <app-icon [name]="departmentIcon(entry.department)" [size]="16"></app-icon>
+          </span>
+          <span class="lab-row__body">
+            <span class="lab-row__head">
+              <span [class]="stagePill(entry.stage)">{{ entry.stage }}</span>
+              <span class="lab-row__date">
+                <app-icon name="calendar" [size]="12"></app-icon>
+                {{ entry.resultDate | date: 'MMM d, y' }}
+              </span>
+              <span class="pill pill--danger" *ngIf="entry.isAbnormal">
+                <app-icon name="alert-triangle" [size]="13"></app-icon>
+                Abnormal
+              </span>
+            </span>
+            <span class="lab-row__name">{{ entry.testName }}</span>
+            <span class="lab-row__meta">
+              <span class="cell-code">{{ entry.orderCode }}</span>
+              &middot; {{ entry.categoryName }}
+            </span>
+          </span>
+          <span class="table-actions">
+            <button
+              type="button"
+              class="table-actions__btn"
+              (click)="$event.stopPropagation(); openOrder(entry)"
+              title="Open order"
+              aria-label="Open order"
+            >
+              <app-icon name="chevron-right" [size]="17"></app-icon>
+            </button>
+          </span>
+        </div>
+      </div>
+      <ng-template #noLabs>
+        <div class="info-card__body">
+          <p class="text-muted">
+            {{ labFilter === 'All'
+              ? 'No diagnostic orders yet'
+              : 'No ' + labFilter + ' orders yet' }}
+          </p>
+        </div>
+      </ng-template>
+
+      <!-- Sending and printing act on these results, so they sit at the foot
+           of the card that lists them rather than in the page banner. -->
+      <div class="info-card__foot">
+        <span class="info-card__foot-spacer"></span>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openDelivery('email')">
+          <app-icon name="mail" [size]="15"></app-icon>
+          Send
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openDelivery('print')">
+          <app-icon name="printer" [size]="15"></app-icon>
+          Print
+        </button>
+      </div>
+    </div>
+
+    <!-- Allergies next: they change what is safe to prescribe. -->
     <div class="info-card" [class.info-card--critical]="chart.allergies.length > 0">
       <div class="info-card__head">
         <h3 class="info-card__title">
@@ -452,95 +543,6 @@
         <ng-template #noDocs>
           <p class="text-muted">No result files uploaded</p>
         </ng-template>
-      </div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-card__head">
-        <h3 class="info-card__title">
-          <app-icon name="flask" [size]="17"></app-icon>
-          Lab Results History
-        </h3>
-
-        <div class="filter-tabs filter-tabs--sm">
-          <button
-            type="button"
-            class="filter-tab"
-            [class.active]="labFilter === 'All'"
-            (click)="onLabFilter('All')"
-          >
-            All
-          </button>
-          <button
-            *ngFor="let department of departments"
-            type="button"
-            class="filter-tab"
-            [class.active]="labFilter === department"
-            (click)="onLabFilter(department)"
-          >
-            {{ department }}
-          </button>
-        </div>
-      </div>
-
-      <div class="info-card__body" *ngIf="labHistory.length > 0; else noLabs">
-        <div class="lab-row" *ngFor="let entry of labHistory" (click)="openOrder(entry)">
-          <span class="icon-square icon-square--sm">
-            <app-icon [name]="departmentIcon(entry.department)" [size]="16"></app-icon>
-          </span>
-          <span class="lab-row__body">
-            <span class="lab-row__head">
-              <span [class]="stagePill(entry.stage)">{{ entry.stage }}</span>
-              <span class="lab-row__date">
-                <app-icon name="calendar" [size]="12"></app-icon>
-                {{ entry.resultDate | date: 'MMM d, y' }}
-              </span>
-              <span class="pill pill--danger" *ngIf="entry.isAbnormal">
-                <app-icon name="alert-triangle" [size]="13"></app-icon>
-                Abnormal
-              </span>
-            </span>
-            <span class="lab-row__name">{{ entry.testName }}</span>
-            <span class="lab-row__meta">
-              <span class="cell-code">{{ entry.orderCode }}</span>
-              &middot; {{ entry.categoryName }}
-            </span>
-          </span>
-          <span class="table-actions">
-            <button
-              type="button"
-              class="table-actions__btn"
-              (click)="$event.stopPropagation(); openOrder(entry)"
-              title="Open order"
-              aria-label="Open order"
-            >
-              <app-icon name="chevron-right" [size]="17"></app-icon>
-            </button>
-          </span>
-        </div>
-      </div>
-      <ng-template #noLabs>
-        <div class="info-card__body">
-          <p class="text-muted">
-            {{ labFilter === 'All'
-              ? 'No diagnostic orders yet'
-              : 'No ' + labFilter + ' orders yet' }}
-          </p>
-        </div>
-      </ng-template>
-
-      <!-- Sending and printing act on these results, so they sit at the foot
-           of the card that lists them rather than in the page banner. -->
-      <div class="info-card__foot">
-        <span class="info-card__foot-spacer"></span>
-        <button type="button" class="btn btn-sm btn-secondary" (click)="openDelivery('email')">
-          <app-icon name="mail" [size]="15"></app-icon>
-          Send
-        </button>
-        <button type="button" class="btn btn-sm btn-secondary" (click)="openDelivery('print')">
-          <app-icon name="printer" [size]="15"></app-icon>
-          Print
-        </button>
       </div>
     </div>
   </div>

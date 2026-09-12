@@ -243,6 +243,19 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     return !this.isLoading && this.labResults.length === 0 && this.documents.length === 0;
   }
 
+  /**
+   * Whether the patient's record carries an address.
+   *
+   * When it does, the field is fixed to it: results are personal medical
+   * information, and letting anyone type a destination over the top turns one
+   * mistyped character into a disclosure. Correcting it means correcting the
+   * chart, which is where it should be corrected anyway. The server applies
+   * the same rule, so the disabled field is not the only thing enforcing it.
+   */
+  get hasEmailOnFile(): boolean {
+    return !!this.patient?.email?.trim();
+  }
+
   // ----------------------------------------------------------
   // Actions
   // ----------------------------------------------------------

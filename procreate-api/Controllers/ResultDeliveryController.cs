@@ -121,9 +121,14 @@ public class ResultDeliveryController : ControllerBase
         var package = await AssembleAsync(patientId, request.LabOrderIds, request.DoctorId);
         if (package.Error is not null) return package.Error;
 
-        var address = string.IsNullOrWhiteSpace(request.ToAddress)
-            ? package.PatientEntity!.Email
-            : request.ToAddress.Trim();
+        // The address on the record wins over anything in the request. Results
+        // are personal medical information, so where they go is a property of
+        // the patient rather than of whoever pressed Send; a supplied address
+        // would otherwise let one mistyped character disclose them. A patient
+        // with nothing on file still needs somewhere to send to, so that case
+        // falls back to what was given.
+        var onFile = (package.PatientEntity!.Email ?? string.Empty).Trim();
+        var address = onFile.Length > 0 ? onFile : (request.ToAddress ?? string.Empty).Trim();
 
         if (string.IsNullOrWhiteSpace(address))
             return BadRequest(new { message = "This patient has no email address on file. Enter one to send to." });

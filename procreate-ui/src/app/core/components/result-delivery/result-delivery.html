@@ -110,7 +110,7 @@
       <ng-container *ngIf="mode === 'email'">
         <div class="form-group">
           <label class="form-label" for="deliveryTo">
-            Send to <span class="required-mark">*</span>
+            Send to <span class="required-mark" *ngIf="!hasEmailOnFile">*</span>
           </label>
           <input
             id="deliveryTo"
@@ -119,8 +119,15 @@
             placeholder="patient@example.com"
             [(ngModel)]="toAddress"
             name="toAddress"
+            [disabled]="hasEmailOnFile"
+            [readonly]="hasEmailOnFile"
           />
-          <small class="delivery-hint" *ngIf="!patient?.email">
+          <small class="delivery-hint" *ngIf="hasEmailOnFile">
+            <app-icon name="info" [size]="13"></app-icon>
+            Results go to the address on this patient's record. Change it on
+            their chart if it is wrong.
+          </small>
+          <small class="delivery-hint" *ngIf="!hasEmailOnFile">
             No email address is on file for this patient, so enter one.
           </small>
         </div>
