@@ -354,3 +354,18 @@ input.form-control:disabled {
     margin-bottom: 4px;
   }
 }
+
+// The scanned signature sits above the name in both the preview and the
+// printed sheet, so the name reads as a caption to it.
+.delivery-sign-img {
+  display: block;
+  max-width: 200px;
+  max-height: 60px;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+.delivery-print .delivery-sign-img {
+  max-width: 55mm;
+  max-height: 18mm;
+}

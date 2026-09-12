@@ -27,6 +27,9 @@ public class ResultDeliveryController : ControllerBase
         _email = email;
     }
 
+    /// <summary>What the embedded signature is referred to as inside the body.</summary>
+    private const string SignatureContentId = "procreate-signature";
+
     public record SendRequest(
         List<int> LabOrderIds, List<int> DocumentIds, int DoctorId,
         bool IncludeSignature, string? ToAddress, string? Message);
@@ -144,9 +147,27 @@ public class ResultDeliveryController : ControllerBase
 
         var attachments = await LoadAttachmentsAsync(patientId, request.DocumentIds);
 
-        var body = RenderHtml(
-            package, request.IncludeSignature, request.Message,
-            attachments.Select(a => a.FileName).ToList());
+        // Listed before the signature is added, so the embedded image is not
+        // announced to the patient as though it were a file they can open.
+        var fileNames = attachments.Select(a => a.FileName).ToList();
+
+        if (request.IncludeSignature && package.Doctor!.HasSignature)
+        {
+            var signature = await _db.Doctors
+                .AsNoTracking()
+                .Where(d => d.Id == request.DoctorId)
+                .Select(d => new { d.SignatureImage, d.SignatureContentType })
+                .FirstOrDefaultAsync();
+
+            if (signature?.SignatureImage is { Length: > 0 })
+            {
+                attachments.Add(new EmailAttachment(
+                    "signature", signature.SignatureContentType,
+                    signature.SignatureImage, SignatureContentId));
+            }
+        }
+
+        var body = RenderHtml(package, request.IncludeSignature, request.Message, fileNames);
 
         var subject = $"Your results from Pro-Create — {DateTime.Now:d MMMM yyyy}";
         var outcome = await _email.SendAsync(address, subject, body, attachments);
@@ -175,7 +196,9 @@ public class ResultDeliveryController : ControllerBase
         {
             message = $"Results sent to {address}.",
             sentTo = address,
-            attachments = attachments.Count
+            // The signature rides along as an embedded image, so it is not one
+            // of the files the patient receives.
+            attachments = fileNames.Count
         });
     }
 
@@ -245,7 +268,8 @@ public class ResultDeliveryController : ControllerBase
         int Id, string PatientCode, string Name, string Gender,
         DateTime DateOfBirth, int Age, string Email);
 
-    public record DeliveryDoctorDto(int Id, string Name, string Specialty, string PrcLicenseNumber);
+    public record DeliveryDoctorDto(
+        int Id, string Name, string Specialty, string PrcLicenseNumber, bool HasSignature);
 
     public record DeliveryParameterDto(
         string ParameterName, string Unit, string Reference, string Value, string Flag);
@@ -322,7 +346,8 @@ public class ResultDeliveryController : ControllerBase
         var doctorDto = new DeliveryDoctorDto(
             doctor.Id,
             $"Dr. {doctor.FirstName} {doctor.LastName}".Trim(),
-            doctor.Specialty, doctor.PrcLicenseNumber);
+            doctor.Specialty, doctor.PrcLicenseNumber,
+            doctor.SignatureImage != null && doctor.SignatureImage.Length > 0);
 
         return new Assembled(patientDto, doctorDto, results, patient, null);
     }
@@ -449,6 +474,16 @@ public class ResultDeliveryController : ControllerBase
         if (includeSignature)
         {
             html.Append("<div style=\"margin-top:28px\">");
+
+            // The scanned signature sits above the rule, so the name reads as a
+            // caption to it. Referenced by cid, which is the only form of
+            // embedded image mail clients reliably render.
+            if (doctor.HasSignature)
+            {
+                html.Append($"<img src=\"cid:{SignatureContentId}\" alt=\"\" "
+                          + "style=\"display:block;max-height:70px;margin-bottom:2px\">");
+            }
+
             html.Append("<div style=\"border-top:1px solid #1E1E19;display:inline-block;padding-top:6px\">"
                       + $"<strong>{Escape(doctor.Name)}</strong>");
             html.Append($"<div style=\"font-size:12px;color:#6b6b60\">{Escape(doctor.Specialty)}");

@@ -299,6 +299,61 @@
             <label class="form-label" for="dContact">Contact Number</label>
             <input id="dContact" type="tel" class="form-control" placeholder="09171234567" [(ngModel)]="form.contactNumber" />
           </div>
+
+          <!-- Signature: stamped on this doctor's released results and
+               certificates, so it belongs with who they are. -->
+          <div class="form-group form-group--full">
+            <label class="form-label">Signature</label>
+
+            <div class="signature-box">
+              <div class="signature-box__preview">
+                <img
+                  *ngIf="signaturePreview"
+                  [src]="signaturePreview"
+                  alt="Signature preview"
+                />
+                <span class="signature-box__empty" *ngIf="!signaturePreview">
+                  No signature uploaded
+                </span>
+              </div>
+
+              <div class="signature-box__actions">
+                <input
+                  #signatureInput
+                  type="file"
+                  class="signature-box__file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  (change)="onSignaturePicked($event)"
+                />
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  (click)="signatureInput.click()"
+                >
+                  <app-icon name="upload" [size]="15"></app-icon>
+                  {{ signaturePreview ? 'Replace signature' : 'Upload signature' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  *ngIf="signaturePreview"
+                  (click)="removeSignature()"
+                >
+                  <app-icon name="trash" [size]="15"></app-icon>
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <small class="signature-hint" *ngIf="signatureError">{{ signatureError }}</small>
+            <small class="signature-hint" *ngIf="!signatureError">
+              PNG, JPEG, WebP or GIF, under 2 MB. A transparent PNG sits best on
+              a printed certificate.
+              <ng-container *ngIf="!editingId">
+                It uploads once the doctor is saved.
+              </ng-container>
+            </small>
+          </div>
         </div>
       </ng-container>
 

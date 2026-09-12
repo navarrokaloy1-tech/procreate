@@ -84,7 +84,13 @@ export interface DeliveryPackage {
     age: number;
     email: string;
   };
-  doctor: { id: number; name: string; specialty: string; prcLicenseNumber: string };
+  doctor: {
+    id: number;
+    name: string;
+    specialty: string;
+    prcLicenseNumber: string;
+    hasSignature: boolean;
+  };
   includeSignature: boolean;
   results: PackageResult[];
   documents: { id: number; fileName: string; department: string; sizeBytes: number; resultDate: string }[];
@@ -377,9 +383,14 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
             window.removeEventListener('afterprint', cleanup);
           };
 
-          window.addEventListener('afterprint', cleanup);
-          window.print();
-          setTimeout(cleanup, 1000);
+          // The signature is fetched over the network as the sheet renders, and
+          // the print dialog does not wait for it. Printing straight away gave
+          // a sheet with the signature missing — the one thing it is there for.
+          this.whenImagesReady(document.querySelector('.delivery-print')).then(() => {
+            window.addEventListener('afterprint', cleanup);
+            window.print();
+            setTimeout(cleanup, 1000);
+          });
 
           this.api
             .post<void>(`patients/${this.patient!.id}/result-delivery/print`, this.packageBody())
@@ -401,6 +412,37 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   // ----------------------------------------------------------
   // Display
   // ----------------------------------------------------------
+
+  /** The doctor's stored signature, for the preview and printed sheets. */
+  signatureUrl(doctorId: number): string {
+    return this.api.url(`doctors/${doctorId}/signature`);
+  }
+
+  /**
+   * Resolves once every image inside `root` has finished loading, or after a
+   * short grace period. Capped rather than open-ended: a signature that will
+   * not load must not leave someone staring at a page that never prints.
+   */
+  private whenImagesReady(root: Element | null, timeoutMs = 3000): Promise<void> {
+    const images = [...(root?.querySelectorAll('img') ?? [])];
+    const pending = images.filter((img) => !img.complete || img.naturalWidth === 0);
+
+    if (pending.length === 0) return Promise.resolve();
+
+    return Promise.race([
+      Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              img.addEventListener('load', () => resolve(), { once: true });
+              // A broken image still lets the rest of the sheet print.
+              img.addEventListener('error', () => resolve(), { once: true });
+            }),
+        ),
+      ).then(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+  }
 
   fileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;

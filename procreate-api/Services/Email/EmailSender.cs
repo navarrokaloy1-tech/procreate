@@ -3,8 +3,15 @@ using System.Net.Mail;
 
 namespace ProCreateApi.Services.Email;
 
-/// <summary>One file to hang off an outgoing message.</summary>
-public record EmailAttachment(string FileName, string ContentType, byte[] Content);
+/// <summary>
+/// One file to hang off an outgoing message.
+///
+/// Give <paramref name="ContentId"/> to embed it in the body instead, referred
+/// to as cid:that-id. Mail clients strip data: URIs, so an image that has to
+/// appear inline — a signature — has to travel this way.
+/// </summary>
+public record EmailAttachment(
+    string FileName, string ContentType, byte[] Content, string? ContentId = null);
 
 public record EmailResult(bool Sent, string FailureReason)
 {
@@ -67,13 +74,45 @@ public class EmailSender : IEmailSender
             {
                 From = new MailAddress(_settings.FromAddress, _settings.FromName),
                 Subject = subject,
-                Body = htmlBody,
                 IsBodyHtml = true
             };
 
             message.To.Add(new MailAddress(toAddress));
 
-            foreach (var attachment in attachments ?? Enumerable.Empty<EmailAttachment>())
+            var all = (attachments ?? Enumerable.Empty<EmailAttachment>()).ToList();
+            var inline = all.Where(a => !string.IsNullOrWhiteSpace(a.ContentId)).ToList();
+            var files = all.Where(a => string.IsNullOrWhiteSpace(a.ContentId)).ToList();
+
+            // Anything to embed has to hang off an alternate view, which is what
+            // gives cid: references something to resolve against.
+            if (inline.Count > 0)
+            {
+                var view = AlternateView.CreateAlternateViewFromString(
+                    htmlBody, null, "text/html");
+
+                foreach (var embedded in inline)
+                {
+                    var stream = new MemoryStream(embedded.Content);
+                    streams.Add(stream);
+
+                    view.LinkedResources.Add(new LinkedResource(stream, embedded.ContentType)
+                    {
+                        ContentId = embedded.ContentId,
+                        // Without this some clients list it as an attachment as
+                        // well as drawing it in the body.
+                        TransferEncoding = System.Net.Mime.TransferEncoding.Base64,
+                        ContentLink = new Uri($"cid:{embedded.ContentId}")
+                    });
+                }
+
+                message.AlternateViews.Add(view);
+            }
+            else
+            {
+                message.Body = htmlBody;
+            }
+
+            foreach (var attachment in files)
             {
                 var stream = new MemoryStream(attachment.Content);
                 streams.Add(stream);

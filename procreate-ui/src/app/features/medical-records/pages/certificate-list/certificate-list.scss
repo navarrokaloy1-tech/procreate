@@ -161,6 +161,15 @@
     text-align: right;
   }
 
+  // Sized in millimetres: this block is only ever printed.
+  &__sign-img {
+    display: block;
+    max-width: 55mm;
+    max-height: 18mm;
+    object-fit: contain;
+    margin: 0 auto 1mm;
+  }
+
   &__sign-name {
     display: inline-block;
     margin: 0;

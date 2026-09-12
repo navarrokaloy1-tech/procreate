@@ -17,6 +17,7 @@ interface Certificate {
   recommendation: string;
   remarks: string;
   isWalkIn: boolean;
+  doctorHasSignature: boolean;
 }
 
 @Component({
@@ -172,9 +173,44 @@ export class CertificateListComponent implements OnInit {
       window.removeEventListener('afterprint', cleanup);
     };
 
-    window.addEventListener('afterprint', cleanup);
-    window.print();
-    setTimeout(cleanup, 1000);
+    // The signature is fetched as the sheet renders and the print dialog does
+    // not wait for it, so printing immediately produced an unsigned
+    // certificate — the one thing it must not do.
+    this.whenImagesReady(document.querySelector('.cert-sheet')).then(() => {
+      window.addEventListener('afterprint', cleanup);
+      window.print();
+      setTimeout(cleanup, 1000);
+    });
+  }
+
+  /**
+   * Resolves once every image inside `root` has loaded, or after a short grace
+   * period so a signature that will not load cannot block printing entirely.
+   */
+  private whenImagesReady(root: Element | null, timeoutMs = 3000): Promise<void> {
+    const pending = [...(root?.querySelectorAll('img') ?? [])].filter(
+      (img) => !img.complete || img.naturalWidth === 0,
+    );
+
+    if (pending.length === 0) return Promise.resolve();
+
+    return Promise.race([
+      Promise.all(
+        pending.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              img.addEventListener('load', () => resolve(), { once: true });
+              img.addEventListener('error', () => resolve(), { once: true });
+            }),
+        ),
+      ).then(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+  }
+
+  /** The signing doctor's stored signature, for the printed certificate. */
+  signatureUrl(doctorId: number): string {
+    return this.api.url(`doctors/${doctorId}/signature`);
   }
 
   templatePill(template: string): string {

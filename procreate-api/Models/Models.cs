@@ -343,6 +343,17 @@ public class Doctor
     public string Bio { get; set; } = string.Empty;
 
     public bool IsActive { get; set; } = true;
+
+    // Signature — goes on released results and certificates.
+    //
+    // Held in the row rather than on disk, like the patient result files: one
+    // database is one backup, and a signature that outlived its file would
+    // leave documents unsignable with no sign of why.
+    public byte[]? SignatureImage { get; set; }
+    public string SignatureContentType { get; set; } = string.Empty;
+    public string SignatureFileName { get; set; } = string.Empty;
+    public DateTime? SignatureUploadedAt { get; set; }
+
     /// <summary>Optional link to a login account, granting the doctor system access.</summary>
     public int? UserId { get; set; }
     public User? User { get; set; }

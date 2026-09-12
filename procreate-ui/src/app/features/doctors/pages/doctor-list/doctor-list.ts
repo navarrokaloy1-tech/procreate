@@ -46,6 +46,7 @@ interface DoctorDetail {
   bio: string;
   isActive: boolean;
   userId: number | null;
+  hasSignature: boolean;
   schedules: ScheduleRow[];
 }
 
@@ -94,6 +95,18 @@ export class DoctorListComponent implements OnInit {
 
   form = this.emptyForm();
   schedule: ScheduleRow[] = [];
+
+  // --- Signature ---
+  /** Picked but not yet uploaded; upload needs a doctor id to exist. */
+  signatureFile: File | null = null;
+  /** A data URL while picking, or the served image when editing. */
+  signaturePreview: string | null = null;
+  signatureError = '';
+  /** Removed on an existing doctor, so saving should delete the stored one. */
+  private signatureCleared = false;
+
+  private readonly maxSignatureBytes = 2 * 1024 * 1024;
+  private readonly signatureTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
   private searchSubject = new Subject<string>();
 
@@ -207,7 +220,92 @@ export class DoctorListComponent implements OnInit {
     this.schedule = this.defaultSchedule();
     this.activeTab = 'personal';
     this.modalError = '';
+    this.resetSignature();
     this.isModalOpen = true;
+  }
+
+  // ----------------------------------------------------------
+  // Signature
+  // ----------------------------------------------------------
+
+  private resetSignature(): void {
+    this.signatureFile = null;
+    this.signaturePreview = null;
+    this.signatureError = '';
+    this.signatureCleared = false;
+  }
+
+  /**
+   * Shows the picked file straight away rather than after saving, so a wrong
+   * scan is obvious before it is stamped on anything.
+   */
+  onSignaturePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+
+    if (!file) return;
+
+    if (!this.signatureTypes.includes(file.type)) {
+      this.signatureError = 'The signature must be a PNG, JPEG, WebP or GIF image.';
+      return;
+    }
+    if (file.size > this.maxSignatureBytes) {
+      this.signatureError = 'The signature must be under 2 MB.';
+      return;
+    }
+
+    this.signatureError = '';
+    this.signatureFile = file;
+    this.signatureCleared = false;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.signaturePreview = reader.result as string;
+      // Zoneless: a FileReader callback does not mark the view.
+      this.cdr.markForCheck();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeSignature(): void {
+    this.signatureFile = null;
+    this.signaturePreview = null;
+    this.signatureError = '';
+    // Only meaningful when editing: it tells save to delete what is stored.
+    this.signatureCleared = true;
+  }
+
+  /** Uploads or clears the signature, then continues with `done`. */
+  private persistSignature(doctorId: number, done: () => void): void {
+    if (this.signatureFile) {
+      const body = new FormData();
+      body.append('file', this.signatureFile);
+
+      this.api.post<unknown>(`doctors/${doctorId}/signature`, body).subscribe({
+        next: () => done(),
+        error: (err) => {
+          // The doctor is saved either way, so say what did not stick rather
+          // than implying the whole thing failed.
+          this.isSaving = false;
+          this.modalError =
+            err?.error?.message ?? 'Doctor saved, but the signature could not be uploaded.';
+          this.load();
+          this.cdr.markForCheck();
+        },
+      });
+      return;
+    }
+
+    if (this.signatureCleared && this.editingId) {
+      this.api.delete<unknown>(`doctors/${doctorId}/signature`).subscribe({
+        next: () => done(),
+        error: () => done(),
+      });
+      return;
+    }
+
+    done();
   }
 
   openEdit(row: DoctorRow): void {
@@ -238,6 +336,14 @@ export class DoctorListComponent implements OnInit {
           isActive: detail.isActive,
           userId: detail.userId,
         };
+        this.resetSignature();
+        if (detail.hasSignature) {
+          // Cache-busted: after replacing one, the old image would otherwise
+          // keep being served from the browser cache at the same URL.
+          this.signaturePreview =
+            this.api.url(`doctors/${detail.id}/signature`) + `?v=${Date.now()}`;
+        }
+
         this.schedule = detail.schedules.length
           ? detail.schedules.map((s) => ({ ...s }))
           : this.defaultSchedule();
@@ -300,11 +406,15 @@ export class DoctorListComponent implements OnInit {
         // Schedule is a separate endpoint, so persist it once the doctor exists.
         this.api.put<DoctorDetail>(`doctors/${saved.id}/schedule`, this.schedule).subscribe({
           next: () => {
-            this.isSaving = false;
-            this.isModalOpen = false;
-            this.loadSpecialties();
-            this.load();
-            this.cdr.markForCheck();
+            // The signature is its own endpoint too, and a new doctor has no
+            // id to upload against until this point.
+            this.persistSignature(saved.id, () => {
+              this.isSaving = false;
+              this.isModalOpen = false;
+              this.loadSpecialties();
+              this.load();
+              this.cdr.markForCheck();
+            });
           },
           error: () => {
             this.isSaving = false;

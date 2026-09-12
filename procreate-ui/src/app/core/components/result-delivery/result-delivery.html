@@ -229,6 +229,12 @@
           </p>
 
           <div class="delivery-sheet__sign" *ngIf="preview.includeSignature">
+            <img
+              class="delivery-sign-img"
+              *ngIf="preview.doctor.hasSignature"
+              [src]="signatureUrl(preview.doctor.id)"
+              alt=""
+            />
             <strong>{{ preview.doctor.name }}</strong>
             <small>{{ preview.doctor.specialty }}</small>
             <small *ngIf="preview.doctor.prcLicenseNumber">
@@ -337,6 +343,12 @@
   </p>
 
   <div class="delivery-print__sign" *ngIf="printPackage.includeSignature">
+    <img
+      class="delivery-sign-img"
+      *ngIf="printPackage.doctor.hasSignature"
+      [src]="signatureUrl(printPackage.doctor.id)"
+      alt=""
+    />
     <div class="delivery-print__sign-line"></div>
     <strong>{{ printPackage.doctor.name }}</strong>
     <small>{{ printPackage.doctor.specialty }}</small>

@@ -228,6 +228,15 @@
   </p>
 
   <div class="cert-sheet__sign">
+    <!-- The doctor's stored signature, above their name so the name reads as
+         a caption to it. Absent when none has been uploaded, which leaves the
+         printed line to be signed by hand as before. -->
+    <img
+      class="cert-sheet__sign-img"
+      *ngIf="printing.doctorHasSignature"
+      [src]="signatureUrl(printing.doctorId)"
+      alt=""
+    />
     <p class="cert-sheet__sign-name">{{ printing.doctorName }}</p>
     <p class="cert-sheet__sign-label">Attending Physician</p>
   </div>

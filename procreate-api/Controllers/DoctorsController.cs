@@ -26,7 +26,7 @@ public class DoctorsController : ControllerBase
         string ContactNumber, string PrcLicenseNumber, DateTime? PrcLicenseExpiry,
         string PtrNumber, string S2LicenseNumber, string TinNumber,
         decimal ConsultationFee, decimal FollowUpFee, decimal SpecialistFee,
-        string Bio, bool IsActive, int? UserId, List<ScheduleDto> Schedules);
+        string Bio, bool IsActive, int? UserId, bool HasSignature, List<ScheduleDto> Schedules);
 
     public record DoctorWriteRequest(
         string FirstName, string MiddleName, string LastName, string Suffix, string Gender,
@@ -229,9 +229,96 @@ public class DoctorsController : ControllerBase
         d.Specialty, d.SubSpecialty, d.Email, d.ContactNumber, d.PrcLicenseNumber,
         d.PrcLicenseExpiry, d.PtrNumber, d.S2LicenseNumber, d.TinNumber,
         d.ConsultationFee, d.FollowUpFee, d.SpecialistFee, d.Bio, d.IsActive, d.UserId,
+        d.SignatureImage != null && d.SignatureImage.Length > 0,
         d.Schedules.OrderBy(s => s.DayOfWeek)
             .Select(s => new ScheduleDto(s.DayOfWeek, s.IsAvailable, s.StartTime, s.EndTime))
             .ToList());
+
+    // ----------------------------------------------------------
+    // Signature
+    // ----------------------------------------------------------
+
+    /// <summary>Two megabytes is generous for a signature and stops a scan of
+    /// a whole page being stored in a row.</summary>
+    private const int MaxSignatureBytes = 2 * 1024 * 1024;
+
+    private static readonly string[] SignatureTypes =
+    {
+        "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"
+    };
+
+    /// <summary>
+    /// Stores the doctor's signature. It is stamped on results and
+    /// certificates issued in their name, so only an image is accepted — a PDF
+    /// or a document would not render where those are drawn.
+    /// </summary>
+    [HttpPost("{id}/signature")]
+    [RequestSizeLimit(MaxSignatureBytes + 1024 * 64)]
+    public async Task<IActionResult> UploadSignature(int id, [FromForm] IFormFile? file)
+    {
+        var doctor = await _db.Doctors.FindAsync(id);
+        if (doctor is null) return NotFound(new { message = "Doctor not found." });
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Choose a signature image to upload." });
+
+        if (file.Length > MaxSignatureBytes)
+            return BadRequest(new { message = "The signature must be under 2 MB." });
+
+        var contentType = (file.ContentType ?? string.Empty).ToLowerInvariant();
+        if (!SignatureTypes.Contains(contentType))
+            return BadRequest(new { message = "The signature must be a PNG, JPEG, WebP or GIF image." });
+
+        using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer);
+
+        doctor.SignatureImage = buffer.ToArray();
+        doctor.SignatureContentType = contentType;
+        doctor.SignatureFileName = Path.GetFileName(file.FileName);
+        doctor.SignatureUploadedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Signature saved.",
+            doctor.SignatureFileName,
+            sizeBytes = doctor.SignatureImage.Length,
+            uploadedAt = doctor.SignatureUploadedAt
+        });
+    }
+
+    /// <summary>
+    /// The stored image. Served rather than inlined so the forms and print
+    /// sheets can simply point an img at it.
+    /// </summary>
+    [HttpGet("{id}/signature")]
+    public async Task<IActionResult> GetSignature(int id)
+    {
+        var doctor = await _db.Doctors
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (doctor?.SignatureImage is null || doctor.SignatureImage.Length == 0)
+            return NotFound();
+
+        return File(doctor.SignatureImage, doctor.SignatureContentType);
+    }
+
+    [HttpDelete("{id}/signature")]
+    public async Task<IActionResult> DeleteSignature(int id)
+    {
+        var doctor = await _db.Doctors.FindAsync(id);
+        if (doctor is null) return NotFound(new { message = "Doctor not found." });
+
+        doctor.SignatureImage = null;
+        doctor.SignatureContentType = string.Empty;
+        doctor.SignatureFileName = string.Empty;
+        doctor.SignatureUploadedAt = null;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Signature removed." });
+    }
 
     private async Task<string> NextDoctorCodeAsync()
     {

@@ -18,7 +18,8 @@ public class MedicalCertificatesController : ControllerBase
     public record CertificateDto(
         int Id, string CertificateNumber, int? PatientId, string IssuedTo, string PatientCode,
         int DoctorId, string DoctorName, DateTime IssueDate, string Template,
-        string Diagnosis, string Recommendation, string Remarks, bool IsWalkIn);
+        string Diagnosis, string Recommendation, string Remarks, bool IsWalkIn,
+        bool DoctorHasSignature);
 
     /// <summary>
     /// Every text field is nullable on purpose. Non-nullable strings get an
@@ -172,7 +173,8 @@ public class MedicalCertificatesController : ControllerBase
         c.Diagnosis,
         c.Recommendation,
         c.Remarks,
-        c.PatientId == null);
+        c.PatientId == null,
+        c.Doctor.SignatureImage != null && c.Doctor.SignatureImage.Length > 0);
 
     /// <summary>
     /// MC-yyyyMMdd-XXXX. The suffix is random rather than sequential so the
