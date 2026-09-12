@@ -66,6 +66,15 @@
     }
   }
 
+  // Sits under the card, on the photograph, so it needs the light treatment
+  // the card contents get rather than the dark one a page footer usually has.
+  &__footer {
+    margin: 18px 0 0;
+    font-size: var(--font-size-sm);
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
   &__method {
     display: flex;
     align-items: center;

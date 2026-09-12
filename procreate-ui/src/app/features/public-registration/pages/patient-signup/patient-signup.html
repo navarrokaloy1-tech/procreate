@@ -416,6 +416,10 @@
 
     <div class="modal-sheet__foot">
       <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary btn-lg" (click)="goBack()">
+        <app-icon name="arrow-left" [size]="17"></app-icon>
+        Back
+      </button>
       <button type="submit" class="btn btn-primary btn-lg" [disabled]="isSubmitting">
         <app-icon name="qr" [size]="17"></app-icon>
         {{ isSubmitting ? 'Registering...' : 'Get My Queue Number' }}
@@ -423,9 +427,6 @@
     </div>
   </form>
 
-  <p class="kiosk__staff no-print" *ngIf="!registered">
-    Staff member? <a routerLink="/login">Go to staff login &rarr;</a>
-  </p>
 
   <!-- ============ CARD ============ -->
   <ng-container *ngIf="registered">

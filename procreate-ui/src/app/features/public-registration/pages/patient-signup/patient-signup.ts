@@ -6,6 +6,7 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import * as QRCode from 'qrcode';
 import { ApiService } from '../../../../core/services/api';
@@ -125,6 +126,7 @@ export class PatientSignup implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {
     const blank = PatientSignup.BLANK;
@@ -482,5 +484,14 @@ export class PatientSignup implements OnInit, OnDestroy {
     window.addEventListener('afterprint', cleanup);
     window.print();
     setTimeout(cleanup, 1000);
+  }
+
+  /**
+   * Back to the patient sign-in the kiosk arrived from. This screen used to
+   * offer a way through to the staff login instead, which is not where anyone
+   * standing at a public kiosk needs to go.
+   */
+  goBack(): void {
+    this.router.navigate(['/portal/login']);
   }
 }
