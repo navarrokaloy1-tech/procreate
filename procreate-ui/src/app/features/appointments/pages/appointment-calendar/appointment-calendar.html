@@ -43,7 +43,10 @@
   <!-- Month calendar -->
   <div class="card">
     <div class="card-header calendar-head">
-      <h3 class="calendar-head__month">{{ viewMonth | date: 'MMMM y' }}</h3>
+      <h3 class="calendar-head__month">
+        {{ viewMonth | date: 'MMMM y' }}
+        <span class="pill calendar-head__filter">{{ doctorFilterLabel }}</span>
+      </h3>
       <div class="calendar-head__nav">
         <button type="button" class="btn btn-sm btn-secondary" (click)="goToToday()">Today</button>
         <button type="button" class="tool-btn" (click)="shiftMonth(-1)" aria-label="Previous month">

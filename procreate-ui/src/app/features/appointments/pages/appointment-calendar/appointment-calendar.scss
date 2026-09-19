@@ -19,10 +19,21 @@
 
 .calendar-head {
   &__month {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: 700;
     color: var(--text-primary);
+  }
+
+  &__filter {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    vertical-align: middle;
+    background: rgba(230, 150, 150, 0.18);
+    color: var(--brand-pink-dark);
   }
 
   &__nav {

@@ -276,6 +276,12 @@ export class AppointmentCalendarComponent implements OnInit {
     this.loadMonth();
   }
 
+  /** Shown beside the month heading so the active doctor filter is obvious at a glance. */
+  get doctorFilterLabel(): string {
+    if (this.doctorFilter === '') return 'All Doctors';
+    return this.doctors.find((d) => d.id === this.doctorFilter)?.fullName ?? 'All Doctors';
+  }
+
   /** Cancelled and no-show entries are struck through in the grid. */
   isVoided(appointment: Appointment): boolean {
     return appointment.status === 'Cancelled' || appointment.status === 'NoShow';
