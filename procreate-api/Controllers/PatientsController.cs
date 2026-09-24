@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Queue;
 using Microsoft.AspNetCore.Mvc;
@@ -63,6 +64,21 @@ public class PatientsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(code))
             return BadRequest(new { message = "No patient code was supplied." });
+
+        // A scanned card carries its own scheme and a random token; a typed
+        // or printed code carries the patient code. Both arrive here, because
+        // the people scanning — doctors, med-techs, nurses, the cashier — use
+        // whichever is in front of them.
+        if (PatientCard.IsCardPayload(code))
+        {
+            var token = PatientCard.StripScheme(code);
+            var holder = await _db.Patients.FirstOrDefaultAsync(p => p.CardToken == token);
+
+            // The token is a secret, so it is not echoed back in the message.
+            return holder is null
+                ? NotFound(new { message = "That card is not linked to a patient record." })
+                : Ok(holder);
+        }
 
         var trimmed = code.Trim();
         const string scheme = "patient:";
@@ -129,7 +145,7 @@ public class PatientsController : ControllerBase
         patient.CreatedAt = DateTime.UtcNow;
         // Minted for every patient, so a card can be issued later without
         // re-registering them.
-        patient.CardToken = AuthController.NewCardToken();
+        patient.CardToken = PatientCard.NewToken();
 
         _db.Patients.Add(patient);
         await _db.SaveChangesAsync();
@@ -168,7 +184,7 @@ public class PatientsController : ControllerBase
         var patient = await _db.Patients.FindAsync(id);
         if (patient is null) return NotFound();
 
-        patient.CardToken = AuthController.NewCardToken();
+        patient.CardToken = PatientCard.NewToken();
         await _db.SaveChangesAsync();
 
         return Ok(new { patient.Id, patient.PatientCode, patient.CardToken });

@@ -1,0 +1,24 @@
+<div class="sso-callback">
+  <div class="sso-callback__inner">
+    <img
+      class="sso-callback__logo"
+      src="assets/images/cropped-Pro-create-logo.webp"
+      alt="Pro-Create Fertility and OB-GYN Clinic"
+    />
+
+    <ng-container *ngIf="!errorMessage">
+      <p class="sso-callback__status">Signing you in...</p>
+    </ng-container>
+
+    <ng-container *ngIf="errorMessage">
+      <div class="alert alert-danger">{{ errorMessage }}</div>
+
+      <a class="sso-callback__back" [routerLink]="signInRoute">
+        <app-icon name="chevron-left" [size]="15"></app-icon>
+        Back to sign-in
+      </a>
+    </ng-container>
+  </div>
+
+  <p class="sso-callback__footer">Pro-Create &copy; {{ year }}</p>
+</div>

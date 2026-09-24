@@ -2,10 +2,15 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth';
+import { SsoService } from '../../../../core/services/sso';
 
 /**
- * Patient sign-in. Card scan first, because most patients arrive holding one;
- * the password form and self-registration sit behind it.
+ * Patient sign-in. Single sign-on first where it is configured, then the
+ * password form, then self-registration.
+ *
+ * The card is no longer a way in. It stays on the patient's record as the
+ * thing staff scan to find their file, which is a different job from proving
+ * who is at the keyboard.
  */
 @Component({
   selector: 'app-portal-login',
@@ -21,8 +26,9 @@ export class PortalLoginComponent implements OnInit {
   /** 'choose' shows the methods; 'password' shows the form. */
   mode: 'choose' | 'password' = 'choose';
 
-  isScannerOpen = false;
-  scanError = '';
+  ssoEnabled = false;
+  ssoLabel = 'Log in with SSO';
+
   showPassword = false;
 
   readonly year = new Date().getFullYear();
@@ -30,6 +36,7 @@ export class PortalLoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
+    private sso: SsoService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
@@ -44,6 +51,14 @@ export class PortalLoginComponent implements OnInit {
     if (this.auth.isLoggedIn && this.auth.isPatient) {
       this.router.navigate(['/portal']);
     }
+
+    this.sso.config().subscribe((config) => {
+      this.ssoEnabled = config.enabled;
+      this.ssoLabel = config.displayName
+        ? `Log in with ${config.displayName}`
+        : 'Log in with SSO';
+      this.cdr.markForCheck();
+    });
   }
 
   choosePassword(): void {
@@ -61,33 +76,9 @@ export class PortalLoginComponent implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  // ----------------------------------------------------------
-  // Card
-  // ----------------------------------------------------------
-
-  openScanner(): void {
-    this.scanError = '';
-    this.isScannerOpen = true;
-  }
-
-  closeScanner(): void {
-    this.isScannerOpen = false;
-    this.scanError = '';
-  }
-
-  onScanned(raw: string): void {
-    this.scanError = '';
-    this.auth.patientLoginWithCard(raw).subscribe({
-      next: () => {
-        this.isScannerOpen = false;
-        this.router.navigate(['/portal']);
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.scanError = err?.error?.message ?? 'That card could not be read.';
-        this.cdr.markForCheck();
-      },
-    });
+  /** Leaves the app; the provider returns the browser to /auth/callback. */
+  signInWithSso(): void {
+    this.sso.start('patient');
   }
 
   // ----------------------------------------------------------

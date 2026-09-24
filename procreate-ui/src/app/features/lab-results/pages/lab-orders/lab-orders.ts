@@ -230,6 +230,30 @@ export class LabOrders implements OnInit, OnDestroy {
     const code = this.normaliseScan(raw);
     if (!code) return;
 
+    // A card carries a random token rather than anything printed on an
+    // order, so it has to be turned into a patient code before the loaded
+    // list can be searched at all.
+    if (this.isCardPayload(raw)) {
+      this.apiService.get<{ patientCode: string }>(
+        `patients/by-code/${encodeURIComponent(raw.trim())}`
+      ).subscribe({
+        next: (patient) => {
+          this.matchScan(patient.patientCode);
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.scanError = 'That card is not linked to a patient record.';
+          this.cdr.markForCheck();
+        },
+      });
+      return;
+    }
+
+    this.matchScan(code);
+  }
+
+  /** Finds what a scanned code refers to, in the order it is most likely to. */
+  private matchScan(code: string): void {
     const lower = code.toLowerCase();
 
     const specimen = this.orders.find((o) => o.specimenBarcode?.toLowerCase() === lower);
@@ -288,6 +312,11 @@ export class LabOrders implements OnInit, OnDestroy {
     return trimmed.toLowerCase().startsWith(scheme)
       ? trimmed.slice(scheme.length).trim()
       : trimmed;
+  }
+
+  /** Whether the payload came off a printed patient card. */
+  private isCardPayload(raw: string): boolean {
+    return (raw ?? '').trim().toLowerCase().startsWith('procreate-card:');
   }
 
   clearScanFilter(): void {

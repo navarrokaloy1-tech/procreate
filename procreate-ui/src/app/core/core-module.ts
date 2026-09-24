@@ -7,23 +7,23 @@ import { LayoutComponent } from './components/layout/layout';
 import { SidebarComponent } from './components/sidebar/sidebar';
 import { HeaderComponent } from './components/header/header';
 import { LoginComponent } from './pages/login/login';
+import { SsoCallbackComponent } from './pages/sso-callback/sso-callback';
 import { IconComponent } from './components/icon/icon';
-import { QrScannerComponent } from './components/qr-scanner/qr-scanner';
 
 @NgModule({
   declarations: [
     LayoutComponent,
     SidebarComponent,
     HeaderComponent,
-    LoginComponent
+    LoginComponent,
+    SsoCallbackComponent
   ],
   imports: [
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
     HttpClientModule,
-    IconComponent,
-    QrScannerComponent
+    IconComponent
   ],
   exports: [
     LayoutComponent,

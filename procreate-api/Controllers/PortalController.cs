@@ -1,6 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
 using ProCreateApi.Services.Appointments;
+using ProCreateApi.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ namespace ProCreateApi.Controllers;
 /// hand over somebody else's chart.
 /// </summary>
 [ApiController]
-[Authorize(Roles = AuthController.PatientRole)]
+[Authorize(Roles = TokenIssuer.PatientRole)]
 [Route("api/[controller]")]
 public class PortalController : ControllerBase
 {

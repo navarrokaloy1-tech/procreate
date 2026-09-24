@@ -1,0 +1,52 @@
+// The landing strip after a trip out to the identity provider. Deliberately
+// plain: on a working sign-in it is on screen for a fraction of a second.
+
+.sso-callback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 100vh;
+  padding: 40px 32px;
+  background: var(--white);
+
+  &__inner {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  &__logo {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    margin: 0 auto 28px;
+  }
+
+  &__status {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--brand-taupe);
+  }
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: var(--font-size-base);
+    color: var(--brand-taupe);
+    text-decoration: none;
+
+    &:hover { color: var(--brand-black); }
+  }
+
+  &__footer {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--brand-taupe);
+  }
+}

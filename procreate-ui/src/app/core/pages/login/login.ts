@@ -2,11 +2,14 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth';
+import { SsoService } from '../../services/sso';
 
 /**
- * Staff sign-in. Opens on a choice of method rather than a form, because the
- * card scanner is the faster route for anyone carrying one; the password form
- * is revealed on request.
+ * Staff sign-in. Opens on a choice of method rather than a form, because
+ * single sign-on is the route most people take; the password form is
+ * revealed on request and kept as a fallback for when the provider is out of
+ * reach. With no provider configured there is no choice to make, so the form
+ * is shown straight away.
  */
 @Component({
   selector: 'app-login',
@@ -22,8 +25,9 @@ export class LoginComponent implements OnInit {
   /** 'choose' shows the two methods; 'password' shows the form. */
   mode: 'choose' | 'password' = 'choose';
 
-  isScannerOpen = false;
-  scanError = '';
+  ssoEnabled = false;
+  ssoLabel = 'Log in with SSO';
+
   showPassword = false;
 
   /** The footer year was hardcoded to 2024 and had gone stale. */
@@ -32,6 +36,7 @@ export class LoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private sso: SsoService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
@@ -46,6 +51,17 @@ export class LoginComponent implements OnInit {
     if (this.authService.isLoggedIn) {
       this.router.navigate([this.landingRoute()]);
     }
+
+    this.sso.config().subscribe((config) => {
+      this.ssoEnabled = config.enabled;
+      this.ssoLabel = config.displayName
+        ? `Log in with ${config.displayName}`
+        : 'Log in with SSO';
+
+      // Nothing to choose between, so skip the menu.
+      if (!config.enabled) this.mode = 'password';
+      this.cdr.markForCheck();
+    });
   }
 
   /** Cashiers land on the Patient Orders screen; everyone else on the dashboard. */
@@ -68,34 +84,9 @@ export class LoginComponent implements OnInit {
     this.loginForm.reset({ username: '', password: '', rememberMe: true });
   }
 
-  openScanner(): void {
-    this.scanError = '';
-    this.isScannerOpen = true;
-  }
-
-  closeScanner(): void {
-    this.isScannerOpen = false;
-    this.scanError = '';
-  }
-
-  /**
-   * Staff cards are not issued yet, so a scan here can only be a patient
-   * card. Rather than fail flatly, it signs the holder into the portal —
-   * which is what someone scanning a patient card actually wants.
-   */
-  onScanned(raw: string): void {
-    this.scanError = '';
-    this.authService.patientLoginWithCard(raw).subscribe({
-      next: () => {
-        this.isScannerOpen = false;
-        this.router.navigate(['/portal']);
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.scanError = err?.error?.message ?? 'That card could not be read.';
-        this.cdr.markForCheck();
-      },
-    });
+  /** Leaves the app; the provider returns the browser to /auth/callback. */
+  signInWithSso(): void {
+    this.sso.start('staff');
   }
 
   togglePassword(): void {

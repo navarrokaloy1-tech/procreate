@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './core/pages/login/login';
+import { SsoCallbackComponent } from './core/pages/sso-callback/sso-callback';
 import { LayoutComponent } from './core/components/layout/layout';
 import { AuthGuard } from './core/guards/auth-guard';
 
@@ -8,6 +9,13 @@ const routes: Routes = [
   {
     path: 'login',
     component: LoginComponent
+  },
+  {
+    // Where the identity provider returns the browser. Outside both the
+    // staff and portal areas, because at this point we do not yet know
+    // which of the two the session belongs to.
+    path: 'auth/callback',
+    component: SsoCallbackComponent
   },
   {
     path: 'portal',

@@ -10,9 +10,14 @@
   <div class="portal-signin__card">
     <!-- Method choice -->
     <ng-container *ngIf="mode === 'choose'">
-      <button type="button" class="portal-signin__method" (click)="openScanner()">
-        <app-icon name="qr" [size]="22"></app-icon>
-        Log in with QR
+      <button
+        type="button"
+        class="portal-signin__method"
+        *ngIf="ssoEnabled"
+        (click)="signInWithSso()"
+      >
+        <app-icon name="shield" [size]="22"></app-icon>
+        {{ ssoLabel }}
       </button>
 
       <button type="button" class="portal-signin__method" (click)="choosePassword()">
@@ -101,12 +106,3 @@
   <p class="portal-signin__footer">Pro-Create &copy; {{ year }}</p>
 
 </div>
-
-<app-qr-scanner
-  [open]="isScannerOpen"
-  [errorMessage]="scanError"
-  title="Scan your card"
-  hint="Hold your Pro-Create patient card up to the camera."
-  (scanned)="onScanned($event)"
-  (closed)="closeScanner()"
-></app-qr-scanner>

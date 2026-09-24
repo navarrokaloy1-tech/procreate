@@ -1,9 +1,11 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Appointments;
+using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Email;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Locations;
 using ProCreateApi.Services.Queue;
+using ProCreateApi.Services.Sso;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -42,6 +44,18 @@ builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<BatchBooking>();
 
 builder.Services.AddScoped<QueueAllocator>();
+
+// Single sign-on against an OpenID Connect provider (Authentik in front of
+// Google, in this clinic). Blank settings are valid: SSO reports itself
+// disabled and the sign-in screens fall back to a password.
+var ssoSettings = builder.Configuration.GetSection("Sso").Get<SsoSettings>() ?? new SsoSettings();
+builder.Services.AddSingleton(ssoSettings);
+builder.Services.AddSingleton<OidcDiscovery>();
+builder.Services.AddSingleton<SsoHandoff>();
+builder.Services.AddHttpClient<OidcClient>(client => client.Timeout = TimeSpan.FromSeconds(20));
+
+// Every sign-in route mints its session here, password or SSO alike.
+builder.Services.AddScoped<TokenIssuer>();
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()

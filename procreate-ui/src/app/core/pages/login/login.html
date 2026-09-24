@@ -20,9 +20,14 @@
 
       <!-- Method choice -->
       <ng-container *ngIf="mode === 'choose'">
-        <button type="button" class="signin__method" (click)="openScanner()">
-          <app-icon name="qr" [size]="22"></app-icon>
-          Log in with QR
+        <button
+          type="button"
+          class="signin__method"
+          *ngIf="ssoEnabled"
+          (click)="signInWithSso()"
+        >
+          <app-icon name="shield" [size]="22"></app-icon>
+          {{ ssoLabel }}
         </button>
 
         <button type="button" class="signin__method" (click)="choosePassword()">
@@ -100,7 +105,8 @@
           {{ isLoading ? 'Signing in...' : 'Login' }}
         </button>
 
-        <button type="button" class="signin__back" (click)="back()">
+        <!-- With no provider configured there is nothing to go back to. -->
+        <button type="button" class="signin__back" *ngIf="ssoEnabled" (click)="back()">
           <app-icon name="chevron-left" [size]="15"></app-icon>
           Back
         </button>
@@ -110,12 +116,3 @@
     </div>
   </div>
 </div>
-
-<app-qr-scanner
-  [open]="isScannerOpen"
-  [errorMessage]="scanError"
-  title="Scan your card"
-  hint="Hold your Pro-Create card up to the camera."
-  (scanned)="onScanned($event)"
-  (closed)="closeScanner()"
-></app-qr-scanner>

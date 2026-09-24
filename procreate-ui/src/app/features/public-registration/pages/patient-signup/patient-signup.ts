@@ -401,7 +401,10 @@ export class PatientSignup implements OnInit, OnDestroy {
    * contact number in the payload would hand medical-adjacent data to whoever
    * scans it. It carries CardToken rather than the patient code for a second
    * reason: codes run in sequence, so a card holding one could be guessed by
-   * counting, and scanning the card signs its holder in.
+   * counting, and a guessed card would pull up a stranger's chart.
+   *
+   * The card is not a way in — signing in is single sign-on or a password.
+   * This is what a doctor, med-tech, nurse or cashier scans to find the file.
    */
   private qrPayload(cardToken: string): string {
     return 'procreate-card:' + cardToken;

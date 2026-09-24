@@ -47,11 +47,12 @@ export class AuthService {
       .pipe(tap((res) => this.store(res)));
   }
 
-  /** Portal sign-in by scanning the patient card. */
-  patientLoginWithCard(card: string): Observable<any> {
-    return this.http
-      .post<any>(`${this.base}/auth/patient-login-qr`, { card })
-      .pipe(tap((res) => this.store(res)));
+  /**
+   * Takes on a session minted elsewhere — single sign-on hands one over
+   * already built, rather than posting credentials from here.
+   */
+  adopt(res: { token: string; user: AuthUser }): void {
+    this.store(res);
   }
 
   private store(res: { token: string; user: AuthUser }): void {
