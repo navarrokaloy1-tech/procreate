@@ -2968,3 +2968,20 @@ textarea.form-control {
     }
   }
 }
+
+// Multi-page sheet printing (the result sheet).
+//
+// A single-page slip can be overlaid absolutely; a document that runs to
+// several pages cannot — it has to flow. The component appends a static clone
+// of the sheet to <body> and sets `printing-sheet`; here everything else is
+// removed from the page so the clone paginates on its own, at its real length,
+// with no blank pages inherited from a tall host page.
+@media print {
+  body.printing-sheet > *:not(.print-clone) {
+    display: none !important;
+  }
+
+  body.printing-sheet .print-clone {
+    display: block !important;
+  }
+}

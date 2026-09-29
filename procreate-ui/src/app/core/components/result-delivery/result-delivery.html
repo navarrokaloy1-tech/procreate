@@ -179,68 +179,8 @@
           </button>
         </header>
 
-        <div class="delivery-sheet">
-          <div class="delivery-sheet__brand">
-            <h1>Pro-Create</h1>
-            <p>Fertility, OB-GYN and Diagnostic Center</p>
-          </div>
-
-          <div class="delivery-sheet__patient">
-            <strong>{{ preview.patient.name }}</strong>
-            <span>
-              {{ preview.patient.patientCode }} &middot; {{ preview.patient.age }} years old
-              &middot; {{ preview.patient.gender || 'Not specified' }}
-            </span>
-          </div>
-
-          <article class="delivery-sheet__result" *ngFor="let result of preview.results">
-            <header>
-              <strong>{{ result.testName }}</strong>
-              <span class="delivery-flag" *ngIf="result.isAbnormal">Abnormal</span>
-              <small>
-                {{ result.department }} &middot; Released
-                {{ result.releasedAt | date: 'MMM d, y' }}
-              </small>
-            </header>
-
-            <p class="delivery-sheet__narrative" *ngIf="result.narrativeFindings">
-              {{ result.narrativeFindings }}
-            </p>
-
-            <table class="delivery-sheet__table" *ngIf="result.parameters.length">
-              <thead>
-                <tr><th>Test</th><th>Result</th><th>Reference</th></tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let p of result.parameters">
-                  <td>{{ p.parameterName }}</td>
-                  <td [class]="flagClass(p.flag)">{{ p.value }} {{ p.unit }} {{ p.flag }}</td>
-                  <td>{{ p.reference || '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </article>
-
-          <p class="delivery-sheet__files" *ngIf="preview.documents.length">
-            Attached files:
-            <span *ngFor="let doc of preview.documents; let last = last">
-              {{ doc.fileName }}{{ last ? '' : ', ' }}
-            </span>
-          </p>
-
-          <div class="delivery-sheet__sign" *ngIf="preview.includeSignature">
-            <img
-              class="delivery-sign-img"
-              *ngIf="preview.doctor.hasSignature"
-              [src]="signatureUrl(preview.doctor.id)"
-              alt=""
-            />
-            <strong>{{ preview.doctor.name }}</strong>
-            <small>{{ preview.doctor.specialty }}</small>
-            <small *ngIf="preview.doctor.prcLicenseNumber">
-              PRC No. {{ preview.doctor.prcLicenseNumber }}
-            </small>
-          </div>
+        <div class="delivery-preview__scroll">
+          <ng-container *ngTemplateOutlet="resultSheet; context: { pkg: preview }"></ng-container>
         </div>
       </section>
     </div>
@@ -285,75 +225,120 @@
 
 <!-- The printed sheet. Hidden on screen; printing-slip on <body> reveals it. -->
 <div class="print-only delivery-print" *ngIf="printPackage">
-  <header class="delivery-print__head">
-    <h1>Pro-Create</h1>
-    <p>Fertility, OB-GYN and Diagnostic Center</p>
-    <p class="delivery-print__contact">procreate.clinic&#64;gmail.com</p>
-  </header>
-
-  <hr />
-
-  <div class="delivery-print__patient">
-    <div>
-      <strong>{{ printPackage.patient.name }}</strong>
-      <span>{{ printPackage.patient.patientCode }}</span>
-    </div>
-    <div>
-      <span>{{ printPackage.patient.age }} years old &middot;
-        {{ printPackage.patient.gender || 'Not specified' }}</span>
-      <span>Printed {{ printPackage.generatedAt | date: 'MMM d, y' }}</span>
-    </div>
-  </div>
-
-  <article class="delivery-print__result" *ngFor="let result of printPackage.results">
-    <h3>
-      {{ result.testName }}
-      <span class="delivery-flag" *ngIf="result.isAbnormal">Abnormal</span>
-    </h3>
-    <p class="delivery-print__meta">
-      {{ result.department }} &middot; {{ result.categoryName }}
-      <ng-container *ngIf="result.specimen"> &middot; {{ result.specimen }}</ng-container>
-      &middot; Released {{ result.releasedAt | date: 'MMM d, y' }}
-    </p>
-
-    <p class="delivery-print__narrative" *ngIf="result.narrativeFindings">
-      {{ result.narrativeFindings }}
-    </p>
-
-    <table class="delivery-print__table" *ngIf="result.parameters.length">
-      <thead>
-        <tr><th>Test</th><th>Result</th><th>Unit</th><th>Reference</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let p of result.parameters">
-          <td>{{ p.parameterName }}</td>
-          <td [class]="flagClass(p.flag)">{{ p.value }} {{ p.flag }}</td>
-          <td>{{ p.unit }}</td>
-          <td>{{ p.reference || '—' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </article>
-
-  <p class="delivery-print__files" *ngIf="printPackage.documents.length">
-    Issued with this printout:
-    <span *ngFor="let doc of printPackage.documents; let last = last">
-      {{ doc.fileName }}{{ last ? '' : ', ' }}
-    </span>
-  </p>
-
-  <div class="delivery-print__sign" *ngIf="printPackage.includeSignature">
-    <img
-      class="delivery-sign-img"
-      *ngIf="printPackage.doctor.hasSignature"
-      [src]="signatureUrl(printPackage.doctor.id)"
-      alt=""
-    />
-    <div class="delivery-print__sign-line"></div>
-    <strong>{{ printPackage.doctor.name }}</strong>
-    <small>{{ printPackage.doctor.specialty }}</small>
-    <small *ngIf="printPackage.doctor.prcLicenseNumber">
-      PRC No. {{ printPackage.doctor.prcLicenseNumber }}
-    </small>
-  </div>
+  <ng-container *ngTemplateOutlet="resultSheet; context: { pkg: printPackage }"></ng-container>
 </div>
+
+<!--
+  The result sheet itself — one template, used by both the on-screen preview
+  and the printed copy, so what is previewed is exactly what prints. Laid out
+  as the clinic letterhead: wordmark and patient QR, licence line, a three
+  column patient block, results grouped by section, and two signatories.
+-->
+<ng-template #resultSheet let-pkg="pkg">
+  <div class="rx">
+    <img class="rx__watermark" src="assets/images/logo.png" alt="" aria-hidden="true" />
+
+    <header class="rx__head">
+      <img class="rx__logo" src="assets/images/cropped-Pro-create-logo.webp" [alt]="pkg.clinic.name" />
+      <div class="rx__qr" *ngIf="qrDataUrl">
+        <img [src]="qrDataUrl" alt="Patient QR code" />
+        <span *ngIf="pkg.clinic.website">{{ pkg.clinic.website }}</span>
+      </div>
+    </header>
+
+    <div class="rx__contact">
+      <span *ngIf="pkg.clinic.dohLicenseNumber">DOH License No. {{ pkg.clinic.dohLicenseNumber }}</span>
+      <span *ngIf="pkg.clinic.mobileNumber">Mobile No. {{ pkg.clinic.mobileNumber }}</span>
+      <span *ngIf="pkg.clinic.email">E-Mail Add. {{ pkg.clinic.email }}</span>
+    </div>
+
+    <div class="rx__rule"></div>
+
+    <div class="rx__patient">
+      <div class="rx__col">
+        <div><span>Patient Name:</span> <strong>{{ pkg.patient.name }}</strong></div>
+        <div><span>Patient ID No:</span> <strong>{{ pkg.patient.patientCode }}</strong></div>
+        <div><span>Referring MD:</span> <strong>{{ referringMd(pkg) || '—' }}</strong></div>
+      </div>
+      <div class="rx__col">
+        <div><span>Phone#:</span> <strong>{{ pkg.patient.contactNumber || '—' }}</strong></div>
+        <div><span>Age:</span> <strong>{{ pkg.patient.age }}</strong></div>
+        <div><span>Birthdate:</span> <strong>{{ pkg.patient.dateOfBirth | date: 'MMM d, y' }}</strong></div>
+        <div><span>Gender:</span> <strong>{{ pkg.patient.gender || '—' }}</strong></div>
+      </div>
+      <div class="rx__col">
+        <div><span>Collected:</span> <strong>{{ (collectedOn(pkg) | date: 'MMM d, y') || '—' }}</strong></div>
+        <div><span>Release date:</span> <strong>{{ (releasedOn(pkg) | date: 'MMM d, y') || '—' }}</strong></div>
+        <div><span>Barcode:</span> <strong>{{ headerBarcode(pkg) || '—' }}</strong></div>
+      </div>
+    </div>
+
+    <div class="rx__rule"></div>
+
+    <section class="rx__section" *ngFor="let section of sections(pkg); trackBy: trackSection">
+      <h2 class="rx__section-title">{{ section.title }}</h2>
+
+      <table class="rx__table">
+        <thead>
+          <tr>
+            <th class="rx__c-test">TEST</th>
+            <th class="rx__c-result">RESULT</th>
+            <th class="rx__c-unit">UNIT</th>
+            <th class="rx__c-ref">REF. RANGE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let result of section.results; trackBy: trackResult">
+            <tr class="rx__group"><td colspan="4">{{ result.testName }}</td></tr>
+
+            <tr class="rx__narrative" *ngIf="result.narrativeFindings">
+              <td colspan="4">{{ result.narrativeFindings }}</td>
+            </tr>
+
+            <tr *ngFor="let p of result.parameters">
+              <td class="rx__c-test rx__param">{{ p.parameterName }}</td>
+              <td class="rx__c-result" [class.rx__abn]="isAbnormalFlag(p.flag)">
+                <span class="rx__mark" *ngIf="flagMark(p.flag)">{{ flagMark(p.flag) }}</span>{{ p.value }}
+              </td>
+              <td class="rx__c-unit">{{ p.unit }}</td>
+              <td class="rx__c-ref">
+                <ng-container *ngIf="refLines(p.reference).length; else refDash">
+                  <div *ngFor="let line of refLines(p.reference)">{{ line }}</div>
+                </ng-container>
+                <ng-template #refDash>—</ng-template>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </section>
+
+    <p class="rx__end">- End of Report -</p>
+
+    <p class="rx__files" *ngIf="pkg.documents.length">
+      Issued with this report:
+      <span *ngFor="let doc of pkg.documents; let last = last">{{ doc.fileName }}{{ last ? '' : ', ' }}</span>
+    </p>
+
+    <div class="rx__signatures" *ngIf="pkg.includeSignature">
+      <div class="rx__sig">
+        <!-- Empty slot, same height as the doctor's, so both rules line up. -->
+        <div class="rx__sig-space"></div>
+        <div class="rx__sig-line"></div>
+        <strong>{{ medTech(pkg) || '—' }}</strong>
+        <small>Medical Technologist</small>
+      </div>
+      <div class="rx__sig">
+        <div class="rx__sig-space">
+          <img class="rx__sig-img" *ngIf="pkg.doctor.hasSignature" [src]="signatureUrl(pkg.doctor.id)" alt="" />
+        </div>
+        <div class="rx__sig-line"></div>
+        <strong>{{ pkg.doctor.name }}</strong>
+        <small>{{ pkg.doctor.specialty }}</small>
+        <small *ngIf="pkg.doctor.prcLicenseNumber">PRC No. {{ pkg.doctor.prcLicenseNumber }}</small>
+      </div>
+    </div>
+
+    <p class="rx__footer">This is an electronically generated report.</p>
+  </div>
+</ng-template>

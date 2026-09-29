@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import * as QRCode from 'qrcode';
 import { ApiService } from '../../services/api';
 import { IconComponent } from '../icon/icon';
 
@@ -66,7 +67,10 @@ interface PackageResult {
   categoryName: string;
   specimen: string;
   method: string;
+  collectedAt: string;
   releasedAt: string;
+  specimenBarcode: string;
+  referringPhysician: string;
   isAbnormal: boolean;
   narrativeFindings: string;
   resultedBy: string;
@@ -74,7 +78,25 @@ interface PackageResult {
   parameters: PackageParameter[];
 }
 
+/** The clinic letterhead, from the "Clinic" section of the API config. */
+interface ClinicInfo {
+  name: string;
+  tagline: string;
+  subTagline: string;
+  dohLicenseNumber: string;
+  mobileNumber: string;
+  email: string;
+  website: string;
+}
+
+/** One section of the sheet — a category with its tests. */
+interface ResultSection {
+  title: string;
+  results: PackageResult[];
+}
+
 export interface DeliveryPackage {
+  clinic: ClinicInfo;
   patient: {
     id: number;
     patientCode: string;
@@ -83,6 +105,7 @@ export interface DeliveryPackage {
     dateOfBirth: string;
     age: number;
     email: string;
+    contactNumber: string;
   };
   doctor: {
     id: number;
@@ -143,6 +166,9 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   /** The assembled sheet, shown in the preview panel and used for printing. */
   preview: DeliveryPackage | null = null;
   printPackage: DeliveryPackage | null = null;
+
+  /** QR of the patient code, drawn top-right of the sheet for staff to scan. */
+  qrDataUrl = '';
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -310,6 +336,7 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
         next: (pkg) => {
           this.preview = pkg;
           this.isWorking = false;
+          this.renderQr(pkg.patient.patientCode);
           this.cdr.markForCheck();
         },
         error: (err) => {
@@ -317,6 +344,23 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
           this.isWorking = false;
           this.cdr.markForCheck();
         },
+      });
+  }
+
+  /**
+   * Draws the patient-code QR for the sheet. The same code the patient card
+   * carries, so staff can scan the printed result to pull the file up. A
+   * failure just leaves it off — the sheet is still valid without it.
+   */
+  private renderQr(patientCode: string): void {
+    QRCode.toDataURL(patientCode, { errorCorrectionLevel: 'M', margin: 0, width: 220 })
+      .then((url) => {
+        this.qrDataUrl = url;
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.qrDataUrl = '';
+        this.cdr.markForCheck();
       });
   }
 
@@ -372,25 +416,56 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
         next: (pkg) => {
           this.isWorking = false;
           this.printPackage = pkg;
+          this.renderQr(pkg.patient.patientCode);
           this.cdr.detectChanges();
 
-          document.body.classList.add('printing-slip');
+          // Print a static clone of the sheet, lifted to <body>.
+          //
+          // The sheet can run to more than one page, and the shared "slip"
+          // trick — hide the app with visibility:hidden, overlay the artefact
+          // absolutely — cannot carry a multi-page document: the hidden page
+          // keeps its full height, so a long host page (the patient record is
+          // several screens tall) padded the printout with blank sheets while
+          // the absolute overlay only landed on page one.
+          //
+          // Moving the live node instead fails too: rendering the QR triggers
+          // change detection, and Angular re-manages the sheet from its
+          // original anchor, emptying the moved copy. So we clone a static
+          // snapshot, print that alone, and drop it afterwards — Angular never
+          // sees it.
+          const buildAndPrint = () => {
+            const source = document.querySelector('.delivery-print');
+            if (!source) return;
 
-          const cleanup = () => {
-            document.body.classList.remove('printing-slip');
-            this.printPackage = null;
-            this.cdr.markForCheck();
-            window.removeEventListener('afterprint', cleanup);
+            const clone = source.cloneNode(true) as HTMLElement;
+            clone.classList.add('print-clone');
+            document.body.appendChild(clone);
+            document.body.classList.add('printing-sheet');
+
+            let torndown = false;
+            const cleanup = () => {
+              if (torndown) return;
+              torndown = true;
+              window.removeEventListener('afterprint', cleanup);
+              document.body.classList.remove('printing-sheet');
+              clone.remove();
+              this.printPackage = null;
+              this.qrDataUrl = '';
+              this.cdr.markForCheck();
+            };
+
+            // Wait for the clone's own images (signature, logo, QR) before
+            // printing — the dialog does not wait, and a sheet missing its
+            // signature is the one thing it must not be.
+            this.whenImagesReady(clone).then(() => {
+              window.addEventListener('afterprint', cleanup);
+              window.print();
+            });
           };
 
-          // The signature is fetched over the network as the sheet renders, and
-          // the print dialog does not wait for it. Printing straight away gave
-          // a sheet with the signature missing — the one thing it is there for.
-          this.whenImagesReady(document.querySelector('.delivery-print')).then(() => {
-            window.addEventListener('afterprint', cleanup);
-            window.print();
-            setTimeout(cleanup, 1000);
-          });
+          // Let the QR data URL settle into the DOM first, so the clone carries
+          // it. renderQr is async; a short wait keeps the snapshot complete.
+          setTimeout(buildAndPrint, 60);
 
           this.api
             .post<void>(`patients/${this.patient!.id}/result-delivery/print`, this.packageBody())
@@ -455,5 +530,72 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     return 'delivery-flag';
   }
 
+  // ----------------------------------------------------------
+  // Sheet layout — shared by the preview and the printed copy
+  // ----------------------------------------------------------
+
+  /** Results grouped into sections by category (falling back to department). */
+  sections(pkg: DeliveryPackage): ResultSection[] {
+    const order: string[] = [];
+    const byTitle = new Map<string, PackageResult[]>();
+
+    for (const result of pkg.results) {
+      const title = (result.categoryName || result.department || 'Results').toUpperCase();
+      if (!byTitle.has(title)) {
+        byTitle.set(title, []);
+        order.push(title);
+      }
+      byTitle.get(title)!.push(result);
+    }
+
+    return order.map((title) => ({ title, results: byTitle.get(title)! }));
+  }
+
+  /** Earliest collection across the chosen results, for the header. */
+  collectedOn(pkg: DeliveryPackage): string | null {
+    const dates = pkg.results.map((r) => r.collectedAt).filter(Boolean).sort();
+    return dates[0] ?? null;
+  }
+
+  /** Latest release across the chosen results, for the header. */
+  releasedOn(pkg: DeliveryPackage): string | null {
+    const dates = pkg.results.map((r) => r.releasedAt).filter(Boolean).sort();
+    return dates[dates.length - 1] ?? null;
+  }
+
+  headerBarcode(pkg: DeliveryPackage): string {
+    return pkg.results.find((r) => r.specimenBarcode)?.specimenBarcode ?? '';
+  }
+
+  referringMd(pkg: DeliveryPackage): string {
+    return pkg.results.find((r) => r.referringPhysician)?.referringPhysician ?? '';
+  }
+
+  /** The med-tech who resulted these, named on the left signature line. */
+  medTech(pkg: DeliveryPackage): string {
+    return pkg.results.find((r) => r.resultedBy)?.resultedBy ?? '';
+  }
+
+  /** The coloured marker beside an out-of-range value: ▲ high, ▼ low. */
+  flagMark(flag: string): string {
+    const f = (flag ?? '').trim();
+    if (!f || f === 'N' || f === 'Normal') return '';
+    const first = f[0].toUpperCase();
+    if (first === 'L') return '▼';
+    return '▲';
+  }
+
+  isAbnormalFlag(flag: string): boolean {
+    const f = (flag ?? '').trim();
+    return !!f && f !== 'N' && f !== 'Normal';
+  }
+
+  /** Reference range split into its lines, so multi-band ranges stack. */
+  refLines(reference: string): string[] {
+    return (reference || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  }
+
   trackRow = (index: number) => index;
+  trackSection = (_: number, s: ResultSection) => s.title;
+  trackResult = (_: number, r: PackageResult) => r.id;
 }

@@ -191,181 +191,295 @@ input.form-control:disabled {
       color: var(--text-secondary);
     }
   }
+
+  // The sheet is drawn at document proportions, so the preview scrolls it
+  // rather than squashing it.
+  &__scroll {
+    max-height: 60vh;
+    overflow: auto;
+    padding: 14px;
+    background: #e9e6e1;
+  }
 }
 
-.delivery-sheet {
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 16px;
-  background: var(--white);
-  font-size: var(--font-size-sm);
+// ------------------------------------------------------------
+// The result sheet — shared by preview and print (.rx)
+// ------------------------------------------------------------
+//
+// A clinic letterhead: wordmark and patient QR, licence line, a three-column
+// patient block, results grouped into sections, and two signatories. Kept in
+// black-and-red document colours rather than the console espresso palette,
+// because this is a document a patient keeps, not a screen.
 
-  &__brand {
-    text-align: center;
-    margin-bottom: 14px;
+$rx-ink: #1b1b16;
+$rx-muted: #6b6b60;
+$rx-rule: #1b3a5c;
+$rx-danger: #a71d2a;
 
-    h1 { margin: 0; font-size: var(--font-size-xl); }
-    p { margin: 2px 0 0; color: var(--text-muted); font-size: var(--font-size-sm); }
+.rx {
+  position: relative;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 26px 30px;
+  background: #fff;
+  color: $rx-ink;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  // Keep the watermark and red flags when this is printed.
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+
+  // Everything sits above the watermark — but not the watermark itself, which
+  // has to keep its own absolute positioning rather than be pulled into the
+  // flow as the first child.
+  > *:not(.rx__watermark) {
+    position: relative;
+    z-index: 1;
   }
 
-  &__patient {
+  // Large and faint, centred behind the report — the emblem watermark from
+  // the reference sheet.
+  &__watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 88%;
+    max-width: 620px;
+    transform: translate(-50%, -50%);
+    opacity: 0.06;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  // ---- Letterhead ----
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__logo {
+    max-width: 340px;
+    width: 70%;
+    height: auto;
+  }
+
+  &__qr {
     display: flex;
     flex-direction: column;
-    padding: 10px 0;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    flex: 0 0 auto;
 
-    span { color: var(--text-secondary); }
-  }
+    img {
+      width: 74px;
+      height: 74px;
+    }
 
-  &__result {
-    padding: 12px 0;
-
-    & + & { border-top: 1px solid var(--border-color); }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-
-      small { flex: 1 1 100%; color: var(--text-muted); }
+    span {
+      margin-top: 2px;
+      font-size: 8px;
+      font-style: italic;
+      color: $rx-muted;
     }
   }
 
-  &__narrative {
-    margin: 0 0 10px;
-    padding: 10px;
-    border-radius: var(--border-radius);
-    background: var(--light);
-    // Findings are written with line breaks that must survive.
-    white-space: pre-wrap;
-    line-height: 1.6;
+  &__contact {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 12px;
+    color: $rx-ink;
+    line-height: 1.5;
+
+    span {
+      display: block;
+    }
+  }
+
+  &__rule {
+    border-top: 3px solid $rx-rule;
+    border-bottom: 1px solid $rx-rule;
+    height: 3px;
+    margin: 12px 0;
+  }
+
+  // ---- Patient block ----
+  &__patient {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+  }
+
+  &__col {
+    flex: 1 1 0;
+    min-width: 0;
+
+    > div {
+      margin-bottom: 3px;
+    }
+
+    span {
+      color: $rx-muted;
+    }
+
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  // ---- Sections & table ----
+  &__section {
+    margin-top: 16px;
+  }
+
+  &__section-title {
+    margin: 0 0 6px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
   }
 
   &__table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 13px;
 
-    th, td {
-      padding: 5px 6px;
+    thead th {
       text-align: left;
-      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+      padding: 4px 6px;
+      border-bottom: 1.5px solid $rx-ink;
     }
 
-    th { color: var(--text-muted); font-weight: 600; }
+    td {
+      padding: 2px 6px;
+      vertical-align: top;
+    }
+  }
+
+  &__c-test { width: 40%; }
+  &__c-result { width: 18%; }
+  &__c-unit { width: 14%; }
+  &__c-ref { width: 28%; color: $rx-muted; }
+
+  // Keep a test and its rows together across a page break, rather than the
+  // whole section — a long section may still split, but a single test will not.
+  &__group {
+    break-inside: avoid;
+
+    td {
+      padding-top: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+  }
+
+  // Parameters sit indented under their test, as on the reference sheet.
+  &__param {
+    padding-left: 18px !important;
+  }
+
+  &__narrative td {
+    padding: 0 6px 6px 18px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  &__abn {
+    color: $rx-danger;
+    font-weight: 700;
+  }
+
+  &__mark {
+    margin-right: 4px;
+    color: $rx-danger;
+  }
+
+  // ---- Closing ----
+  &__end {
+    margin: 18px 0;
+    text-align: center;
+    font-size: 12px;
+    color: $rx-muted;
   }
 
   &__files {
     margin: 10px 0 0;
-    color: var(--text-secondary);
+    font-size: 12px;
+    color: $rx-muted;
   }
 
-  &__sign {
+  &__signatures {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 28px;
+    break-inside: avoid;
+  }
+
+  &__sig {
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
-    margin-top: 20px;
-    padding-top: 6px;
-    border-top: 1px solid var(--text-primary);
-    align-self: flex-start;
-    width: fit-content;
+    align-items: center;
+    text-align: center;
 
-    small { color: var(--text-muted); }
+    strong { font-weight: 700; }
+    small { color: $rx-muted; }
+  }
+
+  // A fixed-height slot above the rule, present in both columns whether or not
+  // there is a signature image, so the two rules and names sit on one line.
+  &__sig-space {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  &__sig-img {
+    max-height: 54px;
+    max-width: 200px;
+    object-fit: contain;
+  }
+
+  &__sig-line {
+    width: 80%;
+    border-top: 1px solid $rx-ink;
+    margin-bottom: 4px;
+  }
+
+  &__footer {
+    margin-top: 26px;
+    padding-top: 10px;
+    border-top: 1px dashed $rx-muted;
+    text-align: center;
+    font-style: italic;
+    font-size: 11px;
+    color: $rx-muted;
   }
 }
 
 // ------------------------------------------------------------
 // Printed sheet
 // ------------------------------------------------------------
+//
+// The same .rx markup, sized to paper. .print-only / .printing-slip visibility
+// is handled by the global print stylesheet.
 
-.delivery-print {
-  padding: 0 8mm;
-  color: #000;
-  font-size: 11pt;
+.delivery-print .rx {
+  max-width: none;
+  box-shadow: none;
+  padding: 0 6mm;
+  font-size: 10.5pt;
 
-  &__head {
-    text-align: center;
-
-    h1 { margin: 0; font-size: 20pt; }
-    p { margin: 2px 0 0; font-size: 10pt; }
-  }
-
-  &__contact { color: #444; }
-
-  &__patient {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    margin: 10px 0 16px;
-
-    div { display: flex; flex-direction: column; }
-    span { font-size: 10pt; color: #333; }
-  }
-
-  &__result {
-    margin-bottom: 16px;
-    // Splitting a result across a page break makes it hard to read back.
-    break-inside: avoid;
-
-    h3 { margin: 0 0 2px; font-size: 12pt; }
-  }
-
-  &__meta {
-    margin: 0 0 8px;
-    font-size: 9.5pt;
-    color: #444;
-  }
-
-  &__narrative {
-    margin: 0 0 8px;
-    white-space: pre-wrap;
-    line-height: 1.6;
-  }
-
-  &__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 10pt;
-
-    th, td {
-      padding: 4px 6px;
-      text-align: left;
-      border-bottom: 1px solid #999;
-    }
-  }
-
-  &__files {
-    margin-top: 12px;
-    font-size: 10pt;
-  }
-
-  &__sign {
-    display: flex;
-    flex-direction: column;
-    width: 60mm;
-    margin-top: 24mm;
-
-    small { font-size: 9pt; color: #333; }
-  }
-
-  &__sign-line {
-    border-top: 1px solid #000;
-    margin-bottom: 4px;
-  }
-}
-
-// The scanned signature sits above the name in both the preview and the
-// printed sheet, so the name reads as a caption to it.
-.delivery-sign-img {
-  display: block;
-  max-width: 200px;
-  max-height: 60px;
-  object-fit: contain;
-  margin-bottom: 2px;
-}
-
-.delivery-print .delivery-sign-img {
-  max-width: 55mm;
-  max-height: 18mm;
+  .rx__logo { max-width: 78mm; }
+  .rx__section-title { font-size: 12pt; }
+  .rx__table { font-size: 10pt; }
+  .rx__qr img { width: 20mm; height: 20mm; }
+  .rx__sig-img { max-height: 18mm; max-width: 55mm; }
 }

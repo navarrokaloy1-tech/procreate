@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>procreate_api</RootNamespace>
+    <UserSecretsId>cd84dceb-b46a-4c58-92fa-d119fca3ab8f</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
