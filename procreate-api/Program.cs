@@ -2,6 +2,7 @@ using ProCreateApi.Data;
 using ProCreateApi.Services.Appointments;
 using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Clinic;
+using ProCreateApi.Services.Pdf;
 using ProCreateApi.Services.Email;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Locations;
@@ -49,6 +50,9 @@ builder.Services.AddScoped<QueueAllocator>();
 // Clinic letterhead details for result sheets (printed, previewed, emailed).
 var clinicSettings = builder.Configuration.GetSection("Clinic").Get<ClinicSettings>() ?? new ClinicSettings();
 builder.Services.AddSingleton(clinicSettings);
+
+// Renders result sheets to PDF for emailed results.
+builder.Services.AddSingleton<ResultSheetPdf>();
 
 // Single sign-on against an OpenID Connect provider (Authentik in front of
 // Google, in this clinic). Blank settings are valid: SSO reports itself
