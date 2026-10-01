@@ -142,6 +142,25 @@
           <label class="form-label" for="nationality">Nationality</label>
           <input id="nationality" type="text" class="form-control" formControlName="nationality" />
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="referralSource">How did you hear about us?</label>
+          <select id="referralSource" class="form-control" formControlName="referralSource">
+            <option value="">Select one</option>
+            <option *ngFor="let s of referralSources.slice(1)" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <div class="form-group" *ngIf="referralDetailLabel">
+          <label class="form-label" for="referralDetail">{{ referralDetailLabel }}</label>
+          <input
+            id="referralDetail"
+            type="text"
+            class="form-control"
+            formControlName="referralDetail"
+            [placeholder]="referralDetailLabel"
+          />
+        </div>
       </div>
 
       <!-- Contact & Address -->

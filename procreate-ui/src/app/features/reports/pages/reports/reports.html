@@ -136,3 +136,62 @@
     </div>
   </div>
 </ng-container>
+
+<!-- Referral Source Breakdown -->
+<div class="card referral-report">
+  <div class="card-header referral-report__head">
+    <h3>Referral Sources</h3>
+    <div class="referral-report__filter">
+      <label>From <input type="date" [(ngModel)]="referralFrom" /></label>
+      <label>To <input type="date" [(ngModel)]="referralTo" /></label>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="loadReferral()">Apply</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <p *ngIf="isReferralLoading" class="text-muted">Loading...</p>
+
+    <ng-container *ngIf="!isReferralLoading && referralReport">
+      <p class="text-muted" *ngIf="referralReport.total === 0">
+        No patients registered in this range.
+      </p>
+
+      <table class="table referral-table" *ngIf="referralReport.total > 0">
+        <thead>
+          <tr><th>Source</th><th>Patients</th><th>Share</th><th></th></tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let g of referralReport.breakdown">
+            <tr>
+              <td>{{ g.source }}</td>
+              <td>{{ g.count }}</td>
+              <td>
+                <span class="referral-bar" [style.width.%]="g.percent"></span>
+                {{ g.percent }}%
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm"
+                  *ngIf="g.details.length"
+                  (click)="toggleSource(g.source)"
+                >
+                  {{ expandedSource === g.source ? 'Hide' : 'Who' }} ({{ g.details.length }})
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="expandedSource === g.source" class="referral-detail-row">
+              <td colspan="4">
+                <span *ngFor="let d of g.details; let last = last">
+                  {{ d.name }} &times;{{ d.count }}{{ last ? '' : ',&nbsp; ' }}
+                </span>
+              </td>
+            </tr>
+          </ng-container>
+          <tr class="referral-total">
+            <td>Total</td><td>{{ referralReport.total }}</td><td></td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+  </div>
+</div>

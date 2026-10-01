@@ -39,6 +39,13 @@ public class Patient
     public string? PwdId { get; set; }
     public string? HmoProvider { get; set; }
     public string? HmoAccountNumber { get; set; }
+
+    // How the patient came to the clinic. ReferralSource is one of
+    // Doctor / Another Patient / Social Media / Walk-in; ReferralDetail holds
+    // the referring doctor's or patient's name when the source calls for it.
+    public string? ReferralSource { get; set; }
+    public string? ReferralDetail { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<Visit> Visits { get; set; } = new();
     // LIS integration fields

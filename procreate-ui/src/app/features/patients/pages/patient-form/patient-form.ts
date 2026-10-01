@@ -77,6 +77,7 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
       controls: [
         'firstName', 'middleName', 'lastName', 'suffix',
         'dateOfBirth', 'gender', 'civilStatus', 'occupation', 'nationality',
+        'referralSource', 'referralDetail',
       ],
     },
     {
@@ -140,6 +141,8 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
     pwdId: '',
     hmoProvider: '',
     hmoAccountNumber: '',
+    referralSource: '',
+    referralDetail: '',
     emergencyContactName: '',
     emergencyContactRelationship: '',
     emergencyContactNumber: '',
@@ -231,6 +234,8 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
       pwdId: [blank.pwdId],
       hmoProvider: [blank.hmoProvider],
       hmoAccountNumber: [blank.hmoAccountNumber],
+      referralSource: [blank.referralSource],
+      referralDetail: [blank.referralDetail],
       emergencyContactName: [blank.emergencyContactName],
       emergencyContactRelationship: [blank.emergencyContactRelationship],
       emergencyContactNumber: [blank.emergencyContactNumber],
@@ -240,6 +245,17 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
 
   get f() {
     return this.patientForm.controls;
+  }
+
+  readonly referralSources = ['', 'Doctor', 'Another Patient', 'Social Media', 'Walk-in'];
+
+  /** The label for the conditional detail field, or '' to hide it. */
+  get referralDetailLabel(): string {
+    switch (this.patientForm?.get('referralSource')?.value) {
+      case 'Doctor': return "Referring doctor's name";
+      case 'Another Patient': return "Referring patient's name";
+      default: return '';
+    }
   }
 
   get isEditMode(): boolean {
@@ -473,6 +489,10 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
     this.errorMessage = '';
 
     const payload = this.patientForm.value;
+
+    // A detail only belongs to Doctor / Another Patient; drop it otherwise so a
+    // source change doesn't leave a stale referrer name behind.
+    if (!this.referralDetailLabel) payload.referralDetail = '';
 
     const request$ = this.isEditMode
       ? this.apiService.put<Patient>('patients/' + this.patientId, payload)

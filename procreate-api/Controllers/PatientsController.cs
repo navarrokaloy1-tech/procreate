@@ -227,6 +227,8 @@ public class PatientsController : ControllerBase
         patient.PwdId = updated.PwdId;
         patient.HmoProvider = updated.HmoProvider;
         patient.HmoAccountNumber = updated.HmoAccountNumber;
+        patient.ReferralSource = updated.ReferralSource;
+        patient.ReferralDetail = updated.ReferralDetail;
         await _db.SaveChangesAsync();
         _ = _lis.SendPatientAsync(patient, isUpdate: true);
         return Ok(patient);

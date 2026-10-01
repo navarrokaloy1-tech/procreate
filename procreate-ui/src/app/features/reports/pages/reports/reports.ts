@@ -21,6 +21,18 @@ export interface DailyReport {
   visits: ReportVisit[];
 }
 
+export interface ReferralGroup {
+  source: string;
+  count: number;
+  percent: number;
+  details: { name: string; count: number }[];
+}
+
+export interface ReferralReport {
+  total: number;
+  breakdown: ReferralGroup[];
+}
+
 @Component({
   selector: 'app-reports',
   standalone: false,
@@ -33,10 +45,41 @@ export class Reports implements OnInit {
   isLoading = false;
   isDownloading: { [visitId: number]: boolean } = {};
 
+  // Referral-source breakdown, with its own optional date range.
+  referralReport: ReferralReport | null = null;
+  referralFrom = '';
+  referralTo = '';
+  isReferralLoading = false;
+  expandedSource: string | null = null;
+
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadReport();
+    this.loadReferral();
+  }
+
+  loadReferral(): void {
+    this.isReferralLoading = true;
+    const params: Record<string, string> = {};
+    if (this.referralFrom) params['from'] = this.referralFrom;
+    if (this.referralTo) params['to'] = this.referralTo;
+    this.apiService.get<ReferralReport>('reports/referral-sources', params).subscribe({
+      next: (data) => {
+        this.referralReport = data;
+        this.isReferralLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.referralReport = null;
+        this.isReferralLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  toggleSource(source: string): void {
+    this.expandedSource = this.expandedSource === source ? null : source;
   }
 
   loadReport(): void {

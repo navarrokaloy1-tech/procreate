@@ -76,6 +76,7 @@ export class PatientSignup implements OnInit, OnDestroy {
       controls: [
         'firstName', 'middleName', 'lastName', 'suffix',
         'dateOfBirth', 'gender', 'civilStatus', 'occupation', 'nationality',
+        'referralSource', 'referralDetail',
       ],
     },
     {
@@ -119,6 +120,7 @@ export class PatientSignup implements OnInit, OnDestroy {
     country: 'Philippines', region: '', province: '', city: '', zipCode: '',
     bloodType: '', philHealthNumber: '', seniorCitizenId: '', pwdId: '',
     hmoProvider: '', hmoAccountNumber: '',
+    referralSource: '', referralDetail: '',
     emergencyContactName: '', emergencyContactRelationship: '',
     emergencyContactNumber: '', emergencyContactNotes: '',
   };
@@ -156,6 +158,8 @@ export class PatientSignup implements OnInit, OnDestroy {
       pwdId: [blank.pwdId],
       hmoProvider: [blank.hmoProvider],
       hmoAccountNumber: [blank.hmoAccountNumber],
+      referralSource: [blank.referralSource],
+      referralDetail: [blank.referralDetail],
       emergencyContactName: [blank.emergencyContactName],
       emergencyContactRelationship: [blank.emergencyContactRelationship],
       emergencyContactNumber: [blank.emergencyContactNumber],
@@ -218,6 +222,17 @@ export class PatientSignup implements OnInit, OnDestroy {
 
   selectTab(id: string): void {
     this.activeTab = id;
+  }
+
+  readonly referralSources = ['', 'Doctor', 'Another Patient', 'Social Media', 'Walk-in'];
+
+  /** Label for the conditional referrer field, or '' to hide it. */
+  get referralDetailLabel(): string {
+    switch (this.signupForm?.get('referralSource')?.value) {
+      case 'Doctor': return "Referring doctor's name";
+      case 'Another Patient': return "Referring patient's name";
+      default: return '';
+    }
   }
 
   tabHasError(tab: { controls: string[] }): boolean {
@@ -439,6 +454,9 @@ export class PatientSignup implements OnInit, OnDestroy {
 
     // The password is not part of the patient record, so it travels beside it.
     const { password, confirmPassword, ...record } = this.signupForm.value;
+
+    // A referrer name only belongs to Doctor / Another Patient.
+    if (!this.referralDetailLabel) record.referralDetail = '';
 
     this.apiService
       .post<RegisteredPatient>('patients/self-register', { patient: record, password })

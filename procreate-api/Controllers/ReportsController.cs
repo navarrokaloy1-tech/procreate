@@ -114,4 +114,45 @@ public class ReportsController : ControllerBase
             })
         });
     }
+
+    /// <summary>
+    /// How registered patients heard about the clinic, counted by referral
+    /// source over an optional date range (on registration date). Feeds the
+    /// referral-source breakdown report.
+    /// </summary>
+    [HttpGet("referral-sources")]
+    public async Task<IActionResult> GetReferralSources(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var query = _db.Patients.AsQueryable();
+        if (from is not null) query = query.Where(p => p.CreatedAt >= from.Value.Date);
+        if (to is not null) query = query.Where(p => p.CreatedAt < to.Value.Date.AddDays(1));
+
+        var patients = await query
+            .Select(p => new { p.ReferralSource, p.ReferralDetail })
+            .ToListAsync();
+
+        var total = patients.Count;
+
+        // Group by source, folding blanks into "Not specified" so the counts
+        // always add up to the total.
+        var breakdown = patients
+            .GroupBy(p => string.IsNullOrWhiteSpace(p.ReferralSource) ? "Not specified" : p.ReferralSource!)
+            .Select(g => new
+            {
+                source = g.Key,
+                count = g.Count(),
+                percent = total == 0 ? 0 : Math.Round(g.Count() * 100.0 / total, 1),
+                // The named referrers behind this source, for the drill-down.
+                details = g.Where(x => !string.IsNullOrWhiteSpace(x.ReferralDetail))
+                           .GroupBy(x => x.ReferralDetail!)
+                           .Select(d => new { name = d.Key, count = d.Count() })
+                           .OrderByDescending(d => d.count)
+                           .ToList()
+            })
+            .OrderByDescending(g => g.count)
+            .ToList();
+
+        return Ok(new { total, breakdown });
+    }
 }
