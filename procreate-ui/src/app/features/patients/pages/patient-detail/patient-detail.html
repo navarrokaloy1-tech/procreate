@@ -934,7 +934,7 @@
           <app-icon name="upload" [size]="19"></app-icon>
           Upload Diagnostic Result
         </h3>
-        <p class="modal-sheet__desc">PDF or image, up to 10 MB.</p>
+        <p class="modal-sheet__desc">PDF, image or video. Pick one or several.</p>
       </div>
       <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
         <app-icon name="x" [size]="18"></app-icon>
@@ -970,17 +970,39 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="uploadFile">File</label>
+        <label class="form-label" for="uploadFile">Files</label>
         <input
           id="uploadFile"
           type="file"
           class="form-control file-input"
-          accept=".pdf,.png,.jpg,.jpeg"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov"
+          multiple
           (change)="onFileSelected($event)"
         />
-        <p class="text-muted upload-hint" *ngIf="uploadFile">
-          {{ uploadFile.name }} &middot; {{ fileSize(uploadFile.size) }}
+        <p class="text-muted upload-hint">
+          Images &amp; PDFs up to 10 MB, videos up to 100 MB. You can pick several.
         </p>
+
+        <div class="upload-previews" *ngIf="uploadItems.length">
+          <div class="upload-preview" *ngFor="let item of uploadItems; let i = index">
+            <img *ngIf="item.kind === 'image'" [src]="item.url" alt="" class="upload-preview__thumb" />
+            <video *ngIf="item.kind === 'video'" [src]="item.url" class="upload-preview__thumb" muted></video>
+            <span *ngIf="item.kind === 'file'" class="upload-preview__thumb upload-preview__thumb--file">
+              <app-icon name="file-text" [size]="24"></app-icon>
+            </span>
+            <span class="upload-preview__name">{{ item.file.name }}</span>
+            <span class="upload-preview__size">{{ fileSize(item.file.size) }}</span>
+            <button
+              type="button"
+              class="upload-preview__remove"
+              (click)="removeUploadItem(i)"
+              [disabled]="isSaving"
+              aria-label="Remove file"
+            >
+              <app-icon name="x" [size]="14"></app-icon>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -990,7 +1012,7 @@
       </button>
       <button type="button" class="btn btn-primary" (click)="uploadResult()" [disabled]="isSaving">
         <app-icon name="upload" [size]="16"></app-icon>
-        {{ isSaving ? 'Uploading...' : 'Upload' }}
+        {{ isSaving ? (uploadProgress ? 'Uploading ' + uploadProgress + '...' : 'Uploading...') : 'Upload' }}
       </button>
     </div>
   </div>

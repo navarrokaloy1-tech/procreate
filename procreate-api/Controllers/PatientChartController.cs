@@ -18,8 +18,29 @@ namespace ProCreateApi.Controllers;
 [Route("api/patients/{patientId:int}")]
 public class PatientChartController : ControllerBase
 {
-    /// <summary>Anything larger is a scan that belongs in a document system.</summary>
-    private const long MaxUploadBytes = 10 * 1024 * 1024;
+    /// <summary>A document (scan/image/PDF); larger belongs in a document system.</summary>
+    private const long MaxDocumentBytes = 10 * 1024 * 1024;
+
+    /// <summary>A lab video (ultrasound clip, etc.) — larger than a still, so its own cap.</summary>
+    private const long MaxVideoBytes = 100 * 1024 * 1024;
+
+    /// <summary>What a patient document may be. Kept in step with the UI accept list.</summary>
+    private static readonly HashSet<string> DocumentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"
+    };
+
+    private static readonly HashSet<string> VideoTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "video/mp4", "video/webm", "video/quicktime"
+    };
+
+    private static bool IsVideo(string contentType, string fileName)
+    {
+        if (VideoTypes.Contains(contentType)) return true;
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext is ".mp4" or ".webm" or ".mov";
+    }
 
     private readonly AppDbContext _db;
     public PatientChartController(AppDbContext db) => _db = db;
@@ -262,7 +283,7 @@ public class PatientChartController : ControllerBase
     // ----------------------------------------------------------
 
     [HttpPost("documents")]
-    [RequestSizeLimit(MaxUploadBytes + 1024 * 64)]
+    [RequestSizeLimit(MaxVideoBytes + 1024 * 64)]
     public async Task<IActionResult> UploadDocument(
         int patientId,
         [FromForm] IFormFile? file,
@@ -273,8 +294,19 @@ public class PatientChartController : ControllerBase
         if (!await PatientExists(patientId)) return NotFound(new { message = "Patient not found." });
         if (file is null || file.Length == 0)
             return BadRequest(new { message = "No file was uploaded." });
-        if (file.Length > MaxUploadBytes)
-            return BadRequest(new { message = "The file is larger than the 10 MB limit." });
+
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+            ? "application/octet-stream"
+            : file.ContentType;
+        var isVideo = IsVideo(contentType, file.FileName);
+
+        // A document and a video are allowed different sizes; anything else is refused.
+        if (!isVideo && !DocumentTypes.Contains(contentType))
+            return BadRequest(new { message = "Only PDF, image (PNG/JPG/WebP) or video (MP4/WebM/MOV) files are accepted." });
+
+        var cap = isVideo ? MaxVideoBytes : MaxDocumentBytes;
+        if (file.Length > cap)
+            return BadRequest(new { message = $"The file is larger than the {cap / (1024 * 1024)} MB limit." });
 
         var dept = Departments.All.Contains(department) ? department! : Departments.Laboratory;
 
@@ -286,9 +318,7 @@ public class PatientChartController : ControllerBase
             PatientId = patientId,
             Department = dept,
             FileName = Path.GetFileName(file.FileName),
-            ContentType = string.IsNullOrWhiteSpace(file.ContentType)
-                ? "application/octet-stream"
-                : file.ContentType,
+            ContentType = contentType,
             SizeBytes = file.Length,
             ResultDate = resultDate ?? DateTime.Today,
             UploadedBy = uploadedBy?.Trim() ?? string.Empty,

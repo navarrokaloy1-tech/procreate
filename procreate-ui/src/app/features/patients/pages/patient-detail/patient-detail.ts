@@ -5,6 +5,13 @@ import { AuthService } from '../../../../core/services/auth';
 import { CertificateRecipient } from '../../../../core/components/certificate-form/certificate-form';
 import { DeliveryPatient } from '../../../../core/components/result-delivery/result-delivery';
 
+/** A file staged in the upload modal, with an object-URL preview. */
+export interface UploadItem {
+  file: File;
+  url: string;
+  kind: 'image' | 'video' | 'file';
+}
+
 export interface ChartPatient {
   id: number;
   patientCode: string;
@@ -161,7 +168,10 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     department: 'Laboratory',
     resultDate: new Date().toISOString().slice(0, 10),
   };
-  uploadFile: File | null = null;
+  /** Files chosen in the upload modal, each with a preview. */
+  uploadItems: UploadItem[] = [];
+  /** How far through a multi-file upload we are, for the button label. */
+  uploadProgress = '';
 
   readonly departments = ['Laboratory', 'Imaging', 'Ultrasound', 'Heart Station'];
   readonly severities = ['', 'Mild', 'Moderate', 'Severe'];
@@ -351,7 +361,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       department: 'Laboratory',
       resultDate: new Date().toISOString().slice(0, 10),
     };
-    this.uploadFile = null;
+    this.clearUploadItems();
+    this.uploadProgress = '';
     this.openEditor('upload');
   }
 
@@ -361,6 +372,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   closeEditor(): void {
+    this.clearUploadItems();
     this.editor = null;
     this.editorError = '';
     this.isSaving = false;
@@ -505,38 +517,82 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.uploadFile = input.files?.length ? input.files[0] : null;
+    const files = Array.from(input.files ?? []);
     this.editorError = '';
+    // Append rather than replace, so a second pick adds to the batch; each file
+    // gets an object URL for an inline preview, revoked when the modal closes.
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+      const kind: UploadItem['kind'] = file.type.startsWith('image/')
+        ? 'image'
+        : file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name)
+          ? 'video'
+          : 'file';
+      this.uploadItems.push({ file, url, kind });
+    }
+    // Let the same file be re-picked later if removed.
+    input.value = '';
+  }
+
+  removeUploadItem(index: number): void {
+    const [removed] = this.uploadItems.splice(index, 1);
+    if (removed) URL.revokeObjectURL(removed.url);
+  }
+
+  private clearUploadItems(): void {
+    for (const item of this.uploadItems) URL.revokeObjectURL(item.url);
+    this.uploadItems = [];
   }
 
   uploadResult(): void {
-    if (!this.uploadFile) {
-      this.editorError = 'Choose a file to upload.';
+    if (this.uploadItems.length === 0) {
+      this.editorError = 'Choose at least one file to upload.';
       return;
     }
 
-    // FormData goes through untouched: HttpClient sets the multipart boundary
-    // itself, which it cannot do if a Content-Type is set for it.
-    const form = new FormData();
-    form.append('file', this.uploadFile);
-    form.append('department', this.uploadDraft.department);
-    form.append('resultDate', this.uploadDraft.resultDate);
-    form.append('uploadedBy', this.auth.currentUser?.fullName ?? '');
-
+    const items = [...this.uploadItems];
     this.isSaving = true;
-    this.apiService.post<void>(`patients/${this.patientId}/documents`, form).subscribe({
-      next: () => {
+    this.editorError = '';
+
+    // Uploaded one at a time so a single oversized/rejected file reports which
+    // one failed rather than failing the whole batch opaquely.
+    const uploadAt = (i: number): void => {
+      if (i >= items.length) {
         this.isSaving = false;
+        this.uploadProgress = '';
+        this.clearUploadItems();
         this.closeEditor();
         this.loadChart();
         this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.isSaving = false;
-        this.editorError = err?.error?.message ?? 'The upload failed. Please try again.';
-        this.cdr.markForCheck();
-      },
-    });
+        return;
+      }
+
+      this.uploadProgress = items.length > 1 ? `${i + 1} of ${items.length}` : '';
+      this.cdr.markForCheck();
+
+      // FormData goes through untouched: HttpClient sets the multipart boundary
+      // itself, which it cannot do if a Content-Type is set for it.
+      const form = new FormData();
+      form.append('file', items[i].file);
+      form.append('department', this.uploadDraft.department);
+      form.append('resultDate', this.uploadDraft.resultDate);
+      form.append('uploadedBy', this.auth.currentUser?.fullName ?? '');
+
+      this.apiService.post<void>(`patients/${this.patientId}/documents`, form).subscribe({
+        next: () => uploadAt(i + 1),
+        error: (err) => {
+          this.isSaving = false;
+          this.uploadProgress = '';
+          const which = items.length > 1 ? ` (${items[i].file.name})` : '';
+          this.editorError = (err?.error?.message ?? 'The upload failed. Please try again.') + which;
+          // Keep already-uploaded files out of the list so a retry won't double them.
+          this.loadChart();
+          this.cdr.markForCheck();
+        },
+      });
+    };
+
+    uploadAt(0);
   }
 
   documentUrl(document: ResultDocument): string {
