@@ -91,6 +91,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Lock the API down by default: every endpoint requires an authenticated user
+// unless it opts out with [AllowAnonymous]. Previously only the patient portal
+// enforced auth server-side and every staff endpoint was reachable without a
+// token — role-gating was UI-only. The fallback policy closes that hole; the
+// genuinely public endpoints (sign-in, SSO, PSGC lookups, kiosk self-register,
+// the queue display board) are marked [AllowAnonymous].
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost:4200", "http://192.168.254.103:4200").AllowAnyHeader().AllowAnyMethod()));
 

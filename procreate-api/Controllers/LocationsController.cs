@@ -1,4 +1,5 @@
 using ProCreateApi.Services.Locations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ProCreateApi.Controllers;
@@ -11,6 +12,7 @@ namespace ProCreateApi.Controllers;
 /// list — see <see cref="PsgcLocationService"/>.
 /// </summary>
 [ApiController]
+[AllowAnonymous]
 [Route("api/[controller]")]
 public class LocationsController : ControllerBase
 {

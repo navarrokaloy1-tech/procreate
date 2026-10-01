@@ -3,6 +3,7 @@ using ProCreateApi.Models;
 using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Lis;
 using ProCreateApi.Services.Queue;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -124,6 +125,7 @@ public class PatientsController : ControllerBase
     /// state the kiosk used to leave them in while telling them otherwise.
     /// </summary>
     [HttpPost("self-register")]
+    [AllowAnonymous]
     public async Task<IActionResult> SelfRegister(SelfRegisterRequest request)
     {
         var patient = request.Patient ?? new Patient();

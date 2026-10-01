@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ namespace ProCreateApi.Controllers;
 /// <see cref="TokenIssuer"/>, so the session that comes out is identical.
 /// </summary>
 [ApiController]
+[AllowAnonymous]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {

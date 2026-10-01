@@ -1,6 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
 using ProCreateApi.Services.Queue;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,8 +30,12 @@ public class QueueController : ControllerBase
 
     public record AddToQueueRequest(string PatientName, int? PatientId);
 
-    /// <summary>Today's queue (or the given date), oldest ticket first.</summary>
+    /// <summary>
+    /// Today's queue (or the given date), oldest ticket first. Anonymous: the
+    /// waiting-area display board reads this with no login.
+    /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetQueue([FromQuery] DateTime? date)
     {
         var day = (date ?? DateTime.Today).Date;

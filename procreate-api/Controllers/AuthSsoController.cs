@@ -1,6 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Sso;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -18,6 +19,7 @@ namespace ProCreateApi.Controllers;
 /// admission to the console an administrator's decision.
 /// </summary>
 [ApiController]
+[AllowAnonymous]
 [Route("api/auth/sso")]
 public class AuthSsoController : ControllerBase
 {
