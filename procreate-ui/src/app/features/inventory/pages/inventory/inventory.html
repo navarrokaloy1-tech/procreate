@@ -58,6 +58,10 @@
     <app-icon name="briefcase" [size]="16"></app-icon>
     Add Supplier
   </button>
+  <button type="button" class="manage-menu__item" (click)="openRecipes()">
+    <app-icon name="flask" [size]="16"></app-icon>
+    Test Recipes
+  </button>
   <span class="manage-menu__divider"></span>
   <button
     *ngFor="let type of itemTypes"
@@ -1012,6 +1016,111 @@
         <app-icon name="save" [size]="16"></app-icon>
         {{ isSaving ? 'Saving...' : 'Add Supplier' }}
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Test recipes (auto-deduction) ==================== -->
+<div class="modal-backdrop" *ngIf="sheet === 'recipes'" (click)="closeSheet()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="flask" [size]="19"></app-icon>
+          {{ editingRecipe ? editingRecipe.testName : 'Test Recipes' }}
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ editingRecipe
+            ? 'What this test draws from stock when it is ordered.'
+            : 'Supplies drawn down automatically when a test is ordered on a visit.' }}
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeSheet()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <!-- List view -->
+    <div class="modal-sheet__body" *ngIf="!editingRecipe">
+      <label class="search-field" style="margin-bottom: 0.75rem;">
+        <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+        <input type="search" placeholder="Search tests..." [(ngModel)]="recipeSearch" aria-label="Search tests" />
+      </label>
+
+      <div class="data-table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Draws</th>
+              <th class="text-right">Edit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of filteredRecipes">
+              <td>
+                <span class="cell-stack">
+                  <span class="cell-stack__value fw-semibold">{{ r.testName }}</span>
+                  <span class="cell-stack__sub">{{ r.categoryName }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="chip-list" *ngIf="r.supplies.length > 0; else noDraw">
+                  <span class="tag" *ngFor="let s of r.supplies">{{ s.itemName }} &times;{{ s.quantity }}</span>
+                </span>
+                <ng-template #noDraw><span class="text-muted">Nothing</span></ng-template>
+              </td>
+              <td class="text-right">
+                <button type="button" class="table-actions__btn table-actions__btn--info" (click)="editRecipe(r)" title="Edit recipe" aria-label="Edit recipe">
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Edit view -->
+    <div class="modal-sheet__body" *ngIf="editingRecipe">
+      <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
+
+      <div class="recipe-line" *ngFor="let line of recipeLines; let i = index">
+        <span class="select-field select-field--block recipe-line__item">
+          <select [(ngModel)]="line.inventoryItemId">
+            <option [ngValue]="null">Select item…</option>
+            <option *ngFor="let it of allItems" [ngValue]="it.id">{{ it.name }}</option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+        </span>
+        <input type="number" min="1" class="form-control recipe-line__qty" [(ngModel)]="line.quantity" aria-label="Quantity" />
+        <button type="button" class="table-actions__btn table-actions__btn--danger" (click)="removeRecipeLine(i)" title="Remove" aria-label="Remove">
+          <app-icon name="trash" [size]="16"></app-icon>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-sm" (click)="addRecipeLine()">
+        <app-icon name="plus" [size]="15"></app-icon>
+        Add supply
+      </button>
+
+      <p class="field-hint" style="margin-top: 0.75rem;">
+        Leave empty to draw nothing. Quantities are in each item's unit of measure.
+      </p>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <ng-container *ngIf="!editingRecipe">
+        <button type="button" class="btn btn-secondary" (click)="closeSheet()">Close</button>
+      </ng-container>
+      <ng-container *ngIf="editingRecipe">
+        <button type="button" class="btn btn-secondary" (click)="backToRecipeList()" [disabled]="isRecipeSaving">Back</button>
+        <button type="button" class="btn btn-primary" (click)="saveRecipe()" [disabled]="isRecipeSaving">
+          <app-icon name="save" [size]="16"></app-icon>
+          {{ isRecipeSaving ? 'Saving...' : 'Save Recipe' }}
+        </button>
+      </ng-container>
     </div>
   </div>
 </div>

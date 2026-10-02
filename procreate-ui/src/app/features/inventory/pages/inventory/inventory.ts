@@ -111,8 +111,29 @@ interface AlertsReport {
   outOfStock: BriefItem[];
 }
 
+export interface RecipeSupply {
+  inventoryItemId: number;
+  itemName: string;
+  unit: string;
+  quantity: number;
+}
+
+export interface TestRecipe {
+  labTestId: number;
+  code: string;
+  testName: string;
+  categoryName: string;
+  supplies: RecipeSupply[];
+}
+
+interface PickItem {
+  id: number;
+  name: string;
+  unitOfMeasure: string;
+}
+
 /** Which sheet is open, if any. */
-type Sheet = 'item' | 'category' | 'supplier' | 'suppliers' | 'stock' | null;
+type Sheet = 'item' | 'category' | 'supplier' | 'suppliers' | 'stock' | 'recipes' | null;
 
 /** The three ways stock moves by hand. */
 type StockMode = 'in' | 'out' | 'adjust';
@@ -178,6 +199,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
   categoryForm = { name: '', description: '' };
   supplierForm = { name: '', contactPerson: '', contactNumber: '', email: '', address: '' };
   stockForm = this.blankStock();
+
+  // --- Test recipes (auto-deduction) ---
+  recipes: TestRecipe[] = [];
+  recipeSearch = '';
+  allItems: PickItem[] = [];
+  editingRecipe: TestRecipe | null = null;
+  recipeLines: { inventoryItemId: number | null; quantity: number }[] = [];
+  isRecipeSaving = false;
 
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
@@ -687,10 +716,103 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ----------------------------------------------------------
+  // Test recipes (auto-deduction)
+  // ----------------------------------------------------------
+
+  openRecipes(): void {
+    this.isManageOpen = false;
+    this.sheetError = '';
+    this.editingRecipe = null;
+    this.recipeSearch = '';
+    this.sheet = 'recipes';
+    this.loadRecipes();
+    this.loadAllItems();
+  }
+
+  loadRecipes(): void {
+    this.api.get<TestRecipe[]>('inventory/test-recipes').subscribe({
+      next: (recipes) => {
+        this.recipes = recipes;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
+  loadAllItems(): void {
+    this.api
+      .get<{ data: PickItem[] }>('inventory/items', { pageSize: 500 })
+      .subscribe({
+        next: (res) => {
+          this.allItems = res.data;
+          this.cdr.markForCheck();
+        },
+        error: () => this.cdr.markForCheck(),
+      });
+  }
+
+  get filteredRecipes(): TestRecipe[] {
+    const q = this.recipeSearch.trim().toLowerCase();
+    if (!q) return this.recipes;
+    return this.recipes.filter(
+      (r) => r.testName.toLowerCase().includes(q) || (r.code ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  editRecipe(recipe: TestRecipe): void {
+    this.editingRecipe = recipe;
+    this.recipeLines = recipe.supplies.map((s) => ({
+      inventoryItemId: s.inventoryItemId,
+      quantity: s.quantity,
+    }));
+    if (this.recipeLines.length === 0) this.addRecipeLine();
+    this.sheetError = '';
+  }
+
+  backToRecipeList(): void {
+    this.editingRecipe = null;
+    this.sheetError = '';
+  }
+
+  addRecipeLine(): void {
+    this.recipeLines.push({ inventoryItemId: null, quantity: 1 });
+  }
+
+  removeRecipeLine(index: number): void {
+    this.recipeLines.splice(index, 1);
+  }
+
+  saveRecipe(): void {
+    if (!this.editingRecipe) return;
+
+    const supplies = this.recipeLines
+      .filter((l) => l.inventoryItemId && Number(l.quantity) > 0)
+      .map((l) => ({ inventoryItemId: Number(l.inventoryItemId), quantity: Math.trunc(Number(l.quantity)) }));
+
+    this.isRecipeSaving = true;
+    this.api
+      .put(`inventory/test-recipes/${this.editingRecipe.labTestId}`, { supplies })
+      .subscribe({
+        next: () => {
+          this.isRecipeSaving = false;
+          this.editingRecipe = null;
+          this.loadRecipes();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.isRecipeSaving = false;
+          this.sheetError = err?.error?.message ?? 'Could not save the recipe.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   closeSheet(): void {
     this.sheet = null;
     this.sheetError = '';
     this.isSaving = false;
+    this.editingRecipe = null;
   }
 
   private refreshAll(): void {
