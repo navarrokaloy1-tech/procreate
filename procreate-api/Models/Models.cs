@@ -482,6 +482,38 @@ public class ResultDelivery
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>
+/// One sign-in attempt — successful or not, password or single sign-on, staff
+/// or patient. Kept so an administrator can see who got in, who tried and
+/// failed, and from where. A failed attempt records the name that was typed,
+/// since no account is known at that point.
+/// </summary>
+public class LoginActivity
+{
+    public int Id { get; set; }
+
+    /// <summary>The username / email / patient code as typed at sign-in.</summary>
+    public string UsernameAttempted { get; set; } = string.Empty;
+
+    /// <summary>The matched account, once known. Null for a failed attempt.</summary>
+    public int? UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+
+    /// <summary>Password | SSO</summary>
+    public string Method { get; set; } = "Password";
+    /// <summary>Staff | Patient</summary>
+    public string Audience { get; set; } = "Staff";
+
+    public bool Success { get; set; }
+    public string FailureReason { get; set; } = string.Empty;
+
+    public string IpAddress { get; set; } = string.Empty;
+    public string UserAgent { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 // ============================================================
 // Appointment batches — the clinic works in session blocks
 // ============================================================

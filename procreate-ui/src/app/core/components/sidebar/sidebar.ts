@@ -61,11 +61,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
         {
           label: 'Clinic Operations',
           items: [{ label: 'Cashier Desk', route: '/app/cashier', icon: 'cashier' }]
-        },
-        {
-          label: 'Billing & Orders',
-          items: [{ label: 'Orders', route: '/app/orders', icon: 'orders' }]
         }
+        // Hidden until the Billing & Orders scope is confirmed. Routes and
+        // features are untouched — uncomment to bring the section back.
+        // ,{
+        //   label: 'Billing & Orders',
+        //   items: [{ label: 'Orders', route: '/app/orders', icon: 'orders' }]
+        // }
       ];
     }
 
@@ -119,24 +121,26 @@ export class SidebarComponent implements OnInit, OnDestroy {
           { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
         ]
       },
-      {
-        label: 'Medical Records',
-        items: [
-          { label: 'Consultations', route: '/app/visits', icon: 'stethoscope' },
-          {
-            label: 'Medical Certificates',
-            route: '/app/medical-records/certificates',
-            icon: 'file-text'
-          }
-        ]
-      },
-      {
-        label: 'Billing & Orders',
-        items: [
-          { label: 'Orders', route: '/app/orders', icon: 'orders' },
-          { label: 'Billing', route: '/app/billing', icon: 'credit-card' }
-        ]
-      },
+      // {
+      //   label: 'Medical Records',
+      //   items: [
+      //     { label: 'Consultations', route: '/app/visits', icon: 'stethoscope' },
+      //     {
+      //       label: 'Medical Certificates',
+      //       route: '/app/medical-records/certificates',
+      //       icon: 'file-text'
+      //     }
+      //   ]
+      // },
+      // Hidden until the Billing & Orders scope is confirmed. Routes and
+      // features are untouched — uncomment to bring the section back.
+      // {
+      //   label: 'Billing & Orders',
+      //   items: [
+      //     { label: 'Orders', route: '/app/orders', icon: 'orders' },
+      //     { label: 'Billing', route: '/app/billing', icon: 'credit-card' }
+      //   ]
+      // },
       {
         label: 'Clinic Setup',
         items: [
@@ -147,7 +151,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
       },
       {
         label: 'Account settings',
-        items: [{ label: 'User Management', route: '/app/users', icon: 'users' }]
+        items: [
+          { label: 'User Management', route: '/app/users', icon: 'users' },
+          { label: 'Login Activity', route: '/app/login-activity', icon: 'shield' }
+        ]
       },
       {
         label: 'Reports',

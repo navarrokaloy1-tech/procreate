@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<ResultDelivery> ResultDeliveries => Set<ResultDelivery>();
+    public DbSet<LoginActivity> LoginActivities => Set<LoginActivity>();
     public DbSet<AppointmentBatch> AppointmentBatches => Set<AppointmentBatch>();
     public DbSet<AppointmentBatchTemplate> AppointmentBatchTemplates => Set<AppointmentBatchTemplate>();
     public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
@@ -195,6 +196,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ResultDelivery>()
             .HasIndex(d => new { d.PatientId, d.CreatedAt });
+
+        // The login trail is read newest-first and filtered by outcome.
+        modelBuilder.Entity<LoginActivity>()
+            .HasIndex(a => a.CreatedAt);
 
         modelBuilder.Entity<AppointmentBatch>()
             .HasIndex(b => new { b.BatchDate, b.StartTime })

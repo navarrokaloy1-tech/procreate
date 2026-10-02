@@ -18,11 +18,13 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly TokenIssuer _tokens;
+    private readonly LoginAudit _audit;
 
-    public AuthController(AppDbContext db, TokenIssuer tokens)
+    public AuthController(AppDbContext db, TokenIssuer tokens, LoginAudit audit)
     {
         _db = db;
         _tokens = tokens;
+        _audit = audit;
     }
 
     // ----------------------------------------------------------
@@ -34,9 +36,16 @@ public class AuthController : ControllerBase
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == req.Username && u.IsActive);
         if (user is null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
+        {
+            await _audit.RecordFailureAsync(HttpContext, "Password", "Staff",
+                req.Username, "Invalid username or password");
             return Unauthorized(new { message = "Invalid username or password" });
+        }
 
-        return Ok(await _tokens.CreateStaffSessionAsync(user));
+        var session = await _tokens.CreateStaffSessionAsync(user);
+        await _audit.RecordSuccessAsync(HttpContext, "Password", "Staff",
+            req.Username, user.Id, user.FullName, user.Role);
+        return Ok(session);
     }
 
     // ----------------------------------------------------------
@@ -52,7 +61,11 @@ public class AuthController : ControllerBase
     {
         var identifier = (req.Username ?? string.Empty).Trim();
         if (identifier.Length == 0 || string.IsNullOrEmpty(req.Password))
+        {
+            await _audit.RecordFailureAsync(HttpContext, "Password", "Patient",
+                identifier, "Missing sign-in details");
             return Unauthorized(new { message = "Invalid sign-in details" });
+        }
 
         var patient = await _db.Patients.FirstOrDefaultAsync(p =>
             p.PortalEnabled &&
@@ -64,10 +77,17 @@ public class AuthController : ControllerBase
             patient.PasswordHash.Length == 0 ||
             !BCrypt.Net.BCrypt.Verify(req.Password, patient.PasswordHash))
         {
+            await _audit.RecordFailureAsync(HttpContext, "Password", "Patient",
+                identifier, "Invalid sign-in details");
             return Unauthorized(new { message = "Invalid sign-in details" });
         }
 
-        return Ok(await _tokens.CreatePatientSessionAsync(patient));
+        var session = await _tokens.CreatePatientSessionAsync(patient);
+        var patientName = string.Join(' ', new[] { patient.FirstName, patient.LastName }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
+        await _audit.RecordSuccessAsync(HttpContext, "Password", "Patient",
+            identifier, patient.Id, patientName, TokenIssuer.PatientRole);
+        return Ok(session);
     }
 
     [HttpPost("logout")]

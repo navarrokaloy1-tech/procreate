@@ -2,6 +2,14 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "procreate-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--launch-profile", "http"],
+      "cwd": "procreate-api",
+      "port": 5230,
+      "autoPort": false
+    },
+    {
       "name": "procreate-ui",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],

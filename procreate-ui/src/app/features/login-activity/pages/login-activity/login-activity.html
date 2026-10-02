@@ -1,0 +1,204 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="shield" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Login Activity</h1>
+        <p class="page-hero__subtitle">Who signed in, who tried and failed, and from where</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <span class="hero-stat" [class.hero-stat--alert]="failures24h > 0">
+        <app-icon name="alert-triangle" [size]="16"></app-icon>
+        {{ failures24h }} failed in last 24h
+      </span>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <span class="toolbar__pagesize">
+      <span class="select-field select-field--sm">
+        <select
+          [ngModel]="pageSize"
+          (ngModelChange)="onPageSizeChange($event)"
+          name="pageSize"
+          aria-label="Entries per page"
+        >
+          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+        </select>
+        <span class="select-field__caret"><app-icon name="chevron-down" [size]="14"></app-icon></span>
+      </span>
+      <span class="toolbar__label">entries per page</span>
+    </span>
+
+    <span class="toolbar__spacer"></span>
+
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search name, username, or IP..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        aria-label="Search login activity"
+      />
+    </label>
+
+    <span class="filter-wrap">
+      <button
+        type="button"
+        class="tool-btn"
+        (click)="toggleFilter()"
+        title="Filter activity"
+        aria-label="Filter activity"
+      >
+        <app-icon name="filter" [size]="17"></app-icon>
+      </button>
+
+      <div class="filter-menu" *ngIf="isFilterOpen">
+        <p class="filter-menu__head">Result</p>
+        <button type="button" class="filter-menu__item" (click)="setResultFilter('')">
+          <app-icon name="check" [size]="14" *ngIf="!resultFilter"></app-icon>
+          All results
+        </button>
+        <button type="button" class="filter-menu__item" (click)="setResultFilter('success')">
+          <app-icon name="check" [size]="14" *ngIf="resultFilter === 'success'"></app-icon>
+          Successful
+        </button>
+        <button type="button" class="filter-menu__item" (click)="setResultFilter('failure')">
+          <app-icon name="check" [size]="14" *ngIf="resultFilter === 'failure'"></app-icon>
+          Failed
+        </button>
+
+        <p class="filter-menu__head">Method</p>
+        <button type="button" class="filter-menu__item" (click)="setMethodFilter('')">
+          <app-icon name="check" [size]="14" *ngIf="!methodFilter"></app-icon>
+          All methods
+        </button>
+        <button type="button" class="filter-menu__item" (click)="setMethodFilter('Password')">
+          <app-icon name="check" [size]="14" *ngIf="methodFilter === 'Password'"></app-icon>
+          Password
+        </button>
+        <button type="button" class="filter-menu__item" (click)="setMethodFilter('SSO')">
+          <app-icon name="check" [size]="14" *ngIf="methodFilter === 'SSO'"></app-icon>
+          SSO
+        </button>
+      </div>
+    </span>
+  </div>
+
+  <div class="active-filter" *ngIf="resultFilter || methodFilter">
+    <span class="tag tag--primary">{{ activeFilterLabel }}</span>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading login activity...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="attempts.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Result</th>
+            <th>Account</th>
+            <th>Method</th>
+            <th>IP Address</th>
+            <th>Device</th>
+            <th>When</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of attempts">
+            <td>
+              <span class="presence" [class.presence--online]="a.success">
+                <span class="presence__dot"></span>
+                {{ a.success ? 'Success' : 'Failed' }}
+              </span>
+              <span class="cell-reason" *ngIf="!a.success && a.failureReason">{{ a.failureReason }}</span>
+            </td>
+
+            <td>
+              <div class="cell-user">
+                <span class="cell-user__body">
+                  <span class="cell-user__name">{{ a.fullName || a.usernameAttempted || 'Unknown' }}</span>
+                  <span class="cell-user__sub">{{ a.usernameAttempted }}</span>
+                </span>
+              </div>
+            </td>
+
+            <td>
+              <span class="cell-badges">
+                <span class="pill">{{ a.method }}</span>
+                <span class="tag">{{ a.audience }}</span>
+              </span>
+            </td>
+
+            <td>{{ a.ipAddress || '—' }}</td>
+
+            <td>{{ deviceOf(a.userAgent) }}</td>
+
+            <td>{{ a.createdAt | date: 'MMM d, y · h:mm a' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="shield" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No login activity</h3>
+        <p class="empty-rich__text">No sign-in attempts match the current search or filter.</p>
+      </div>
+    </ng-template>
+
+    <div class="table-footer" *ngIf="totalCount > 0">
+      <div class="table-footer__left">
+        <span class="table-footer__range">
+          Showing <strong>{{ rangeStart }}</strong> to <strong>{{ rangeEnd }}</strong>
+          of {{ totalCount }} entries
+        </span>
+      </div>
+
+      <div class="table-footer__right" *ngIf="totalPages > 1">
+        <div class="pager">
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === 0"
+            (click)="onPageChange(pageIndex - 1)"
+          >
+            &laquo; Previous
+          </button>
+
+          <ng-container *ngFor="let page of pages">
+            <span *ngIf="page < 0" class="pager__ellipsis">&hellip;</span>
+            <button
+              *ngIf="page >= 0"
+              type="button"
+              class="pager__btn"
+              [class.active]="page === pageIndex"
+              (click)="onPageChange(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </ng-container>
+
+          <button
+            type="button"
+            class="pager__btn"
+            [disabled]="pageIndex === totalPages - 1"
+            (click)="onPageChange(pageIndex + 1)"
+          >
+            Next &raquo;
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

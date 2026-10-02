@@ -31,6 +31,7 @@ public class AuthSsoController : ControllerBase
     private readonly OidcClient _oidc;
     private readonly SsoHandoff _handoff;
     private readonly TokenIssuer _tokens;
+    private readonly LoginAudit _audit;
     private readonly ILogger<AuthSsoController> _log;
 
     public AuthSsoController(
@@ -39,6 +40,7 @@ public class AuthSsoController : ControllerBase
         OidcClient oidc,
         SsoHandoff handoff,
         TokenIssuer tokens,
+        LoginAudit audit,
         ILogger<AuthSsoController> log)
     {
         _db = db;
@@ -46,6 +48,7 @@ public class AuthSsoController : ControllerBase
         _oidc = oidc;
         _handoff = handoff;
         _tokens = tokens;
+        _audit = audit;
         _log = log;
     }
 
@@ -177,13 +180,25 @@ public class AuthSsoController : ControllerBase
         if (_settings.StaffGroup.Length > 0 && !IsInStaffGroup(principal))
         {
             _log.LogInformation("SSO sign-in refused: not a member of {Group}", _settings.StaffGroup);
+            await _audit.RecordFailureAsync(HttpContext, "SSO", "Staff", email,
+                "Not a member of the staff group");
             return null;
         }
 
         var user = await _db.Users
             .FirstOrDefaultAsync(u => u.IsActive && u.Email != "" && u.Email.ToLower() == email);
 
-        return user is null ? null : await _tokens.CreateStaffSessionAsync(user);
+        if (user is null)
+        {
+            await _audit.RecordFailureAsync(HttpContext, "SSO", "Staff", email,
+                "No staff account matches that sign-in");
+            return null;
+        }
+
+        var session = await _tokens.CreateStaffSessionAsync(user);
+        await _audit.RecordSuccessAsync(HttpContext, "SSO", "Staff", email,
+            user.Id, user.FullName, user.Role);
+        return session;
     }
 
     private async Task<object?> PatientSessionAsync(string email)
@@ -194,7 +209,19 @@ public class AuthSsoController : ControllerBase
         var patient = await _db.Patients
             .FirstOrDefaultAsync(p => p.PortalEnabled && p.Email != "" && p.Email.ToLower() == email);
 
-        return patient is null ? null : await _tokens.CreatePatientSessionAsync(patient);
+        if (patient is null)
+        {
+            await _audit.RecordFailureAsync(HttpContext, "SSO", "Patient", email,
+                "No patient account matches that sign-in");
+            return null;
+        }
+
+        var session = await _tokens.CreatePatientSessionAsync(patient);
+        var patientName = string.Join(' ', new[] { patient.FirstName, patient.LastName }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
+        await _audit.RecordSuccessAsync(HttpContext, "SSO", "Patient", email,
+            patient.Id, patientName, TokenIssuer.PatientRole);
+        return session;
     }
 
     private bool IsInStaffGroup(ClaimsPrincipal principal) =>

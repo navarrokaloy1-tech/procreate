@@ -82,6 +82,13 @@ const routes: Routes = [
           )
       },
       {
+        path: 'login-activity',
+        loadChildren: () =>
+          import('./features/login-activity/login-activity-module').then(
+            m => m.LoginActivityModule
+          )
+      },
+      {
         path: 'doctors',
         loadChildren: () =>
           import('./features/doctors/doctors-module').then(m => m.DoctorsModule)

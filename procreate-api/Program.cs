@@ -66,6 +66,9 @@ builder.Services.AddHttpClient<OidcClient>(client => client.Timeout = TimeSpan.F
 // Every sign-in route mints its session here, password or SSO alike.
 builder.Services.AddScoped<TokenIssuer>();
 
+// Records sign-in attempts (success and failure) for the login activity trail.
+builder.Services.AddScoped<LoginAudit>();
+
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()
     .AddJsonOptions(opt =>
