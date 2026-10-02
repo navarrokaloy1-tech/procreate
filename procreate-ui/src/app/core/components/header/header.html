@@ -9,9 +9,56 @@
   </nav>
 
   <div class="header__right" *ngIf="currentUser$ | async as user">
-    <!-- <button type="button" class="header__icon-btn" aria-label="Support">
-      <app-icon name="headset" [size]="20"></app-icon>
-    </button> -->
+    <!-- Inventory alert bell -->
+    <div class="bell" [class.open]="bellOpen" *ngIf="canSeeAlerts">
+      <button
+        type="button"
+        class="header__icon-btn bell__btn"
+        (click)="toggleBell()"
+        [attr.aria-expanded]="bellOpen"
+        aria-label="Inventory alerts"
+      >
+        <app-icon name="bell" [size]="20"></app-icon>
+        <span class="bell__badge" *ngIf="alertCount > 0">{{ alertCount > 99 ? '99+' : alertCount }}</span>
+      </button>
+
+      <div class="menu-panel bell__panel" *ngIf="bellOpen">
+        <div class="bell__head">
+          <strong>Inventory alerts</strong>
+          <small *ngIf="alerts">{{ alerts.counts.total }} to review</small>
+        </div>
+        <div class="menu-panel__divider"></div>
+
+        <ng-container *ngIf="alerts && alerts.counts.total > 0; else allClear">
+          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.expired > 0" (click)="goToInventory()">
+            <app-icon name="alert-triangle" [size]="15"></app-icon>
+            <span>{{ alerts.counts.expired }} expired batch{{ alerts.counts.expired === 1 ? '' : 'es' }}</span>
+          </button>
+          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.expiringSoon > 0" (click)="goToInventory()">
+            <app-icon name="clock" [size]="15"></app-icon>
+            <span>{{ alerts.counts.expiringSoon }} batch{{ alerts.counts.expiringSoon === 1 ? '' : 'es' }} expiring soon</span>
+          </button>
+          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.outOfStock > 0" (click)="goToInventory()">
+            <app-icon name="package" [size]="15"></app-icon>
+            <span>{{ alerts.counts.outOfStock }} item{{ alerts.counts.outOfStock === 1 ? '' : 's' }} out of stock</span>
+          </button>
+          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.lowStock > 0" (click)="goToInventory()">
+            <app-icon name="trending-up" [size]="15"></app-icon>
+            <span>{{ alerts.counts.lowStock }} item{{ alerts.counts.lowStock === 1 ? '' : 's' }} low on stock</span>
+          </button>
+
+          <div class="menu-panel__divider"></div>
+          <button type="button" class="menu-panel__item" (click)="goToInventory()">
+            <app-icon name="package" [size]="16"></app-icon>
+            <span>Open Inventory</span>
+          </button>
+        </ng-container>
+
+        <ng-template #allClear>
+          <p class="bell__empty">Everything is in date and above reorder level.</p>
+        </ng-template>
+      </div>
+    </div>
 
     <div class="user-pill" [class.open]="menuOpen">
       <button

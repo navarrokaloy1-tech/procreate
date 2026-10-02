@@ -17,10 +17,15 @@ public class InventoryController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly InventoryLedger _ledger;
-    public InventoryController(AppDbContext db, InventoryLedger ledger)
+    private readonly InventoryAlertService _alerts;
+    private readonly InventoryAlertDigest _digest;
+    public InventoryController(
+        AppDbContext db, InventoryLedger ledger, InventoryAlertService alerts, InventoryAlertDigest digest)
     {
         _db = db;
         _ledger = ledger;
+        _alerts = alerts;
+        _digest = digest;
     }
 
     /// <summary>Whoever is acting, for the stock ledger. Blank only off a request.</summary>
@@ -332,61 +337,20 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpGet("alerts")]
     public async Task<IActionResult> GetAlerts([FromQuery] int expiryDays = 30)
+        => Ok(await _alerts.BuildAsync(expiryDays));
+
+    /// <summary>
+    /// Sends the alert digest to the configured recipients right now. Manual and
+    /// admin-only — independent of the scheduled job, so an administrator can
+    /// test it (or send one off) regardless of whether the daily digest is on.
+    /// </summary>
+    [HttpPost("alerts/send-digest")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SendDigest()
     {
-        expiryDays = Math.Clamp(expiryDays, 1, 365);
-        var today = DateTime.Today;
-        var horizon = today.AddDays(expiryDays);
-
-        var batches = await _db.StockBatches
-            .Include(b => b.InventoryItem)
-            .Where(b => b.QuantityRemaining > 0 && b.ExpiryDate != null)
-            .OrderBy(b => b.ExpiryDate)
-            .ToListAsync();
-
-        var expired = batches
-            .Where(b => b.ExpiryDate!.Value.Date < today)
-            .Select(BatchAlert).ToList();
-        var expiringSoon = batches
-            .Where(b => b.ExpiryDate!.Value.Date >= today && b.ExpiryDate.Value.Date <= horizon)
-            .Select(BatchAlert).ToList();
-
-        var items = await _db.InventoryItems.Where(i => i.IsActive).ToListAsync();
-        var outOfStock = items.Where(i => i.CurrentStock <= 0).OrderBy(i => i.Name).Select(Brief).ToList();
-        var lowStock = items
-            .Where(i => i.CurrentStock > 0 && i.CurrentStock <= i.ReorderLevel)
-            .OrderBy(i => i.CurrentStock).Select(Brief).ToList();
-
-        return Ok(new
-        {
-            expiryDays,
-            counts = new
-            {
-                expired = expired.Count,
-                expiringSoon = expiringSoon.Count,
-                lowStock = lowStock.Count,
-                outOfStock = outOfStock.Count,
-                total = expired.Count + expiringSoon.Count + lowStock.Count + outOfStock.Count
-            },
-            expired,
-            expiringSoon,
-            lowStock,
-            outOfStock
-        });
+        var (sent, message) = await _digest.SendAsync();
+        return sent ? Ok(new { sent, message }) : BadRequest(new { sent, message });
     }
-
-    private static object BatchAlert(StockBatch b) => new
-    {
-        b.Id,
-        itemId = b.InventoryItemId,
-        itemName = b.InventoryItem.Name,
-        b.BatchNumber,
-        b.ExpiryDate,
-        b.QuantityRemaining,
-        unit = b.InventoryItem.UnitOfMeasure,
-        daysToExpiry = b.ExpiryDate.HasValue
-            ? (int)Math.Floor((b.ExpiryDate.Value.Date - DateTime.Today).TotalDays)
-            : (int?)null
-    };
 
     // ----------------------------------------------------------
     // Test recipes — what each test consumes (drives auto-deduction)

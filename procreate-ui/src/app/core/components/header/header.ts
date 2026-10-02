@@ -1,11 +1,32 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Observable, filter, map, startWith } from 'rxjs';
 import { AuthService, AuthUser } from '../../services/auth';
+import { ApiService } from '../../services/api';
 
 interface Crumb {
   section: string;
   page: string;
+}
+
+interface ExpiryAlertBrief {
+  itemName: string;
+  batchNumber: string;
+  daysToExpiry: number | null;
+}
+
+interface StockAlertBrief {
+  name: string;
+  currentStock: number;
+  unitOfMeasure: string;
+}
+
+interface AlertsSummary {
+  counts: { expired: number; expiringSoon: number; lowStock: number; outOfStock: number; total: number };
+  expired: ExpiryAlertBrief[];
+  expiringSoon: ExpiryAlertBrief[];
+  lowStock: StockAlertBrief[];
+  outOfStock: StockAlertBrief[];
 }
 
 @Component({
@@ -14,10 +35,17 @@ interface Crumb {
   templateUrl: './header.html',
   styleUrls: ['./header.scss']
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
   currentUser$!: Observable<AuthUser | null>;
   crumb$!: Observable<Crumb>;
   menuOpen = false;
+
+  // Inventory alert bell — only for roles that can see Inventory.
+  canSeeAlerts = false;
+  alerts: AlertsSummary | null = null;
+  alertCount = 0;
+  bellOpen = false;
+  private pollHandle: ReturnType<typeof setInterval> | null = null;
 
   /** Section > Page label for each top-level feature route. */
   private static readonly CRUMBS: Record<string, Crumb> = {
@@ -35,7 +63,12 @@ export class HeaderComponent implements OnInit {
     reports: { section: 'Reports', page: 'Reports & Analytics' }
   };
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.currentUser$ = this.authService.user$;
@@ -45,6 +78,43 @@ export class HeaderComponent implements OnInit {
       startWith(null),
       map(() => this.resolveCrumb())
     );
+
+    // The bell mirrors the Inventory section: cashiers and doctors don't see it.
+    const role = this.authService.currentUser?.role ?? '';
+    this.canSeeAlerts = role !== 'Cashier' && role !== 'Doctor' && role !== 'Patient';
+    if (this.canSeeAlerts) {
+      this.loadAlerts();
+      // A light refresh so a day-turnover or a depleted item shows up without a reload.
+      this.pollHandle = setInterval(() => this.loadAlerts(), 5 * 60 * 1000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollHandle) clearInterval(this.pollHandle);
+  }
+
+  private loadAlerts(): void {
+    this.api.get<AlertsSummary>('inventory/alerts').subscribe({
+      next: (alerts) => {
+        this.alerts = alerts;
+        this.alertCount = alerts?.counts?.total ?? 0;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
+  toggleBell(): void {
+    this.bellOpen = !this.bellOpen;
+  }
+
+  closeBell(): void {
+    this.bellOpen = false;
+  }
+
+  goToInventory(): void {
+    this.bellOpen = false;
+    this.router.navigate(['/app/inventory']);
   }
 
   private resolveCrumb(): Crumb {

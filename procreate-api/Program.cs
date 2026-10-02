@@ -73,6 +73,16 @@ builder.Services.AddScoped<LoginAudit>();
 // The single chokepoint for stock movements (stock-in/out, corrections, auto-deduction).
 builder.Services.AddScoped<InventoryLedger>();
 
+// Inventory alerts: the shared report feeds the endpoint, the header bell and
+// the email digest. The digest is scheduled but ships disabled — see
+// InventoryAlertSettings — so nothing is emailed until the clinic turns it on.
+builder.Services.AddScoped<InventoryAlertService>();
+var inventoryAlertSettings =
+    builder.Configuration.GetSection("InventoryAlerts").Get<InventoryAlertSettings>() ?? new InventoryAlertSettings();
+builder.Services.AddSingleton(inventoryAlertSettings);
+builder.Services.AddScoped<InventoryAlertDigest>();
+builder.Services.AddHostedService<InventoryAlertScheduler>();
+
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()
     .AddJsonOptions(opt =>
