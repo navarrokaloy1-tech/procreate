@@ -142,8 +142,34 @@
           reached reorder level.
         </button>
 
-        <p class="text-muted" *ngIf="summary && summary.outOfStock === 0 && summary.lowStock === 0">
-          Everything is above its reorder level.
+        <button
+          type="button"
+          class="alert-line alert-line--danger"
+          *ngIf="alerts && alerts.counts.expired > 0"
+          (click)="showBatches()"
+        >
+          <app-icon name="alert-triangle" [size]="16"></app-icon>
+          {{ alerts.counts.expired }} {{ alerts.counts.expired === 1 ? 'batch has' : 'batches have' }}
+          expired.
+        </button>
+
+        <button
+          type="button"
+          class="alert-line alert-line--warning"
+          *ngIf="alerts && alerts.counts.expiringSoon > 0"
+          (click)="showBatches()"
+        >
+          <app-icon name="clock" [size]="16"></app-icon>
+          {{ alerts.counts.expiringSoon }} {{ alerts.counts.expiringSoon === 1 ? 'batch expires' : 'batches expire' }}
+          within {{ alerts.expiryDays }} days.
+        </button>
+
+        <p
+          class="text-muted"
+          *ngIf="summary && summary.outOfStock === 0 && summary.lowStock === 0
+            && alerts && alerts.counts.expired === 0 && alerts.counts.expiringSoon === 0"
+        >
+          Everything is above its reorder level and in date.
         </p>
       </div>
     </div>
@@ -285,9 +311,9 @@
                 <button
                   type="button"
                   class="table-actions__btn"
-                  (click)="openStock(item)"
-                  title="Adjust stock"
-                  aria-label="Adjust stock"
+                  (click)="openStock(item, 'in')"
+                  title="Stock in / out / adjust"
+                  aria-label="Move stock"
                 >
                   <app-icon name="package" [size]="16"></app-icon>
                 </button>
@@ -397,22 +423,120 @@
   </ng-container>
 </div>
 
-<!-- ==================== Not built yet ==================== -->
-<div class="card tab-card" *ngIf="activeTab === 'Stock Batches' || activeTab === 'Transactions'">
-  <div class="empty-rich">
-    <span class="empty-rich__icon">
-      <app-icon [name]="activeTab === 'Stock Batches' ? 'package' : 'history'" [size]="32"></app-icon>
-    </span>
-    <h3 class="empty-rich__title">{{ activeTab }} are not built yet</h3>
-    <p class="empty-rich__text">
-      {{ activeTab === 'Stock Batches'
-        ? 'Batch numbers and expiry tracking will live here. Stock levels are tracked per item on the Items tab in the meantime.'
-        : 'A ledger of every stock movement will live here. Adjustments are applied directly to the item for now.' }}
-    </p>
-    <button type="button" class="btn btn-primary" (click)="onTabChange('Items')">
-      Go to Items
-    </button>
+<!-- ==================== Stock Batches ==================== -->
+<div class="card tab-card" *ngIf="activeTab === 'Stock Batches'">
+  <div *ngIf="isLoadingBatches" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading batches...</p>
   </div>
+
+  <ng-container *ngIf="!isLoadingBatches">
+    <div class="data-table-scroll" *ngIf="batches.length > 0; else noBatches">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Batch</th>
+            <th>Expiry</th>
+            <th class="text-center">Remaining</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of batches">
+            <td class="fw-semibold">{{ b.itemName }}</td>
+            <td>{{ b.batchNumber || '—' }}</td>
+            <td>
+              <ng-container *ngIf="b.expiryDate; else noExpiry">
+                {{ b.expiryDate | date: 'MMM d, y' }}
+                <small class="batch-days" *ngIf="b.daysToExpiry !== null">
+                  ({{ b.daysToExpiry < 0 ? (-b.daysToExpiry) + 'd ago' : 'in ' + b.daysToExpiry + 'd' }})
+                </small>
+              </ng-container>
+              <ng-template #noExpiry><span class="text-muted">No expiry</span></ng-template>
+            </td>
+            <td class="text-center">{{ b.quantityRemaining }} <small>/ {{ b.quantityReceived }} {{ b.unit }}</small></td>
+            <td><span [class]="batchStatusClass(b.status)">{{ b.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #noBatches>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="package" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No open batches</h3>
+        <p class="empty-rich__text">Batches are created when you receive stock in. Use the stock-in action on any item.</p>
+        <button type="button" class="btn btn-primary" (click)="onTabChange('Items')">Go to Items</button>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<!-- ==================== Transactions (stock ledger) ==================== -->
+<div class="card tab-card" *ngIf="activeTab === 'Transactions'">
+  <div class="toolbar">
+    <span class="toolbar__grow"></span>
+    <span class="select-field">
+      <select [(ngModel)]="movementTypeFilter" (ngModelChange)="onMovementTypeChange()" aria-label="Filter by type">
+        <option value="">All Movements</option>
+        <option *ngFor="let t of movementTypes" [value]="t">{{ t }}</option>
+      </select>
+      <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
+    </span>
+  </div>
+
+  <div *ngIf="isLoadingMovements" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading transactions...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoadingMovements">
+    <div class="data-table-scroll" *ngIf="movements.length > 0; else noMovements">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Item</th>
+            <th>Type</th>
+            <th class="text-center">Change</th>
+            <th class="text-center">Balance</th>
+            <th>Reason / Ref</th>
+            <th>By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of movements">
+            <td>{{ m.createdAt | date: 'MMM d, y · h:mm a' }}</td>
+            <td class="fw-semibold">{{ m.itemName }}</td>
+            <td><span [class]="movementClass(m.movementType)">{{ m.movementType }}</span></td>
+            <td class="text-center">
+              <span class="qty-change" [class.qty-change--up]="m.quantityChange > 0" [class.qty-change--down]="m.quantityChange < 0">
+                {{ m.quantityChange > 0 ? '+' : '' }}{{ m.quantityChange }}
+              </span>
+            </td>
+            <td class="text-center">{{ m.balanceAfter }} <small>{{ m.unit }}</small></td>
+            <td>
+              <span class="cell-stack">
+                <span>{{ m.reason || '—' }}</span>
+                <span class="cell-stack__sub" *ngIf="m.reference">{{ m.reference }}</span>
+              </span>
+            </td>
+            <td>{{ m.performedBy || 'system' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #noMovements>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="history" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No stock movements yet</h3>
+        <p class="empty-rich__text">Every stock-in, stock-out, correction and automatic deduction is recorded here.</p>
+        <button type="button" class="btn btn-primary" (click)="onTabChange('Items')">Go to Items</button>
+      </div>
+    </ng-template>
+  </ng-container>
 </div>
 
 <!-- ==================== Add / edit item ==================== -->
@@ -617,14 +741,14 @@
   </div>
 </div>
 
-<!-- ==================== Stock adjustment ==================== -->
+<!-- ==================== Stock movement (in / out / adjust) ==================== -->
 <div class="modal-backdrop" *ngIf="sheet === 'stock'" (click)="closeSheet()">
   <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
     <div class="modal-sheet__head">
       <div>
         <h3 class="modal-sheet__title">
           <app-icon name="package" [size]="19"></app-icon>
-          Adjust Stock
+          Move Stock
         </h3>
         <p class="modal-sheet__desc" *ngIf="stockForm.item">
           {{ stockForm.item.name }} &middot; {{ stockForm.item.currentStock }}
@@ -639,27 +763,63 @@
     <div class="modal-sheet__body">
       <div class="alert alert-danger" *ngIf="sheetError">{{ sheetError }}</div>
 
-      <div class="form-group">
-        <label class="form-label" for="delta">Change</label>
-        <input
-          id="delta"
-          type="number"
-          class="form-control"
-          placeholder="e.g. 12 to receive, -3 to consume"
-          [(ngModel)]="stockForm.delta"
-        />
-        <small class="field-hint">Positive adds stock, negative removes it.</small>
+      <div class="seg-toggle">
+        <button type="button" class="seg-toggle__btn" [class.active]="stockForm.mode === 'in'" (click)="setStockMode('in')">
+          <app-icon name="plus" [size]="14"></app-icon> Stock In
+        </button>
+        <button type="button" class="seg-toggle__btn" [class.active]="stockForm.mode === 'out'" (click)="setStockMode('out')">
+          <app-icon name="trending-up" [size]="14"></app-icon> Stock Out
+        </button>
+        <button type="button" class="seg-toggle__btn" [class.active]="stockForm.mode === 'adjust'" (click)="setStockMode('adjust')">
+          <app-icon name="edit" [size]="14"></app-icon> Adjust
+        </button>
       </div>
+
+      <!-- Adjust: a signed correction -->
+      <ng-container *ngIf="stockForm.mode === 'adjust'">
+        <div class="form-group">
+          <label class="form-label" for="delta">Change</label>
+          <input id="delta" type="number" class="form-control"
+            placeholder="e.g. 12 to add, -3 to remove" [(ngModel)]="stockForm.delta" />
+          <small class="field-hint">Positive adds stock, negative removes it.</small>
+        </div>
+      </ng-container>
+
+      <!-- In / Out: a positive quantity -->
+      <ng-container *ngIf="stockForm.mode !== 'adjust'">
+        <div class="form-group">
+          <label class="form-label" for="qty">Quantity</label>
+          <input id="qty" type="number" min="1" class="form-control"
+            placeholder="How many units" [(ngModel)]="stockForm.quantity" />
+        </div>
+      </ng-container>
+
+      <!-- Stock In only: batch + expiry -->
+      <ng-container *ngIf="stockForm.mode === 'in'">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label" for="batchNumber">Batch No.</label>
+            <input id="batchNumber" type="text" class="form-control" placeholder="Optional" [(ngModel)]="stockForm.batchNumber" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="expiryDate">Expiry Date</label>
+            <input id="expiryDate" type="date" class="form-control" [(ngModel)]="stockForm.expiryDate" />
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Stock Out only: reference -->
+      <ng-container *ngIf="stockForm.mode === 'out'">
+        <div class="form-group">
+          <label class="form-label" for="reference">Reference</label>
+          <input id="reference" type="text" class="form-control" placeholder="e.g. requisition, patient" [(ngModel)]="stockForm.reference" />
+        </div>
+      </ng-container>
 
       <div class="form-group">
         <label class="form-label" for="reason">Reason</label>
-        <input
-          id="reason"
-          type="text"
-          class="form-control"
-          placeholder="Delivery, breakage, stock count..."
-          [(ngModel)]="stockForm.reason"
-        />
+        <input id="reason" type="text" class="form-control"
+          placeholder="Delivery, breakage, stock count..." [(ngModel)]="stockForm.reason" />
       </div>
     </div>
 
@@ -670,7 +830,7 @@
       </button>
       <button type="button" class="btn btn-primary" (click)="saveStock()" [disabled]="isSaving">
         <app-icon name="save" [size]="16"></app-icon>
-        {{ isSaving ? 'Saving...' : 'Apply' }}
+        {{ isSaving ? 'Saving...' : stockModeLabel }}
       </button>
     </div>
   </div>

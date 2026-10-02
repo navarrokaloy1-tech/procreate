@@ -771,3 +771,85 @@ public class ServiceInventoryItem
     public InventoryItem InventoryItem { get; set; } = null!;
     public int Quantity { get; set; } = 1;
 }
+
+/// <summary>Why a stock level changed — see <see cref="StockMovement"/>.</summary>
+public static class StockMovementTypes
+{
+    /// <summary>Stock received into the store.</summary>
+    public const string StockIn = "Stock In";
+    /// <summary>Stock issued or consumed, recorded by hand.</summary>
+    public const string StockOut = "Stock Out";
+    /// <summary>A manual correction either way (recount, breakage, write-off).</summary>
+    public const string Adjustment = "Adjustment";
+    /// <summary>Drawn down automatically when a test that uses it is ordered.</summary>
+    public const string AutoDeduction = "Auto-Deduction";
+
+    public static readonly string[] All = { StockIn, StockOut, Adjustment, AutoDeduction };
+}
+
+/// <summary>
+/// One change to an item's stock on hand — the audit trail behind every
+/// stock-in, stock-out, manual correction and automatic deduction. Kept so the
+/// running balance can always be explained after the fact.
+/// </summary>
+public class StockMovement
+{
+    public int Id { get; set; }
+    public int InventoryItemId { get; set; }
+    public InventoryItem InventoryItem { get; set; } = null!;
+
+    /// <summary>See <see cref="StockMovementTypes"/>.</summary>
+    public string MovementType { get; set; } = StockMovementTypes.Adjustment;
+
+    /// <summary>Signed change applied to stock on hand (negative for an outflow).</summary>
+    public int QuantityChange { get; set; }
+    /// <summary>Stock on hand immediately after this movement.</summary>
+    public int BalanceAfter { get; set; }
+
+    public string Reason { get; set; } = string.Empty;
+    /// <summary>What caused it — a visit code, a batch number, a document ref.</summary>
+    public string Reference { get; set; } = string.Empty;
+    /// <summary>Username of whoever did it, or "system" for an automatic draw.</summary>
+    public string PerformedBy { get; set; } = string.Empty;
+
+    /// <summary>The batch a stock-in created, where one was given.</summary>
+    public int? BatchId { get; set; }
+    public StockBatch? Batch { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// A received lot of an item, carrying its own expiry. Stock-in creates one;
+/// outflows draw the soonest-to-expire lot first, which is what drives the
+/// expiration warnings. Legacy stock with no batch is still counted in
+/// <see cref="InventoryItem.CurrentStock"/>.
+/// </summary>
+public class StockBatch
+{
+    public int Id { get; set; }
+    public int InventoryItemId { get; set; }
+    public InventoryItem InventoryItem { get; set; } = null!;
+
+    public string BatchNumber { get; set; } = string.Empty;
+    public DateTime? ExpiryDate { get; set; }
+
+    public int QuantityReceived { get; set; }
+    public int QuantityRemaining { get; set; }
+    public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// A reagent or consumable a lab test draws down when it is ordered. The clinic
+/// analogue of <see cref="ServiceInventoryItem"/>, but keyed on the test that is
+/// actually ordered on a visit rather than the cashier's product.
+/// </summary>
+public class TestInventoryItem
+{
+    public int Id { get; set; }
+    public int LabTestId { get; set; }
+    public LabTest LabTest { get; set; } = null!;
+    public int InventoryItemId { get; set; }
+    public InventoryItem InventoryItem { get; set; } = null!;
+    public int Quantity { get; set; } = 1;
+}

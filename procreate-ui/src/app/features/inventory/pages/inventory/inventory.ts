@@ -63,8 +63,59 @@ export interface Supplier {
   itemCount: number;
 }
 
+export interface Batch {
+  id: number;
+  itemId: number;
+  itemName: string;
+  unit: string;
+  batchNumber: string;
+  expiryDate: string | null;
+  quantityReceived: number;
+  quantityRemaining: number;
+  receivedAt: string;
+  daysToExpiry: number | null;
+  status: string; // Expired | Expiring | OK
+}
+
+export interface Movement {
+  id: number;
+  inventoryItemId: number;
+  itemName: string;
+  unit: string;
+  movementType: string;
+  quantityChange: number;
+  balanceAfter: number;
+  reason: string;
+  reference: string;
+  performedBy: string;
+  createdAt: string;
+}
+
+interface ExpiryAlert {
+  id: number;
+  itemId: number;
+  itemName: string;
+  batchNumber: string;
+  expiryDate: string | null;
+  quantityRemaining: number;
+  unit: string;
+  daysToExpiry: number | null;
+}
+
+interface AlertsReport {
+  expiryDays: number;
+  counts: { expired: number; expiringSoon: number; lowStock: number; outOfStock: number; total: number };
+  expired: ExpiryAlert[];
+  expiringSoon: ExpiryAlert[];
+  lowStock: BriefItem[];
+  outOfStock: BriefItem[];
+}
+
 /** Which sheet is open, if any. */
 type Sheet = 'item' | 'category' | 'supplier' | 'suppliers' | 'stock' | null;
+
+/** The three ways stock moves by hand. */
+type StockMode = 'in' | 'out' | 'adjust';
 
 @Component({
   selector: 'app-inventory',
@@ -77,9 +128,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
   activeTab = 'Dashboard';
 
   summary: Summary | null = null;
+  alerts: AlertsReport | null = null;
   items: InventoryItem[] = [];
   categories: Category[] = [];
   suppliers: Supplier[] = [];
+  batches: Batch[] = [];
+  movements: Movement[] = [];
+  movementTypeFilter = '';
+  readonly movementTypes = ['Stock In', 'Stock Out', 'Adjustment', 'Auto-Deduction'];
+  isLoadingBatches = false;
+  isLoadingMovements = false;
   totalCount = 0;
 
   readonly itemTypes = ['Medicine', 'Consumable', 'Asset'];
@@ -119,7 +177,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   form = this.blankItem();
   categoryForm = { name: '', description: '' };
   supplierForm = { name: '', contactPerson: '', contactNumber: '', email: '', address: '' };
-  stockForm = { item: null as InventoryItem | null, delta: null as number | null, reason: '' };
+  stockForm = this.blankStock();
 
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
@@ -136,12 +194,26 @@ export class InventoryComponent implements OnInit, OnDestroy {
     );
 
     this.loadSummary();
+    this.loadAlerts();
     this.loadCategories();
     this.loadSuppliers();
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  private blankStock() {
+    return {
+      item: null as InventoryItem | null,
+      mode: 'in' as StockMode,
+      quantity: null as number | null,
+      delta: null as number | null,
+      reason: '',
+      reference: '',
+      batchNumber: '',
+      expiryDate: '',
+    };
   }
 
   private blankItem() {
@@ -175,7 +247,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.isManageOpen = false;
 
     if (tab === 'Items' && this.items.length === 0) this.loadItems();
-    if (tab === 'Dashboard') this.loadSummary();
+    if (tab === 'Dashboard') { this.loadSummary(); this.loadAlerts(); }
+    if (tab === 'Stock Batches') this.loadBatches();
+    if (tab === 'Transactions') this.loadMovements();
   }
 
   loadSummary(): void {
@@ -189,6 +263,55 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  loadAlerts(): void {
+    this.api.get<AlertsReport>('inventory/alerts').subscribe({
+      next: (alerts) => {
+        this.alerts = alerts;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
+  loadBatches(): void {
+    this.isLoadingBatches = true;
+    this.api.get<Batch[]>('inventory/batches').subscribe({
+      next: (batches) => {
+        this.batches = batches;
+        this.isLoadingBatches = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingBatches = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  loadMovements(): void {
+    this.isLoadingMovements = true;
+    this.api
+      .get<{ data: Movement[] }>('inventory/movements', {
+        movementType: this.movementTypeFilter,
+        pageSize: 100,
+      })
+      .subscribe({
+        next: (res) => {
+          this.movements = res.data;
+          this.isLoadingMovements = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.isLoadingMovements = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  onMovementTypeChange(): void {
+    this.loadMovements();
   }
 
   loadItems(): void {
@@ -433,37 +556,75 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // Stock adjustment
   // ----------------------------------------------------------
 
-  openStock(item: InventoryItem): void {
-    this.stockForm = { item, delta: null, reason: '' };
+  openStock(item: InventoryItem, mode: StockMode = 'in'): void {
+    this.stockForm = { ...this.blankStock(), item, mode };
     this.sheetError = '';
     this.sheet = 'stock';
   }
 
+  setStockMode(mode: StockMode): void {
+    this.stockForm.mode = mode;
+    this.sheetError = '';
+  }
+
+  get stockModeLabel(): string {
+    switch (this.stockForm.mode) {
+      case 'in': return 'Stock In';
+      case 'out': return 'Stock Out';
+      default: return 'Adjust';
+    }
+  }
+
   saveStock(): void {
-    const delta = Number(this.stockForm.delta);
-    if (!this.stockForm.item || !Number.isFinite(delta) || delta === 0) {
-      this.sheetError = 'Enter how many units to add or remove.';
+    const item = this.stockForm.item;
+    if (!item) return;
+
+    if (this.stockForm.mode === 'adjust') {
+      const delta = Math.trunc(Number(this.stockForm.delta));
+      if (!Number.isFinite(delta) || delta === 0) {
+        this.sheetError = 'Enter how many units to add or remove.';
+        return;
+      }
+      this.submitStock(`inventory/items/${item.id}/stock`, { delta, reason: this.stockForm.reason });
       return;
     }
 
-    this.isSaving = true;
-    this.api
-      .post<InventoryItem>(`inventory/items/${this.stockForm.item.id}/stock`, {
-        delta: Math.trunc(delta),
+    const quantity = Math.trunc(Number(this.stockForm.quantity));
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      this.sheetError = 'Enter how many units.';
+      return;
+    }
+
+    if (this.stockForm.mode === 'in') {
+      this.submitStock(`inventory/items/${item.id}/stock-in`, {
+        quantity,
         reason: this.stockForm.reason,
-      })
-      .subscribe({
-        next: () => {
-          this.isSaving = false;
-          this.closeSheet();
-          this.refreshAll();
-        },
-        error: (err) => {
-          this.isSaving = false;
-          this.sheetError = err?.error?.message ?? 'The adjustment failed.';
-          this.cdr.markForCheck();
-        },
+        batchNumber: this.stockForm.batchNumber,
+        expiryDate: this.stockForm.expiryDate || null,
       });
+    } else {
+      this.submitStock(`inventory/items/${item.id}/stock-out`, {
+        quantity,
+        reason: this.stockForm.reason,
+        reference: this.stockForm.reference,
+      });
+    }
+  }
+
+  private submitStock(path: string, body: any): void {
+    this.isSaving = true;
+    this.api.post<InventoryItem>(path, body).subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.closeSheet();
+        this.refreshAll();
+      },
+      error: (err) => {
+        this.isSaving = false;
+        this.sheetError = err?.error?.message ?? 'The stock update failed.';
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // ----------------------------------------------------------
@@ -535,7 +696,34 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private refreshAll(): void {
     this.loadItems();
     this.loadSummary();
+    this.loadAlerts();
+    if (this.activeTab === 'Stock Batches') this.loadBatches();
+    if (this.activeTab === 'Transactions') this.loadMovements();
     this.cdr.markForCheck();
+  }
+
+  /** Jumps to the Batches tab, e.g. from an expiry alert. */
+  showBatches(): void {
+    this.isManageOpen = false;
+    this.activeTab = 'Stock Batches';
+    this.loadBatches();
+  }
+
+  movementClass(type: string): string {
+    switch (type) {
+      case 'Stock In': return 'tag tag--primary';
+      case 'Stock Out': return 'tag tag--warning';
+      case 'Auto-Deduction': return 'tag tag--info';
+      default: return 'tag';
+    }
+  }
+
+  batchStatusClass(status: string): string {
+    switch (status) {
+      case 'Expired': return 'pill pill--danger';
+      case 'Expiring': return 'pill pill--warning';
+      default: return 'pill pill--success';
+    }
   }
 
   // ----------------------------------------------------------

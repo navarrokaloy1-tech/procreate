@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Inventory;
 using ProCreateApi.Services.Lis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,40 @@ public class VisitsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILisService _lis;
-    public VisitsController(AppDbContext db, ILisService lis) { _db = db; _lis = lis; }
+    private readonly InventoryLedger _ledger;
+    public VisitsController(AppDbContext db, ILisService lis, InventoryLedger ledger)
+    {
+        _db = db;
+        _lis = lis;
+        _ledger = ledger;
+    }
+
+    /// <summary>
+    /// Draws down the supplies each ordered test consumes, as auto-deductions in
+    /// the stock ledger. Shortfalls are tolerated (stock floors at zero) — a test
+    /// is still ordered even when a consumable has run out, and the deduction is
+    /// recorded so the gap is visible. Stages changes; the caller saves.
+    /// </summary>
+    private async Task DeductSuppliesForTestsAsync(IEnumerable<int> labTestIds, string reference)
+    {
+        var ids = labTestIds.ToList();
+        if (ids.Count == 0) return;
+
+        var recipes = await _db.TestInventoryItems
+            .Include(r => r.InventoryItem)
+            .Where(r => ids.Contains(r.LabTestId))
+            .ToListAsync();
+        if (recipes.Count == 0) return;
+
+        var performedBy = User.Identity?.Name ?? "system";
+        foreach (var testId in ids)
+            foreach (var line in recipes.Where(r => r.LabTestId == testId))
+            {
+                if (line.InventoryItem is null || !line.InventoryItem.IsActive) continue;
+                _ledger.Issue(line.InventoryItem, line.Quantity, StockMovementTypes.AutoDeduction,
+                    $"Test ordered on {reference}", reference, performedBy, allowShortfall: true);
+            }
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -102,6 +136,8 @@ public class VisitsController : ControllerBase
             total += test.Price;
         }
         visit.TotalAmount = total;
+
+        await DeductSuppliesForTestsAsync(req.TestIds, visit.VisitCode);
         await _db.SaveChangesAsync();
 
         // Send each lab order to the LIS asynchronously (fire-and-forget with error isolation)
@@ -180,6 +216,7 @@ public class VisitsController : ControllerBase
             ? "Paid"
             : visit.AmountPaid > 0 ? "Partial" : "Unpaid";
 
+        await DeductSuppliesForTestsAsync(added.Select(o => o.LabTestId), visit.VisitCode);
         await _db.SaveChangesAsync();
 
         var newOrders = await _db.LabOrders
@@ -301,6 +338,8 @@ public class VisitsController : ControllerBase
             }
 
             visit.TotalAmount = total;
+            await DeductSuppliesForTestsAsync(
+                (entry.TestIds ?? new List<int>()).Distinct(), visit.VisitCode);
         }
 
         await _db.SaveChangesAsync();

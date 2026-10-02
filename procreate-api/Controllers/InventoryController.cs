@@ -1,5 +1,7 @@
 using ProCreateApi.Data;
 using ProCreateApi.Models;
+using ProCreateApi.Services.Inventory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +16,15 @@ namespace ProCreateApi.Controllers;
 public class InventoryController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public InventoryController(AppDbContext db) => _db = db;
+    private readonly InventoryLedger _ledger;
+    public InventoryController(AppDbContext db, InventoryLedger ledger)
+    {
+        _db = db;
+        _ledger = ledger;
+    }
+
+    /// <summary>Whoever is acting, for the stock ledger. Blank only off a request.</summary>
+    private string ActingUser => User.Identity?.Name ?? "system";
 
     // ----------------------------------------------------------
     // Dashboard
@@ -149,24 +159,290 @@ public class InventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Adjusts stock on hand. The delta is signed, so a correction downwards
-    /// is the same call. Stock is never allowed below zero.
+    /// A manual signed correction to stock on hand — a recount, breakage or
+    /// write-off. Downwards is the same call with a negative delta; stock is
+    /// never allowed below zero. Recorded in the ledger with its reason.
     /// </summary>
     [HttpPost("items/{id:int}/stock")]
     public async Task<IActionResult> AdjustStock(int id, [FromBody] StockAdjustmentRequest request)
     {
         var item = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id);
         if (item is null) return NotFound();
+        if (request.Delta == 0)
+            return BadRequest(new { message = "Enter a non-zero adjustment." });
 
-        var updated = item.CurrentStock + request.Delta;
-        if (updated < 0)
-            return BadRequest(new { message = $"That would leave {item.Name} at {updated}. Only {item.CurrentStock} in stock." });
+        if (request.Delta < 0 && item.CurrentStock + request.Delta < 0)
+            return BadRequest(new { message = $"That would leave {item.Name} below zero. Only {item.CurrentStock} in stock." });
 
-        item.CurrentStock = updated;
-        item.UpdatedAt = DateTime.UtcNow;
+        if (request.Delta > 0)
+            _ledger.AdjustUp(item, request.Delta, request.Reason ?? "Manual adjustment", ActingUser);
+        else
+            _ledger.Issue(item, -request.Delta, StockMovementTypes.Adjustment,
+                request.Reason ?? "Manual adjustment", string.Empty, ActingUser);
+
         await _db.SaveChangesAsync();
-
         return Ok(Project(item));
+    }
+
+    /// <summary>Receives stock in, as a dated lot carrying its own expiry.</summary>
+    [HttpPost("items/{id:int}/stock-in")]
+    public async Task<IActionResult> StockIn(int id, [FromBody] StockInRequest request)
+    {
+        var item = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id);
+        if (item is null) return NotFound();
+        if (request.Quantity <= 0)
+            return BadRequest(new { message = "Enter how many units are coming in." });
+
+        _ledger.StockIn(item, request.Quantity, request.Reason ?? "Stock received",
+            ActingUser, request.BatchNumber, request.ExpiryDate);
+
+        await _db.SaveChangesAsync();
+        return Ok(Project(item));
+    }
+
+    /// <summary>Issues stock out by hand — used, dispensed or discarded.</summary>
+    [HttpPost("items/{id:int}/stock-out")]
+    public async Task<IActionResult> StockOut(int id, [FromBody] StockOutRequest request)
+    {
+        var item = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id);
+        if (item is null) return NotFound();
+        if (request.Quantity <= 0)
+            return BadRequest(new { message = "Enter how many units are going out." });
+        if (item.CurrentStock < request.Quantity)
+            return BadRequest(new { message = $"Only {item.CurrentStock} {item.UnitOfMeasure} of {item.Name} in stock." });
+
+        _ledger.Issue(item, request.Quantity, StockMovementTypes.StockOut,
+            request.Reason ?? "Stock issued", request.Reference ?? string.Empty, ActingUser);
+
+        await _db.SaveChangesAsync();
+        return Ok(Project(item));
+    }
+
+    // ----------------------------------------------------------
+    // Stock ledger (audit trail) and batches
+    // ----------------------------------------------------------
+
+    /// <summary>The whole stock ledger, newest first — the movement audit trail.</summary>
+    [HttpGet("movements")]
+    public async Task<IActionResult> GetMovements(
+        [FromQuery] int? itemId,
+        [FromQuery] string? movementType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        pageSize = Math.Clamp(pageSize, 1, 200);
+        page = Math.Max(1, page);
+
+        var query = _db.StockMovements.Include(m => m.InventoryItem).AsQueryable();
+        if (itemId is > 0) query = query.Where(m => m.InventoryItemId == itemId);
+        if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
+
+        var total = await query.CountAsync();
+        var data = await query
+            .OrderByDescending(m => m.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(m => new
+            {
+                m.Id,
+                m.InventoryItemId,
+                itemName = m.InventoryItem.Name,
+                unit = m.InventoryItem.UnitOfMeasure,
+                m.MovementType,
+                m.QuantityChange,
+                m.BalanceAfter,
+                m.Reason,
+                m.Reference,
+                m.PerformedBy,
+                m.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, data });
+    }
+
+    /// <summary>The ledger for one item.</summary>
+    [HttpGet("items/{id:int}/movements")]
+    public Task<IActionResult> GetItemMovements(int id) => GetMovements(id, null, 1, 100);
+
+    /// <summary>Every open lot across all items, soonest-expiring first — the Batches tab.</summary>
+    [HttpGet("batches")]
+    public async Task<IActionResult> GetAllBatches()
+    {
+        var today = DateTime.Today;
+        var batches = await _db.StockBatches
+            .Include(b => b.InventoryItem)
+            .Where(b => b.QuantityRemaining > 0)
+            .ToListAsync();
+
+        var data = batches
+            .OrderBy(b => b.ExpiryDate.HasValue ? 0 : 1)
+            .ThenBy(b => b.ExpiryDate ?? DateTime.MaxValue)
+            .Select(b => new
+            {
+                b.Id,
+                itemId = b.InventoryItemId,
+                itemName = b.InventoryItem.Name,
+                unit = b.InventoryItem.UnitOfMeasure,
+                b.BatchNumber,
+                b.ExpiryDate,
+                b.QuantityReceived,
+                b.QuantityRemaining,
+                b.ReceivedAt,
+                daysToExpiry = b.ExpiryDate.HasValue
+                    ? (int)Math.Floor((b.ExpiryDate.Value.Date - today).TotalDays)
+                    : (int?)null,
+                status = !b.ExpiryDate.HasValue ? "OK"
+                    : b.ExpiryDate.Value.Date < today ? "Expired"
+                    : b.ExpiryDate.Value.Date <= today.AddDays(30) ? "Expiring"
+                    : "OK"
+            });
+        return Ok(data);
+    }
+
+    /// <summary>The received lots held for an item, with what is left of each.</summary>
+    [HttpGet("items/{id:int}/batches")]
+    public async Task<IActionResult> GetBatches(int id)
+    {
+        var batches = await _db.StockBatches
+            .Where(b => b.InventoryItemId == id)
+            .OrderBy(b => b.ExpiryDate == null)
+            .ThenBy(b => b.ExpiryDate)
+            .Select(b => new
+            {
+                b.Id,
+                b.BatchNumber,
+                b.ExpiryDate,
+                b.QuantityReceived,
+                b.QuantityRemaining,
+                b.ReceivedAt
+            })
+            .ToListAsync();
+
+        return Ok(batches);
+    }
+
+    // ----------------------------------------------------------
+    // Alerts — low / out of stock, and expiry
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Everything an administrator should be nudged about: lots already expired
+    /// or expiring within <paramref name="expiryDays"/>, and items low on or out
+    /// of stock. One call feeds both the alerts panel and the header count.
+    /// </summary>
+    [HttpGet("alerts")]
+    public async Task<IActionResult> GetAlerts([FromQuery] int expiryDays = 30)
+    {
+        expiryDays = Math.Clamp(expiryDays, 1, 365);
+        var today = DateTime.Today;
+        var horizon = today.AddDays(expiryDays);
+
+        var batches = await _db.StockBatches
+            .Include(b => b.InventoryItem)
+            .Where(b => b.QuantityRemaining > 0 && b.ExpiryDate != null)
+            .OrderBy(b => b.ExpiryDate)
+            .ToListAsync();
+
+        var expired = batches
+            .Where(b => b.ExpiryDate!.Value.Date < today)
+            .Select(BatchAlert).ToList();
+        var expiringSoon = batches
+            .Where(b => b.ExpiryDate!.Value.Date >= today && b.ExpiryDate.Value.Date <= horizon)
+            .Select(BatchAlert).ToList();
+
+        var items = await _db.InventoryItems.Where(i => i.IsActive).ToListAsync();
+        var outOfStock = items.Where(i => i.CurrentStock <= 0).OrderBy(i => i.Name).Select(Brief).ToList();
+        var lowStock = items
+            .Where(i => i.CurrentStock > 0 && i.CurrentStock <= i.ReorderLevel)
+            .OrderBy(i => i.CurrentStock).Select(Brief).ToList();
+
+        return Ok(new
+        {
+            expiryDays,
+            counts = new
+            {
+                expired = expired.Count,
+                expiringSoon = expiringSoon.Count,
+                lowStock = lowStock.Count,
+                outOfStock = outOfStock.Count,
+                total = expired.Count + expiringSoon.Count + lowStock.Count + outOfStock.Count
+            },
+            expired,
+            expiringSoon,
+            lowStock,
+            outOfStock
+        });
+    }
+
+    private static object BatchAlert(StockBatch b) => new
+    {
+        b.Id,
+        itemId = b.InventoryItemId,
+        itemName = b.InventoryItem.Name,
+        b.BatchNumber,
+        b.ExpiryDate,
+        b.QuantityRemaining,
+        unit = b.InventoryItem.UnitOfMeasure,
+        daysToExpiry = b.ExpiryDate.HasValue
+            ? (int)Math.Floor((b.ExpiryDate.Value.Date - DateTime.Today).TotalDays)
+            : (int?)null
+    };
+
+    // ----------------------------------------------------------
+    // Test recipes — what each test consumes (drives auto-deduction)
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Every lab test with the supplies it draws down when ordered. Tests with
+    /// no recipe are included (empty), so the editor can add one.
+    /// </summary>
+    [HttpGet("test-recipes")]
+    public async Task<IActionResult> GetTestRecipes()
+    {
+        var tests = await _db.LabTests.Include(t => t.Category).OrderBy(t => t.Name).ToListAsync();
+        var lines = await _db.TestInventoryItems.Include(l => l.InventoryItem).ToListAsync();
+
+        var data = tests.Select(t => new
+        {
+            labTestId = t.Id,
+            t.Code,
+            testName = t.Name,
+            categoryName = t.Category.Name,
+            supplies = lines.Where(l => l.LabTestId == t.Id).Select(l => new
+            {
+                l.InventoryItemId,
+                itemName = l.InventoryItem.Name,
+                unit = l.InventoryItem.UnitOfMeasure,
+                l.Quantity
+            })
+        });
+        return Ok(data);
+    }
+
+    /// <summary>Replaces a test's recipe wholesale.</summary>
+    [HttpPut("test-recipes/{labTestId:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetTestRecipe(int labTestId, [FromBody] TestRecipeRequest request)
+    {
+        if (!await _db.LabTests.AnyAsync(t => t.Id == labTestId))
+            return NotFound();
+
+        var existing = await _db.TestInventoryItems.Where(l => l.LabTestId == labTestId).ToListAsync();
+        _db.TestInventoryItems.RemoveRange(existing);
+
+        foreach (var line in request.Supplies ?? new List<TestRecipeLine>())
+        {
+            if (line.Quantity <= 0) continue;
+            _db.TestInventoryItems.Add(new TestInventoryItem
+            {
+                LabTestId = labTestId,
+                InventoryItemId = line.InventoryItemId,
+                Quantity = line.Quantity
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Recipe saved" });
     }
 
     /// <summary>
@@ -179,12 +455,14 @@ public class InventoryController : ControllerBase
         var item = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id);
         if (item is null) return NotFound();
 
-        if (await _db.ServiceInventoryItems.AnyAsync(l => l.InventoryItemId == id))
+        var usedByService = await _db.ServiceInventoryItems.AnyAsync(l => l.InventoryItemId == id);
+        var usedByTest = await _db.TestInventoryItems.AnyAsync(l => l.InventoryItemId == id);
+        if (usedByService || usedByTest)
         {
             item.IsActive = false;
             item.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
-            return Ok(new { message = "The item is used by a service, so it was deactivated instead of deleted.", deactivated = true });
+            return Ok(new { message = "The item is used by a service or test, so it was deactivated instead of deleted.", deactivated = true });
         }
 
         _db.InventoryItems.Remove(item);
@@ -392,6 +670,14 @@ public record SupplierRequest(
     string? Address);
 
 public record StockAdjustmentRequest(int Delta, string? Reason);
+
+public record StockInRequest(int Quantity, string? Reason, string? BatchNumber, DateTime? ExpiryDate);
+
+public record StockOutRequest(int Quantity, string? Reason, string? Reference);
+
+public record TestRecipeLine(int InventoryItemId, int Quantity);
+
+public record TestRecipeRequest(List<TestRecipeLine>? Supplies);
 
 public record InventoryItemRequest(
     string ItemType,

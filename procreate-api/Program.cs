@@ -2,6 +2,7 @@ using ProCreateApi.Data;
 using ProCreateApi.Services.Appointments;
 using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Clinic;
+using ProCreateApi.Services.Inventory;
 using ProCreateApi.Services.Pdf;
 using ProCreateApi.Services.Email;
 using ProCreateApi.Services.Lis;
@@ -68,6 +69,9 @@ builder.Services.AddScoped<TokenIssuer>();
 
 // Records sign-in attempts (success and failure) for the login activity trail.
 builder.Services.AddScoped<LoginAudit>();
+
+// The single chokepoint for stock movements (stock-in/out, corrections, auto-deduction).
+builder.Services.AddScoped<InventoryLedger>();
 
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
 builder.Services.AddControllers()

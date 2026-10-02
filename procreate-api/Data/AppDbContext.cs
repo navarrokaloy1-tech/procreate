@@ -39,6 +39,9 @@ public class AppDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<ServiceInventoryItem> ServiceInventoryItems => Set<ServiceInventoryItem>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockBatch> StockBatches => Set<StockBatch>();
+    public DbSet<TestInventoryItem> TestInventoryItems => Set<TestInventoryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -303,6 +306,53 @@ public class AppDbContext : DbContext
             .HasIndex(l => new { l.ProductId, l.InventoryItemId })
             .IsUnique();
 
+        // The stock ledger and batches belong to the item: removing the item
+        // takes its whole history with it.
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(m => m.InventoryItem)
+            .WithMany()
+            .HasForeignKey(m => m.InventoryItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A movement may point at the batch a stock-in created, but the movement
+        // outlives the batch once it is used up, so that link only nulls.
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(m => m.Batch)
+            .WithMany()
+            .HasForeignKey(m => m.BatchId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // The ledger is read per item newest-first, and globally newest-first.
+        modelBuilder.Entity<StockMovement>().HasIndex(m => new { m.InventoryItemId, m.CreatedAt });
+        modelBuilder.Entity<StockMovement>().HasIndex(m => m.CreatedAt);
+
+        modelBuilder.Entity<StockBatch>()
+            .HasOne(b => b.InventoryItem)
+            .WithMany()
+            .HasForeignKey(b => b.InventoryItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Expiry scans look for the soonest-expiring lots with stock left.
+        modelBuilder.Entity<StockBatch>().HasIndex(b => b.ExpiryDate);
+
+        // A test's recipe drops its lines when either end is removed, and lists
+        // each supply once.
+        modelBuilder.Entity<TestInventoryItem>()
+            .HasOne(l => l.LabTest)
+            .WithMany()
+            .HasForeignKey(l => l.LabTestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TestInventoryItem>()
+            .HasOne(l => l.InventoryItem)
+            .WithMany()
+            .HasForeignKey(l => l.InventoryItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TestInventoryItem>()
+            .HasIndex(l => new { l.LabTestId, l.InventoryItemId })
+            .IsUnique();
+
         modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
 
         modelBuilder.Entity<Product>().HasData(
@@ -356,6 +406,28 @@ public class AppDbContext : DbContext
             new ServiceInventoryItem { Id = 2, ProductId = 2, InventoryItemId = 2, Quantity = 1 },
             new ServiceInventoryItem { Id = 3, ProductId = 1, InventoryItemId = 3, Quantity = 1 },
             new ServiceInventoryItem { Id = 4, ProductId = 1, InventoryItemId = 4, Quantity = 1 }
+        );
+
+        // What each test consumes, so ordering it draws the supplies down. Item
+        // ids: 1 Ultrasound Gel, 2 Probe Cover, 3 Cotton Balls, 4 EDTA Tube.
+        modelBuilder.Entity<TestInventoryItem>().HasData(
+            new TestInventoryItem { Id = 1, LabTestId = 1, InventoryItemId = 4, Quantity = 1 },  // CBC -> EDTA tube
+            new TestInventoryItem { Id = 2, LabTestId = 1, InventoryItemId = 3, Quantity = 1 },  // CBC -> cotton balls
+            new TestInventoryItem { Id = 3, LabTestId = 2, InventoryItemId = 4, Quantity = 1 },  // FBS -> EDTA tube
+            new TestInventoryItem { Id = 4, LabTestId = 3, InventoryItemId = 4, Quantity = 1 },  // Creatinine -> EDTA tube
+            new TestInventoryItem { Id = 5, LabTestId = 10, InventoryItemId = 1, Quantity = 1 }, // TVS -> gel
+            new TestInventoryItem { Id = 6, LabTestId = 10, InventoryItemId = 2, Quantity = 1 }, // TVS -> probe cover
+            new TestInventoryItem { Id = 7, LabTestId = 11, InventoryItemId = 1, Quantity = 1 }, // Pelvic US -> gel
+            new TestInventoryItem { Id = 8, LabTestId = 11, InventoryItemId = 2, Quantity = 1 }  // Pelvic US -> probe cover
+        );
+
+        // A few received lots carrying expiry, so the expiration warnings and
+        // the batch ledger have something real on a fresh database.
+        modelBuilder.Entity<StockBatch>().HasData(
+            new StockBatch { Id = 1, InventoryItemId = 1, BatchNumber = "GEL-A10", ExpiryDate = DateTime.Today.AddMonths(10), QuantityReceived = 24, QuantityRemaining = 24 },
+            new StockBatch { Id = 2, InventoryItemId = 4, BatchNumber = "EDTA-2411", ExpiryDate = DateTime.Today.AddDays(20), QuantityReceived = 6, QuantityRemaining = 6 },
+            new StockBatch { Id = 3, InventoryItemId = 7, BatchNumber = "AML-2402", ExpiryDate = DateTime.Today.AddDays(-15), QuantityReceived = 40, QuantityRemaining = 40 },
+            new StockBatch { Id = 4, InventoryItemId = 8, BatchNumber = "LOS-2603", ExpiryDate = DateTime.Today.AddDays(25), QuantityReceived = 4, QuantityRemaining = 4 }
         );
 
         // Categories carry the department, so a test's console tab follows from
