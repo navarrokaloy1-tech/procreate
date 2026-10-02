@@ -5,6 +5,7 @@ import { ApiService } from '../../../../core/services/api';
 
 export interface TestItem {
   id: number;
+  code?: string;
   name: string;
   price: number;
   categoryId: number;
@@ -15,6 +16,16 @@ export interface TestCategory {
   id: number;
   name: string;
   tests: TestItem[];
+}
+
+/** A predefined, reusable set of tests that can be applied then adjusted. */
+export interface TestPanelOption {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  testIds: number[];
+  totalPrice: number;
 }
 
 export interface PatientOption {
@@ -39,6 +50,8 @@ interface BatchEntry {
 export class VisitForm implements OnInit {
   visitForm!: FormGroup;
   testCategories: TestCategory[] = [];
+  panels: TestPanelOption[] = [];
+  testSearch = '';
   patientOptions: PatientOption[] = [];
   patientSearch = '';
   isLoadingTests = true;
@@ -72,6 +85,7 @@ export class VisitForm implements OnInit {
     });
 
     this.loadTests();
+    this.loadPanels();
   }
 
   loadTests(): void {
@@ -86,6 +100,16 @@ export class VisitForm implements OnInit {
         this.isLoadingTests = false;
         this.cdr.markForCheck();
       },
+    });
+  }
+
+  loadPanels(): void {
+    this.apiService.get<TestPanelOption[]>('lab/panels').subscribe({
+      next: (panels) => {
+        this.panels = panels;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
     });
   }
 
@@ -200,6 +224,38 @@ export class VisitForm implements OnInit {
 
   isTestSelected(testId: number): boolean {
     return this.activeEntry?.testIds.has(testId) ?? false;
+  }
+
+  // ----------------------------------------------------------
+  // Search + panels
+  // ----------------------------------------------------------
+
+  /** Tests in a category that match the current search box. */
+  visibleTests(category: TestCategory): TestItem[] {
+    const q = this.testSearch.trim().toLowerCase();
+    if (!q) return category.tests;
+    return category.tests.filter(
+      (t) => t.name.toLowerCase().includes(q) || (t.code ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  /** Categories that still have at least one test matching the search. */
+  get visibleCategories(): TestCategory[] {
+    return this.testCategories.filter((c) => this.visibleTests(c).length > 0);
+  }
+
+  /** Applies a panel's tests to the active patient — additive and still editable. */
+  applyPanel(panel: TestPanelOption): void {
+    const entry = this.activeEntry;
+    if (!entry) return;
+    for (const id of panel.testIds) entry.testIds.add(id);
+  }
+
+  /** True once every test in the panel is already selected for the active patient. */
+  isPanelFullyApplied(panel: TestPanelOption): boolean {
+    const entry = this.activeEntry;
+    if (!entry || panel.testIds.length === 0) return false;
+    return panel.testIds.every((id) => entry.testIds.has(id));
   }
 
   /** Copies the active patient's selection onto everyone else in the batch. */

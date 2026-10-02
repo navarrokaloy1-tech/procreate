@@ -1,0 +1,87 @@
+// Page, card, table, modal and form styling all come from the shared layer.
+
+.panel-tests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 420px;
+}
+
+.form-label__meta {
+  float: right;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.test-search {
+  margin-bottom: 0.75rem;
+}
+
+.test-picker {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0.6rem;
+}
+
+.test-category {
+  & + & { margin-top: 0.5rem; }
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.category-count {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.test-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition);
+
+  &:hover { background: var(--light); }
+  &.selected { background: var(--primary-light); }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  &__name {
+    flex: 1 1 auto;
+    color: var(--text-primary);
+  }
+
+  &__price {
+    font-weight: 600;
+    color: var(--success-green);
+    white-space: nowrap;
+  }
+}
+
+.empty-hint {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}

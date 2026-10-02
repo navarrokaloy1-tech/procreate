@@ -30,6 +30,101 @@ public class LabController : ControllerBase
         return Ok(cats);
     }
 
+    // ----------------------------------------------------------
+    // Test panels — reusable sets of tests ordered together
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// The predefined panels (APE, Pre-Employment, and so on), each with its
+    /// member tests. Applying a panel at order time selects these tests, which
+    /// can still be added to or removed from before the order is placed.
+    /// </summary>
+    [HttpGet("panels")]
+    public async Task<IActionResult> GetPanels([FromQuery] bool includeInactive = false)
+    {
+        var query = _db.TestPanels
+            .Include(p => p.Items).ThenInclude(i => i.LabTest)
+            .AsQueryable();
+        if (!includeInactive)
+            query = query.Where(p => p.IsActive);
+
+        var panels = await query.OrderBy(p => p.Name).ToListAsync();
+        var data = panels.Select(p => new
+        {
+            p.Id,
+            p.Code,
+            p.Name,
+            p.Description,
+            p.IsActive,
+            testIds = p.Items.Select(i => i.LabTestId).ToList(),
+            tests = p.Items
+                .OrderBy(i => i.LabTest.Name)
+                .Select(i => new { i.LabTest.Id, i.LabTest.Code, i.LabTest.Name, i.LabTest.Price })
+                .ToList(),
+            totalPrice = p.Items.Sum(i => i.LabTest.Price)
+        });
+        return Ok(data);
+    }
+
+    [HttpPost("panels")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreatePanel([FromBody] PanelRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest(new { message = "A panel needs a name." });
+
+        var panel = new TestPanel
+        {
+            Code = (req.Code ?? string.Empty).Trim(),
+            Name = req.Name.Trim(),
+            Description = (req.Description ?? string.Empty).Trim(),
+            IsActive = req.IsActive,
+            Items = DistinctItems(req.TestIds)
+        };
+        _db.TestPanels.Add(panel);
+        await _db.SaveChangesAsync();
+        return Ok(new { panel.Id });
+    }
+
+    [HttpPut("panels/{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdatePanel(int id, [FromBody] PanelRequest req)
+    {
+        var panel = await _db.TestPanels.Include(p => p.Items).FirstOrDefaultAsync(p => p.Id == id);
+        if (panel is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest(new { message = "A panel needs a name." });
+
+        panel.Code = (req.Code ?? string.Empty).Trim();
+        panel.Name = req.Name.Trim();
+        panel.Description = (req.Description ?? string.Empty).Trim();
+        panel.IsActive = req.IsActive;
+
+        // Replace membership wholesale — simplest and the set is small.
+        _db.TestPanelItems.RemoveRange(panel.Items);
+        panel.Items = DistinctItems(req.TestIds);
+        await _db.SaveChangesAsync();
+        return Ok(new { panel.Id });
+    }
+
+    [HttpDelete("panels/{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePanel(int id)
+    {
+        var panel = await _db.TestPanels.FindAsync(id);
+        if (panel is null) return NotFound();
+        _db.TestPanels.Remove(panel);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Panel deleted" });
+    }
+
+    /// <summary>Membership rows for the given test ids, de-duplicated.</summary>
+    private static List<TestPanelItem> DistinctItems(List<int>? testIds) =>
+        (testIds ?? new List<int>())
+            .Distinct()
+            .Select(tid => new TestPanelItem { LabTestId = tid })
+            .ToList();
+
     /// <summary>The department tabs, with a live order count for each.</summary>
     [HttpGet("departments")]
     public async Task<IActionResult> GetDepartments()
@@ -301,6 +396,8 @@ public class LabController : ControllerBase
         return File(qrBytes, "image/png");
     }
 }
+
+public record PanelRequest(string Code, string Name, string? Description, bool IsActive, List<int> TestIds);
 
 public record ResultEntry(int ParameterId, string Value, string? Remarks);
 

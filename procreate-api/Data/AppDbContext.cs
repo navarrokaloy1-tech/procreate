@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<TestParameter> TestParameters => Set<TestParameter>();
     public DbSet<LabOrder> LabOrders => Set<LabOrder>();
     public DbSet<LabResult> LabResults => Set<LabResult>();
+    public DbSet<TestPanel> TestPanels => Set<TestPanel>();
+    public DbSet<TestPanelItem> TestPanelItems => Set<TestPanelItem>();
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Product> Products => Set<Product>();
@@ -201,6 +203,25 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LoginActivity>()
             .HasIndex(a => a.CreatedAt);
 
+        // A panel's membership rows go when the panel does; removing a test
+        // from the catalogue drops it from any panel it was part of.
+        modelBuilder.Entity<TestPanelItem>()
+            .HasOne(i => i.Panel)
+            .WithMany(p => p.Items)
+            .HasForeignKey(i => i.PanelId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TestPanelItem>()
+            .HasOne(i => i.LabTest)
+            .WithMany()
+            .HasForeignKey(i => i.LabTestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A test appears at most once in a given panel.
+        modelBuilder.Entity<TestPanelItem>()
+            .HasIndex(i => new { i.PanelId, i.LabTestId })
+            .IsUnique();
+
         modelBuilder.Entity<AppointmentBatch>()
             .HasIndex(b => new { b.BatchDate, b.StartTime })
             .IsUnique();
@@ -383,6 +404,37 @@ public class AppDbContext : DbContext
             new TestParameter { Id = 6, LabTestId = 2, Name = "Glucose", Unit = "mg/dL", ReferenceRange = "70-100", NormalMin = "70", NormalMax = "100" },
             new TestParameter { Id = 7, LabTestId = 3, Name = "Creatinine", Unit = "mg/dL", ReferenceRange = "0.7-1.3", NormalMin = "0.7", NormalMax = "1.3" },
             new TestParameter { Id = 8, LabTestId = 4, Name = "Uric Acid", Unit = "mg/dL", ReferenceRange = "3.4-7.0", NormalMin = "3.4", NormalMax = "7.0" }
+        );
+
+        // Predefined test panels. A panel is a template staff can apply and
+        // then adjust, so these are starting points, not fixed bundles.
+        modelBuilder.Entity<TestPanel>().HasData(
+            new TestPanel { Id = 1, Code = "APE", Name = "Annual Physical Exam", Description = "Routine yearly check-up battery" },
+            new TestPanel { Id = 2, Code = "PREEMP", Name = "Pre-Employment", Description = "Standard pre-employment screening" },
+            new TestPanel { Id = 3, Code = "CHEM", Name = "Basic Chemistry", Description = "Fasting blood sugar, creatinine and uric acid" },
+            new TestPanel { Id = 4, Code = "HEMA", Name = "Hematology", Description = "Complete blood count" }
+        );
+
+        modelBuilder.Entity<TestPanelItem>().HasData(
+            // APE: CBC, Urinalysis, FBS, Creatinine, Uric Acid, Chest X-Ray (PA), ECG
+            new TestPanelItem { Id = 1, PanelId = 1, LabTestId = 1 },
+            new TestPanelItem { Id = 2, PanelId = 1, LabTestId = 5 },
+            new TestPanelItem { Id = 3, PanelId = 1, LabTestId = 2 },
+            new TestPanelItem { Id = 4, PanelId = 1, LabTestId = 3 },
+            new TestPanelItem { Id = 5, PanelId = 1, LabTestId = 4 },
+            new TestPanelItem { Id = 6, PanelId = 1, LabTestId = 7 },
+            new TestPanelItem { Id = 7, PanelId = 1, LabTestId = 14 },
+            // Pre-Employment: CBC, Urinalysis, FBS, Chest X-Ray (PA)
+            new TestPanelItem { Id = 8, PanelId = 2, LabTestId = 1 },
+            new TestPanelItem { Id = 9, PanelId = 2, LabTestId = 5 },
+            new TestPanelItem { Id = 10, PanelId = 2, LabTestId = 2 },
+            new TestPanelItem { Id = 11, PanelId = 2, LabTestId = 7 },
+            // Basic Chemistry: FBS, Creatinine, Uric Acid
+            new TestPanelItem { Id = 12, PanelId = 3, LabTestId = 2 },
+            new TestPanelItem { Id = 13, PanelId = 3, LabTestId = 3 },
+            new TestPanelItem { Id = 14, PanelId = 3, LabTestId = 4 },
+            // Hematology: CBC
+            new TestPanelItem { Id = 15, PanelId = 4, LabTestId = 1 }
         );
     }
 }

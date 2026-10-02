@@ -10,6 +10,7 @@ interface VisitTest {
 
 interface TestItem {
   id: number;
+  code?: string;
   name: string;
   price: number;
 }
@@ -18,6 +19,16 @@ interface TestCategory {
   id: number;
   name: string;
   tests: TestItem[];
+}
+
+/** A predefined, reusable set of tests that can be applied then adjusted. */
+interface TestPanelOption {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  testIds: number[];
+  totalPrice: number;
 }
 
 interface LabOrder {
@@ -69,6 +80,8 @@ export class VisitDetail implements OnInit {
   isSavingTests = false;
   addError = '';
   testCategories: TestCategory[] = [];
+  panels: TestPanelOption[] = [];
+  testSearch = '';
   isLoadingTests = false;
   selectedTestIds = new Set<number>();
 
@@ -137,9 +150,11 @@ export class VisitDetail implements OnInit {
   openAddTests(): void {
     this.isAddOpen = true;
     this.addError = '';
+    this.testSearch = '';
     this.selectedTestIds.clear();
 
     if (this.testCategories.length === 0) this.loadTests();
+    if (this.panels.length === 0) this.loadPanels();
   }
 
   closeAddTests(): void {
@@ -164,6 +179,16 @@ export class VisitDetail implements OnInit {
     });
   }
 
+  private loadPanels(): void {
+    this.apiService.get<TestPanelOption[]>('lab/panels').subscribe({
+      next: (panels) => {
+        this.panels = panels;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
   toggleTest(test: TestItem): void {
     if (this.isAlreadyOrdered(test)) return;
 
@@ -173,6 +198,47 @@ export class VisitDetail implements OnInit {
 
   isSelected(test: TestItem): boolean {
     return this.selectedTestIds.has(test.id);
+  }
+
+  // ----------------------------------------------------------
+  // Search + panels
+  // ----------------------------------------------------------
+
+  /** Tests in a category that match the current search box. */
+  visibleTests(category: TestCategory): TestItem[] {
+    const q = this.testSearch.trim().toLowerCase();
+    if (!q) return category.tests;
+    return category.tests.filter(
+      (t) => t.name.toLowerCase().includes(q) || (t.code ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  /** Categories that still have at least one test matching the search. */
+  get visibleCategories(): TestCategory[] {
+    return this.testCategories.filter((c) => this.visibleTests(c).length > 0);
+  }
+
+  private testById(id: number): TestItem | undefined {
+    return this.testCategories.flatMap((c) => c.tests).find((t) => t.id === id);
+  }
+
+  /** Panel tests not already on the visit — the ones a panel can actually add. */
+  private applicablePanelTests(panel: TestPanelOption): TestItem[] {
+    return panel.testIds
+      .map((id) => this.testById(id))
+      .filter((t): t is TestItem => !!t && !this.isAlreadyOrdered(t));
+  }
+
+  /** Applies a panel's tests to the selection — additive, skipping already-ordered ones. */
+  applyPanel(panel: TestPanelOption): void {
+    for (const t of this.applicablePanelTests(panel)) this.selectedTestIds.add(t.id);
+  }
+
+  /** True once every addable test in the panel is already selected. */
+  isPanelFullyApplied(panel: TestPanelOption): boolean {
+    const applicable = this.applicablePanelTests(panel);
+    if (applicable.length === 0) return false;
+    return applicable.every((t) => this.selectedTestIds.has(t.id));
   }
 
   get selectedTests(): TestItem[] {

@@ -1,0 +1,190 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="clipboard" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Test Panels</h1>
+        <p class="page-hero__subtitle">Reusable sets of tests staff can apply, then adjust, when ordering</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openAdd()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        New Panel
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading panels...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="panels.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Panel</th>
+            <th>Tests</th>
+            <th class="text-right">Total</th>
+            <th>Status</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let panel of panels">
+            <td>
+              <div class="cell-user__body">
+                <span class="cell-user__name">{{ panel.name }}</span>
+                <span class="cell-user__sub">{{ panel.description }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="panel-tests">
+                <span class="tag" *ngFor="let t of panel.tests">{{ t.code || t.name }}</span>
+              </span>
+            </td>
+            <td class="text-right">&#8369;{{ panel.totalPrice | number: '1.2-2' }}</td>
+            <td>
+              <span class="pill" [class.pill--success]="panel.isActive" [class.pill--neutral]="!panel.isActive">
+                {{ panel.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--info"
+                  (click)="openEdit(panel)"
+                  title="Edit panel"
+                  aria-label="Edit panel"
+                >
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(panel)"
+                  title="Delete panel"
+                  aria-label="Delete panel"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="clipboard" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No panels yet</h3>
+        <p class="empty-rich__text">Create a panel to let staff order a set of tests in one tap.</p>
+        <button type="button" class="btn btn-primary" (click)="openAdd()">
+          <app-icon name="plus" [size]="16"></app-icon>
+          New Panel
+        </button>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<!-- Create / edit panel -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="clipboard" [size]="19"></app-icon>
+          {{ editingId ? 'Edit Panel' : 'New Panel' }}
+        </h3>
+        <p class="modal-sheet__desc">A panel is a starting template — staff can still add or remove tests when ordering.</p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="panelName">Name <span class="required-mark">*</span></label>
+          <input id="panelName" type="text" class="form-control" placeholder="Annual Physical Exam" [(ngModel)]="form.name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="panelCode">Code</label>
+          <input id="panelCode" type="text" class="form-control" placeholder="APE" [(ngModel)]="form.code" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="panelDesc">Description</label>
+        <input id="panelDesc" type="text" class="form-control" placeholder="Routine yearly check-up battery" [(ngModel)]="form.description" />
+      </div>
+
+      <div class="form-group">
+        <label class="check-item">
+          <input type="checkbox" [(ngModel)]="form.isActive" />
+          Panel is active (offered when ordering)
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Tests in this panel
+          <span class="form-label__meta" *ngIf="selectedTestIds.size > 0">
+            {{ selectedTestIds.size }} selected &middot; &#8369;{{ selectedTotal | number: '1.2-2' }}
+          </span>
+        </label>
+
+        <label class="search-field test-search">
+          <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+          <input
+            type="search"
+            placeholder="Search tests by name or code..."
+            [(ngModel)]="testSearch"
+            [ngModelOptions]="{ standalone: true }"
+            aria-label="Search tests"
+          />
+        </label>
+
+        <div class="test-picker">
+          <div class="test-category" *ngFor="let category of visibleCategories">
+            <div class="category-header">
+              {{ category.name }}
+              <span class="category-count">{{ visibleTests(category).length }} tests</span>
+            </div>
+            <label
+              class="test-item"
+              *ngFor="let test of visibleTests(category)"
+              [class.selected]="isSelected(test)"
+            >
+              <input type="checkbox" [checked]="isSelected(test)" (change)="toggleTest(test)" />
+              <span class="test-item__name">{{ test.name }}</span>
+              <span class="test-item__price">&#8369;{{ test.price | number: '1.2-2' }}</span>
+            </label>
+          </div>
+          <p class="empty-hint" *ngIf="visibleCategories.length === 0">No tests match "{{ testSearch }}".</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note">* Required fields</span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Panel' }}
+      </button>
+    </div>
+  </div>
+</div>

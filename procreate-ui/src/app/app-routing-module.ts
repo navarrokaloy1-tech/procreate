@@ -75,6 +75,11 @@ const routes: Routes = [
           import('./features/inventory/inventory-module').then(m => m.InventoryModule)
       },
       {
+        path: 'test-panels',
+        loadChildren: () =>
+          import('./features/test-panels/test-panels-module').then(m => m.TestPanelsModule)
+      },
+      {
         path: 'users',
         loadChildren: () =>
           import('./features/user-management/user-management-module').then(

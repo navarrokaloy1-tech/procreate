@@ -170,14 +170,42 @@
         </div>
 
         <div class="card-body" *ngIf="!isLoadingTests">
-          <div class="test-category" *ngFor="let category of testCategories">
+          <label class="search-field test-search">
+            <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+            <input
+              type="search"
+              placeholder="Search tests by name or code..."
+              [(ngModel)]="testSearch"
+              [ngModelOptions]="{ standalone: true }"
+              aria-label="Search tests"
+            />
+          </label>
+
+          <div class="panel-row" *ngIf="panels.length > 0">
+            <span class="panel-row__label">Panels</span>
+            <button
+              type="button"
+              class="panel-chip"
+              *ngFor="let panel of panels"
+              [class.panel-chip--applied]="isPanelFullyApplied(panel)"
+              [disabled]="!activeEntry"
+              [title]="panel.description"
+              (click)="applyPanel(panel)"
+            >
+              <app-icon [name]="isPanelFullyApplied(panel) ? 'check' : 'plus'" [size]="13"></app-icon>
+              {{ panel.name }}
+              <span class="panel-chip__count">{{ panel.testIds.length }}</span>
+            </button>
+          </div>
+
+          <div class="test-category" *ngFor="let category of visibleCategories">
             <div class="category-header">
               {{ category.name }}
-              <span class="category-count">{{ category.tests.length }} tests</span>
+              <span class="category-count">{{ visibleTests(category).length }} tests</span>
             </div>
             <label
               class="test-item"
-              *ngFor="let test of category.tests"
+              *ngFor="let test of visibleTests(category)"
               [class.selected]="isTestSelected(test.id)"
             >
               <input
@@ -191,6 +219,9 @@
           </div>
 
           <p class="empty-hint" *ngIf="testCategories.length === 0">No tests available.</p>
+          <p class="empty-hint" *ngIf="testCategories.length > 0 && visibleCategories.length === 0">
+            No tests match "{{ testSearch }}".
+          </p>
         </div>
       </div>
     </div>

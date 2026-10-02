@@ -142,6 +142,34 @@ public class TestParameter
     public string? NormalMax { get; set; }
 }
 
+/// <summary>
+/// A named, reusable set of tests ordered together — Annual Physical Exam,
+/// Pre-Employment, and so on. A panel is a starting template, not a fixed
+/// bundle: applying it selects its member tests, which can still be added to or
+/// removed from before the order is placed.
+/// </summary>
+public class TestPanel
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<TestPanelItem> Items { get; set; } = new();
+}
+
+/// <summary>One test's membership in a panel.</summary>
+public class TestPanelItem
+{
+    public int Id { get; set; }
+    public int PanelId { get; set; }
+    public TestPanel Panel { get; set; } = null!;
+    public int LabTestId { get; set; }
+    public LabTest LabTest { get; set; } = null!;
+}
+
 public class LabOrder
 {
     public int Id { get; set; }
