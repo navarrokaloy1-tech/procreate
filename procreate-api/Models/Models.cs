@@ -274,6 +274,63 @@ public class User
     /// <summary>Drives the online/offline dot on the account list.</summary>
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// A clinic-defined role whose feature set decides what this account sees in
+    /// the sidebar. Null means the built-in <see cref="Role"/> drives the nav.
+    /// </summary>
+    public int? CustomRoleId { get; set; }
+    public CustomRole? CustomRole { get; set; }
+}
+
+/// <summary>
+/// The features a custom role can grant — each maps to one sidebar destination.
+/// Kept here so the role editor, the save validation and the sidebar all agree
+/// on the same keys.
+/// </summary>
+public static class CustomRoleFeatures
+{
+    public static readonly IReadOnlyDictionary<string, string> Labels =
+        new Dictionary<string, string>
+        {
+            ["dashboard"] = "Dashboard",
+            ["appointments"] = "Appointments",
+            ["reception-queue"] = "Reception Queue",
+            ["patients"] = "Patients",
+            ["laboratory"] = "Laboratory",
+            ["doctors"] = "Doctors",
+            ["services"] = "Services",
+            ["test-panels"] = "Test Panels",
+            ["inventory"] = "Inventory",
+            ["user-management"] = "User Management",
+            ["login-activity"] = "Login Activity",
+            ["reports"] = "Reports & Analytics",
+        };
+
+    public static readonly string[] All = Labels.Keys.ToArray();
+
+    public static bool IsValid(string key) => Labels.ContainsKey(key);
+}
+
+/// <summary>
+/// A clinic-exclusive role. Its <see cref="Features"/> — a subset of
+/// <see cref="CustomRoleFeatures"/> keys — decide which sidebar destinations an
+/// account assigned to it can see.
+/// </summary>
+public class CustomRole
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+
+    /// <summary>Comma-separated feature keys. Small and read whole, so not a table.</summary>
+    public string Features { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<string> FeatureList() => Features
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
 }
 
 /// <summary>

@@ -1,0 +1,64 @@
+// Page, card, table, modal and form styling come from the shared layer.
+
+.section-label {
+  margin: 1rem 0 0.5rem;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+
+  &:first-child { margin-top: 0; }
+
+  &--split {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    small {
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-muted);
+    }
+  }
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition);
+  color: var(--text-primary);
+
+  &:hover { background: var(--light); }
+  &.selected { background: var(--primary-light); }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 460px;
+}

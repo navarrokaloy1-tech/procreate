@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<ResultDelivery> ResultDeliveries => Set<ResultDelivery>();
     public DbSet<LoginActivity> LoginActivities => Set<LoginActivity>();
+    public DbSet<CustomRole> CustomRoles => Set<CustomRole>();
     public DbSet<AppointmentBatch> AppointmentBatches => Set<AppointmentBatch>();
     public DbSet<AppointmentBatchTemplate> AppointmentBatchTemplates => Set<AppointmentBatchTemplate>();
     public DbSet<MedicalCertificate> MedicalCertificates => Set<MedicalCertificate>();
@@ -362,6 +363,15 @@ public class AppDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+
+        // A custom role is named once; deleting it leaves its members on their
+        // built-in role rather than taking the accounts with it.
+        modelBuilder.Entity<CustomRole>().HasIndex(r => r.Name).IsUnique();
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.CustomRole)
+            .WithMany()
+            .HasForeignKey(u => u.CustomRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Product>().HasData(
             new Product { Id = 1, Code = "LAB-001", Name = "Complete Blood Count", Category = "Laboratory", Price = 350, IsActive = true, SeniorPwdDiscount = true, PhilHealthCovered = true },

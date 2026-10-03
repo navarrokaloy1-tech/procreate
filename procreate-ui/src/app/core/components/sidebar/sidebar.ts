@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
-import { AuthService } from '../../services/auth';
+import { AuthService, AuthUser } from '../../services/auth';
 
 interface NavLink {
   label: string;
@@ -12,6 +12,12 @@ interface NavLink {
 interface NavSection {
   label: string;
   items: NavLink[];
+}
+
+/** One toggleable feature, its sidebar destination and where it is grouped. */
+interface FeatureNav extends NavLink {
+  key: string;
+  section: string;
 }
 
 @Component({
@@ -35,7 +41,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const user = this.auth.currentUser;
     this.userName = user?.fullName ?? '';
-    this.sections = SidebarComponent.navFor(user?.role ?? '');
+    this.sections = SidebarComponent.navFor(user);
 
     // isActive() is read from the template, so the highlight only moves when
     // change detection runs. The click that starts a navigation runs it too
@@ -52,10 +58,37 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Nav is grouped into labelled sections and scoped by role. A doctor sees
-   * clinical work only — no cashier desk, billing, or reporting.
+   * Every feature a custom role can grant, with where it lands in the sidebar.
+   * The order here is the order they appear; sections follow SECTION_ORDER.
    */
-  private static navFor(role: string): NavSection[] {
+  private static readonly FEATURE_CATALOGUE: FeatureNav[] = [
+    { key: 'dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid', section: 'Clinic Operations' },
+    { key: 'appointments', label: 'Appointments', route: '/app/appointments', icon: 'calendar', section: 'Clinic Operations' },
+    { key: 'reception-queue', label: 'Reception Queue', route: '/app/reception-queue', icon: 'monitor', section: 'Clinic Operations' },
+    { key: 'patients', label: 'Patients', route: '/app/patients', icon: 'patients', section: 'Patient Care' },
+    { key: 'laboratory', label: 'Laboratory', route: '/app/lab-results', icon: 'flask', section: 'Patient Care' },
+    { key: 'doctors', label: 'Doctors', route: '/app/doctors', icon: 'stethoscope', section: 'Clinic Setup' },
+    { key: 'services', label: 'Services', route: '/app/services', icon: 'clipboard', section: 'Clinic Setup' },
+    { key: 'test-panels', label: 'Test Panels', route: '/app/test-panels', icon: 'flask', section: 'Clinic Setup' },
+    { key: 'inventory', label: 'Inventory', route: '/app/inventory', icon: 'package', section: 'Clinic Setup' },
+    { key: 'user-management', label: 'User Management', route: '/app/users', icon: 'users', section: 'Account settings' },
+    { key: 'login-activity', label: 'Login Activity', route: '/app/login-activity', icon: 'shield', section: 'Account settings' },
+    { key: 'reports', label: 'Reports & Analytics', route: '/app/reports', icon: 'chart', section: 'Reports' },
+  ];
+
+  private static readonly SECTION_ORDER =
+    ['Clinic Operations', 'Patient Care', 'Clinic Setup', 'Account settings', 'Reports'];
+
+  /**
+   * Nav is grouped into labelled sections. A custom role shows exactly the
+   * features it was granted; otherwise the built-in role decides — a doctor sees
+   * clinical work only, and so on.
+   */
+  private static navFor(user: AuthUser | null): NavSection[] {
+    const features = user?.features;
+    if (features && features.length > 0) return SidebarComponent.buildFromFeatures(features);
+
+    const role = user?.role ?? '';
     if (role === 'Cashier') {
       return [
         {
@@ -154,6 +187,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'Account settings',
         items: [
           { label: 'User Management', route: '/app/users', icon: 'users' },
+          { label: 'Custom Roles', route: '/app/custom-roles', icon: 'shield-check' },
           { label: 'Login Activity', route: '/app/login-activity', icon: 'shield' }
         ]
       },
@@ -162,6 +196,21 @@ export class SidebarComponent implements OnInit, OnDestroy {
         items: [{ label: 'Reports & Analytics', route: '/app/reports', icon: 'chart' }]
       }
     ];
+  }
+
+  /** Builds the nav from a custom role's granted feature keys, grouped in order. */
+  private static buildFromFeatures(features: string[]): NavSection[] {
+    const granted = new Set(features);
+    const chosen = SidebarComponent.FEATURE_CATALOGUE.filter((f) => granted.has(f.key));
+
+    return SidebarComponent.SECTION_ORDER
+      .map((section) => ({
+        label: section,
+        items: chosen
+          .filter((f) => f.section === section)
+          .map((f) => ({ label: f.label, route: f.route, icon: f.icon })),
+      }))
+      .filter((s) => s.items.length > 0);
   }
 
   isActive(route: string): boolean {

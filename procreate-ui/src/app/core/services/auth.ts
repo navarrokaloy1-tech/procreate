@@ -11,6 +11,11 @@ export interface AuthUser {
   email: string;
   /** Present on a patient session only. */
   patientCode?: string;
+  /**
+   * Sidebar features granted by a custom role. Null/absent means the built-in
+   * role decides the nav.
+   */
+  features?: string[] | null;
 }
 
 @Injectable({ providedIn: 'root' })

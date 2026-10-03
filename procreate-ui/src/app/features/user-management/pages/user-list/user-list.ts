@@ -25,11 +25,17 @@ export interface ManagedUser {
   createdAt: string;
   lastLoginAt: string | null;
   isOnline: boolean;
+  customRoleId: number | null;
 }
 
 interface RoleOption {
   value: string;
   label: string;
+}
+
+interface CustomRoleOption {
+  id: number;
+  name: string;
 }
 
 @Component({
@@ -41,6 +47,7 @@ interface RoleOption {
 export class UserListComponent implements OnInit, OnDestroy {
   users: ManagedUser[] = [];
   roles: RoleOption[] = [];
+  customRoles: CustomRoleOption[] = [];
   totalCount = 0;
 
   pageIndex = 0;
@@ -87,6 +94,7 @@ export class UserListComponent implements OnInit, OnDestroy {
     );
 
     this.loadRoles();
+    this.loadCustomRoles();
     this.load();
   }
 
@@ -106,6 +114,7 @@ export class UserListComponent implements OnInit, OnDestroy {
       address: '',
       email: '',
       role: 'Staff',
+      customRoleId: null as number | null,
       isActive: true,
     };
   }
@@ -122,6 +131,20 @@ export class UserListComponent implements OnInit, OnDestroy {
       },
       error: () => this.cdr.markForCheck(),
     });
+  }
+
+  loadCustomRoles(): void {
+    this.api.get<CustomRoleOption[]>('custom-roles').subscribe({
+      next: (roles) => {
+        this.customRoles = roles;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
+  customRoleName(id: number | null): string {
+    return this.customRoles.find((r) => r.id === id)?.name ?? '';
   }
 
   load(): void {
@@ -203,6 +226,7 @@ export class UserListComponent implements OnInit, OnDestroy {
       address: user.address,
       email: user.email,
       role: user.role,
+      customRoleId: user.customRoleId ?? null,
       isActive: user.isActive,
     };
     this.modalError = '';

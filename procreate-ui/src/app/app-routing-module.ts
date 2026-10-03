@@ -87,6 +87,13 @@ const routes: Routes = [
           )
       },
       {
+        path: 'custom-roles',
+        loadChildren: () =>
+          import('./features/custom-roles/custom-roles-module').then(
+            m => m.CustomRolesModule
+          )
+      },
+      {
         path: 'login-activity',
         loadChildren: () =>
           import('./features/login-activity/login-activity-module').then(

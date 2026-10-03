@@ -85,6 +85,9 @@ public class UsersController : ControllerBase
         var error = Validate(request);
         if (error is not null) return BadRequest(new { message = error });
 
+        if (request.CustomRoleId is int newRole && !await _db.CustomRoles.AnyAsync(r => r.Id == newRole))
+            return BadRequest(new { message = "The selected custom role no longer exists." });
+
         var username = BuildUsername(request);
         if (await _db.Users.AnyAsync(u => u.Username == username))
             return BadRequest(new { message = $"The username \"{username}\" is already taken." });
@@ -128,6 +131,9 @@ public class UsersController : ControllerBase
 
         if (await _db.Users.AnyAsync(u => u.Email == request.Email.Trim() && u.Id != id))
             return BadRequest(new { message = $"{request.Email.Trim()} already has an account." });
+
+        if (request.CustomRoleId is int newRole && !await _db.CustomRoles.AnyAsync(r => r.Id == newRole))
+            return BadRequest(new { message = "The selected custom role no longer exists." });
 
         // Demoting or deactivating the only administrator would lock everyone
         // out of user management, with no way back in through the UI.
@@ -213,6 +219,7 @@ public class UsersController : ControllerBase
         user.Address = r.Address?.Trim() ?? string.Empty;
         user.Email = r.Email.Trim();
         user.Role = r.Role!;
+        user.CustomRoleId = r.CustomRoleId;
         user.IsActive = r.IsActive;
         user.FullName = string.Join(' ', new[] { user.FirstName, user.LastName, user.Suffix }
             .Where(part => !string.IsNullOrWhiteSpace(part)));
@@ -267,6 +274,7 @@ public class UsersController : ControllerBase
         u.Email,
         u.Role,
         roleLabel = RoleLabels.TryGetValue(u.Role, out var label) ? label : u.Role,
+        u.CustomRoleId,
         u.IsActive,
         u.MustChangePassword,
         u.CreatedAt,
@@ -286,4 +294,5 @@ public record UserRequest(
     string? Address,
     string Email,
     string? Role,
+    int? CustomRoleId,
     bool IsActive);

@@ -1,0 +1,161 @@
+<section class="page-hero">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <span class="page-hero__icon"><app-icon name="shield-check" [size]="24"></app-icon></span>
+      <div class="page-hero__heading">
+        <h1>Custom Roles</h1>
+        <p class="page-hero__subtitle">Manage clinic-exclusive roles and feature access permissions</p>
+      </div>
+    </div>
+    <div class="page-hero__actions">
+      <button type="button" class="btn btn-hero" (click)="openAdd()">
+        <app-icon name="plus" [size]="16"></app-icon>
+        Add Role
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="card hero-overlap">
+  <div class="toolbar">
+    <span class="toolbar__spacer"></span>
+    <label class="search-field toolbar__search">
+      <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+      <input
+        type="search"
+        placeholder="Search roles..."
+        [(ngModel)]="searchTerm"
+        aria-label="Search roles"
+      />
+    </label>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading roles...</p>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="data-table-scroll" *ngIf="filteredRoles.length > 0; else emptyState">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Features</th>
+            <th class="text-center">Users</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let role of filteredRoles">
+            <td>
+              <div class="cell-user__body">
+                <span class="cell-user__name">{{ role.name }}</span>
+                <span class="cell-user__sub">{{ role.description || 'No description' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="chip-list">
+                <span class="tag" *ngFor="let f of role.features">{{ featureLabel(f) }}</span>
+              </span>
+            </td>
+            <td class="text-center">{{ role.users }}</td>
+            <td class="text-right">
+              <div class="table-actions">
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--info"
+                  (click)="openEdit(role)"
+                  title="Edit role"
+                  aria-label="Edit role"
+                >
+                  <app-icon name="edit" [size]="16"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="table-actions__btn table-actions__btn--danger"
+                  (click)="remove(role)"
+                  title="Delete role"
+                  aria-label="Delete role"
+                >
+                  <app-icon name="trash" [size]="16"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-rich">
+        <span class="empty-rich__icon"><app-icon name="shield-check" [size]="32"></app-icon></span>
+        <h3 class="empty-rich__title">No custom roles found</h3>
+        <p class="empty-rich__text">Try adjusting your search or create a new role.</p>
+        <button type="button" class="btn btn-primary" (click)="openAdd()">
+          <app-icon name="plus" [size]="16"></app-icon>
+          Add Role
+        </button>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
+
+<!-- Create / edit role -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="shield-check" [size]="19"></app-icon>
+          {{ editingId ? 'Edit role' : 'Create role' }}
+        </h3>
+        <p class="modal-sheet__desc">
+          Add a new custom role and choose which features it can access.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
+
+      <p class="section-label">Role details</p>
+
+      <div class="form-group">
+        <label class="form-label" for="roleName">Role name <span class="required-mark">*</span></label>
+        <input id="roleName" type="text" class="form-control" placeholder="e.g. MedTech - Lab Only" [(ngModel)]="form.name" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="roleDesc">Description</label>
+        <input id="roleDesc" type="text" class="form-control" placeholder="Optional short description" [(ngModel)]="form.description" />
+      </div>
+
+      <div class="section-label section-label--split">
+        <span>Feature access</span>
+        <small>Select at least one feature</small>
+      </div>
+
+      <div class="feature-list">
+        <label class="feature-item" *ngFor="let f of features" [class.selected]="isFeatureSelected(f.key)">
+          <input type="checkbox" [checked]="isFeatureSelected(f.key)" (change)="toggleFeature(f.key)" />
+          <span>{{ f.label }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot-spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isSaving">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : editingId ? 'Save role' : 'Create role' }}
+      </button>
+    </div>
+  </div>
+</div>

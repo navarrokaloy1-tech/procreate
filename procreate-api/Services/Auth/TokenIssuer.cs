@@ -36,6 +36,12 @@ public class TokenIssuer
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        // A custom role narrows the sidebar to its feature set; null leaves the
+        // built-in role to decide what the account sees.
+        List<string>? features = null;
+        if (user.CustomRoleId is int roleId)
+            features = (await _db.CustomRoles.FindAsync(roleId))?.FeatureList();
+
         var token = IssueToken(
             subject: user.Id,
             name: user.Username,
@@ -45,7 +51,7 @@ public class TokenIssuer
         return new
         {
             token,
-            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email, user.MustChangePassword }
+            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email, user.MustChangePassword, features }
         };
     }
 

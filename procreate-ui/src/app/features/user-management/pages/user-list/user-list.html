@@ -335,12 +335,25 @@
           </span>
         </div>
         <div class="form-group">
-          <label class="form-label">Access</label>
-          <label class="check-item">
-            <input type="checkbox" [(ngModel)]="form.isActive" />
-            Account is active
-          </label>
+          <label class="form-label" for="customRole">Custom Role</label>
+          <span class="select-field select-field--block">
+            <select id="customRole" [(ngModel)]="form.customRoleId">
+              <option [ngValue]="null">None (use built-in role)</option>
+              <option *ngFor="let cr of customRoles" [ngValue]="cr.id">{{ cr.name }}</option>
+            </select>
+            <span class="select-field__caret">
+              <app-icon name="chevron-down" [size]="14"></app-icon>
+            </span>
+          </span>
+          <small class="field-hint">Overrides the sidebar with the role's features.</small>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="check-item">
+          <input type="checkbox" [(ngModel)]="form.isActive" />
+          Account is active
+        </label>
       </div>
 
       <p class="form-note" *ngIf="!editingId">
