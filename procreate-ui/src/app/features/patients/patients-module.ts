@@ -10,6 +10,7 @@ import { IconComponent } from '../../core/components/icon/icon';
 import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
 import { CertificateFormComponent } from '../../core/components/certificate-form/certificate-form';
 import { ResultDeliveryComponent } from '../../core/components/result-delivery/result-delivery';
+import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/test-order-sheet';
 
 @NgModule({
   declarations: [PatientListComponent, PatientFormComponent, PatientDetailComponent],
@@ -22,6 +23,7 @@ import { ResultDeliveryComponent } from '../../core/components/result-delivery/r
     ComboSelectComponent,
     CertificateFormComponent,
     ResultDeliveryComponent,
+    TestOrderSheetComponent,
   ],
 })
 export class PatientsModule {}

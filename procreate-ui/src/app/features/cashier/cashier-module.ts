@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CashierRoutingModule } from './cashier-routing-module';
 import { PatientOrdersComponent } from './pages/patient-orders/patient-orders';
 import { IconComponent } from '../../core/components/icon/icon';
+import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/test-order-sheet';
 
 @NgModule({
   declarations: [PatientOrdersComponent],
@@ -13,7 +14,8 @@ import { IconComponent } from '../../core/components/icon/icon';
     FormsModule,
     ReactiveFormsModule,
     CashierRoutingModule,
-    IconComponent
+    IconComponent,
+    TestOrderSheetComponent
   ]
 })
 export class CashierModule {}

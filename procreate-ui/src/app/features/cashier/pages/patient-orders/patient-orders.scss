@@ -592,3 +592,10 @@ select.field { appearance: none; background-image: none; }
   .patient-fields { grid-template-columns: repeat(2, 1fr); }
   .reg-row { grid-template-columns: 1fr; }
 }
+
+// Two actions (Order Tests + Add Product) in the Summary card head
+.summary-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

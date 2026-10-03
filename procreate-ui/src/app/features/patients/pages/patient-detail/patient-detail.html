@@ -30,6 +30,10 @@
         <app-icon name="edit" [size]="16"></app-icon>
         Edit
       </button>
+      <button type="button" class="btn btn-hero-ghost" (click)="openOrderTests()">
+        <app-icon name="flask" [size]="16"></app-icon>
+        Order tests
+      </button>
       <button type="button" class="btn btn-hero" (click)="issueCertificate()">
         <app-icon name="file-text" [size]="16"></app-icon>
         Issue certificate
@@ -1042,3 +1046,12 @@
   (closed)="closeDelivery()"
   (delivered)="onDelivered($event)"
 ></app-result-delivery>
+
+<!-- Order lab tests for this patient, without leaving the chart. -->
+<app-test-order-sheet
+  [open]="isOrderOpen"
+  [patientId]="chart?.patient?.id ?? null"
+  [patientName]="chart?.patient?.fullName ?? ''"
+  (closed)="closeOrderTests()"
+  (ordered)="onTestsOrdered($event)"
+></app-test-order-sheet>

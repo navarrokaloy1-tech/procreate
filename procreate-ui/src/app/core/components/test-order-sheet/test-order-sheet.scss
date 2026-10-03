@@ -1,0 +1,124 @@
+// The modal shell, buttons and form fields come from the shared style layer;
+// only the picker internals live here (this is a standalone component).
+
+.test-search {
+  margin-bottom: 0.75rem;
+}
+
+.panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px dashed var(--border-color);
+
+  &__label {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 2px;
+  }
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--primary-dark);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
+
+  &:hover:not(:disabled) { background: var(--primary-light); }
+
+  &--applied {
+    background: var(--primary);
+    color: var(--white);
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  &--applied &__count { background: rgba(255, 255, 255, 0.25); }
+}
+
+.test-picker {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.2rem 0.35rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.category-count {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.test-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition);
+
+  &:hover { background: var(--light); }
+  &.selected { background: var(--primary-light); }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  &__name {
+    flex: 1 1 auto;
+    color: var(--text-primary);
+  }
+
+  &__price {
+    font-weight: 600;
+    color: var(--success-green);
+    white-space: nowrap;
+  }
+}
+
+.empty-hint {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}

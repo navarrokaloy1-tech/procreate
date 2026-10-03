@@ -140,9 +140,14 @@
       <section class="card summary-card">
         <div class="summary-card__head">
           <h3 class="card__heading">Summary</h3>
-          <button type="button" class="btn-add-product" *ngIf="patient" (click)="openAddProduct()">
-            <app-icon name="plus" [size]="16"></app-icon> Add Product
-          </button>
+          <div class="summary-card__actions" *ngIf="patient">
+            <button type="button" class="btn-add-product" (click)="openOrderTests()">
+              <app-icon name="flask" [size]="16"></app-icon> Order Tests
+            </button>
+            <button type="button" class="btn-add-product" (click)="openAddProduct()">
+              <app-icon name="plus" [size]="16"></app-icon> Add Product
+            </button>
+          </div>
         </div>
         <p class="summary-card__patient" *ngIf="patient">{{ patientFullName(patient) }}</p>
 
@@ -289,6 +294,15 @@
       </div>
     </div>
   </div>
+
+  <!-- Order lab tests (shared picker — stays on the Cashier Desk) -->
+  <app-test-order-sheet
+    [open]="showOrderTests"
+    [patientId]="patient?.id ?? null"
+    [patientName]="patientFullName(patient)"
+    (closed)="closeOrderTests()"
+    (ordered)="onTestsOrdered($event)"
+  ></app-test-order-sheet>
 
   <!-- Toast -->
   <div class="toast" *ngIf="toast">{{ toast }}</div>

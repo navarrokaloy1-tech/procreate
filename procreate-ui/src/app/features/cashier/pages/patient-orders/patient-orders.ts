@@ -87,6 +87,9 @@ export class PatientOrdersComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   private productSearchSubject = new Subject<string>();
 
+  // ---- Order lab tests (shared picker; stays on the Cashier Desk) ----
+  showOrderTests = false;
+
   saving = false;
   toast = '';
 
@@ -155,6 +158,25 @@ export class PatientOrdersComponent implements OnInit, OnDestroy {
   patientFullName(p: Patient | null): string {
     if (!p) return '';
     return [p.lastName, [p.firstName, p.middleName].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  }
+
+  // ---- Order lab tests ----
+
+  openOrderTests(): void {
+    if (this.patient) this.showOrderTests = true;
+  }
+
+  closeOrderTests(): void {
+    this.showOrderTests = false;
+    this.cdr.markForCheck();
+  }
+
+  onTestsOrdered(result: { visitCode: string; count: number; total: number }): void {
+    this.showOrderTests = false;
+    this.toast = `Ordered ${result.count} test${result.count === 1 ? '' : 's'} for ${this.patientFullName(this.patient)}.`;
+    this.loadHistory();
+    this.cdr.markForCheck();
+    setTimeout(() => { this.toast = ''; this.cdr.markForCheck(); }, 3000);
   }
 
   age(dob?: string): number | null {

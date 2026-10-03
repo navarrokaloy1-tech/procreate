@@ -1,0 +1,88 @@
+<div class="modal-backdrop" *ngIf="open" (click)="close()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="flask" [size]="19"></app-icon>
+          Order Lab Tests
+        </h3>
+        <p class="modal-sheet__desc" *ngIf="patientName">for {{ patientName }}</p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="close()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading tests...</p>
+      </div>
+
+      <ng-container *ngIf="!isLoading">
+        <label class="search-field test-search">
+          <span class="search-field__icon"><app-icon name="search" [size]="16"></app-icon></span>
+          <input
+            type="search"
+            placeholder="Search tests by name or code..."
+            [(ngModel)]="testSearch"
+            [ngModelOptions]="{ standalone: true }"
+            aria-label="Search tests"
+          />
+        </label>
+
+        <div class="panel-row" *ngIf="panels.length > 0">
+          <span class="panel-row__label">Panels</span>
+          <button
+            type="button"
+            class="panel-chip"
+            *ngFor="let panel of panels"
+            [class.panel-chip--applied]="isPanelApplied(panel)"
+            [title]="panel.description"
+            (click)="applyPanel(panel)"
+          >
+            <app-icon [name]="isPanelApplied(panel) ? 'check' : 'plus'" [size]="13"></app-icon>
+            {{ panel.name }}
+            <span class="panel-chip__count">{{ panel.testIds.length }}</span>
+          </button>
+        </div>
+
+        <div class="test-picker">
+          <div class="test-category" *ngFor="let category of visibleCategories">
+            <div class="category-header">
+              {{ category.name }}
+              <span class="category-count">{{ visibleTests(category).length }} tests</span>
+            </div>
+            <label
+              class="test-item"
+              *ngFor="let test of visibleTests(category)"
+              [class.selected]="isSelected(test.id)"
+            >
+              <input type="checkbox" [checked]="isSelected(test.id)" (change)="toggle(test.id)" />
+              <span class="test-item__name">{{ test.name }}</span>
+              <span class="test-item__price">&#8369;{{ test.price | number: '1.2-2' }}</span>
+            </label>
+          </div>
+
+          <p class="empty-hint" *ngIf="categories.length > 0 && visibleCategories.length === 0">
+            No tests match "{{ testSearch }}".
+          </p>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <span class="modal-sheet__foot__note" *ngIf="selected.size > 0">
+        {{ selected.size }} selected &middot; &#8369;{{ total | number: '1.2-2' }}
+      </span>
+      <span class="modal-sheet__foot-spacer" *ngIf="selected.size === 0"></span>
+      <button type="button" class="btn btn-secondary" (click)="close()" [disabled]="isSaving">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="isSaving || selected.size === 0">
+        <app-icon name="flask" [size]="16"></app-icon>
+        {{ isSaving ? 'Ordering...' : 'Order Tests' }}
+      </button>
+    </div>
+  </div>
+</div>

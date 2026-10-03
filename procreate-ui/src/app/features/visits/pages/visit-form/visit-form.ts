@@ -336,7 +336,7 @@ export class VisitForm implements OnInit {
     this.apiService.post<{ created: number }>('visits/batch', payload).subscribe({
       next: () => {
         this.isSaving = false;
-        this.router.navigate(['/app/visits']);
+        this.router.navigate(['/app/lab-results']);
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -348,7 +348,7 @@ export class VisitForm implements OnInit {
   }
 
   cancel(): void {
-    this.router.navigate(['/app/visits']);
+    this.router.navigate(['/app/lab-results']);
   }
 
   initials(patient: PatientOption): string {

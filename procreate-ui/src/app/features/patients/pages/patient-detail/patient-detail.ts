@@ -143,6 +143,9 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   notice = '';
   private noticeTimer?: ReturnType<typeof setTimeout>;
 
+  /** The order-lab-tests sheet, opened over the chart for this patient. */
+  isOrderOpen = false;
+
   // --- Editors ---
   editor: Editor = null;
   isSaving = false;
@@ -283,6 +286,24 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       name: patient.fullName,
       email: patient.email,
     };
+  }
+
+  // ----------------------------------------------------------
+  // Ordering lab tests (shared picker, over the chart)
+  // ----------------------------------------------------------
+
+  openOrderTests(): void {
+    if (this.chart?.patient) this.isOrderOpen = true;
+  }
+
+  closeOrderTests(): void {
+    this.isOrderOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  onTestsOrdered(result: { visitCode: string; count: number; total: number }): void {
+    this.isOrderOpen = false;
+    this.flashNotice(`Ordered ${result.count} test${result.count === 1 ? '' : 's'}.`);
   }
 
   /** Confirms an action that closed its own sheet, then clears itself. */
