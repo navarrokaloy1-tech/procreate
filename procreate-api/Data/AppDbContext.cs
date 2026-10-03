@@ -423,11 +423,13 @@ public class AppDbContext : DbContext
 
         // A few received lots carrying expiry, so the expiration warnings and
         // the batch ledger have something real on a fresh database.
+        // Spread across the reminder milestones so the 3- / 2- / 1-month emails
+        // and the in-app alerts all have something to show on a fresh database.
         modelBuilder.Entity<StockBatch>().HasData(
-            new StockBatch { Id = 1, InventoryItemId = 1, BatchNumber = "GEL-A10", ExpiryDate = DateTime.Today.AddMonths(10), QuantityReceived = 24, QuantityRemaining = 24 },
-            new StockBatch { Id = 2, InventoryItemId = 4, BatchNumber = "EDTA-2411", ExpiryDate = DateTime.Today.AddDays(20), QuantityReceived = 6, QuantityRemaining = 6 },
-            new StockBatch { Id = 3, InventoryItemId = 7, BatchNumber = "AML-2402", ExpiryDate = DateTime.Today.AddDays(-15), QuantityReceived = 40, QuantityRemaining = 40 },
-            new StockBatch { Id = 4, InventoryItemId = 8, BatchNumber = "LOS-2603", ExpiryDate = DateTime.Today.AddDays(25), QuantityReceived = 4, QuantityRemaining = 4 }
+            new StockBatch { Id = 1, InventoryItemId = 1, BatchNumber = "GEL-A10", ExpiryDate = DateTime.Today.AddDays(80), QuantityReceived = 24, QuantityRemaining = 24 }, // ~3 months
+            new StockBatch { Id = 2, InventoryItemId = 4, BatchNumber = "EDTA-2411", ExpiryDate = DateTime.Today.AddDays(25), QuantityReceived = 6, QuantityRemaining = 6 },  // ~1 month
+            new StockBatch { Id = 3, InventoryItemId = 7, BatchNumber = "AML-2402", ExpiryDate = DateTime.Today.AddDays(-15), QuantityReceived = 40, QuantityRemaining = 40 }, // expired
+            new StockBatch { Id = 4, InventoryItemId = 8, BatchNumber = "LOS-2603", ExpiryDate = DateTime.Today.AddDays(50), QuantityReceived = 4, QuantityRemaining = 4 }   // ~2 months
         );
 
         // Categories carry the department, so a test's console tab follows from

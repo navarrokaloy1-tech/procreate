@@ -837,6 +837,13 @@ public class StockBatch
     public int QuantityReceived { get; set; }
     public int QuantityRemaining { get; set; }
     public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// The nearest expiry-reminder milestone already emailed for this lot, in
+    /// months (3, 2, 1), or 0 if none. Stops the same milestone being emailed
+    /// twice as the daily check re-runs.
+    /// </summary>
+    public int ExpiryNoticeStage { get; set; }
 }
 
 /// <summary>

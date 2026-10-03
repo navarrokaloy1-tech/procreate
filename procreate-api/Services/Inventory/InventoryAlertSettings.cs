@@ -17,9 +17,15 @@ public class InventoryAlertSettings
     /// <summary>Who the digest goes to. No recipients means nothing is sent.</summary>
     public string[] Recipients { get; set; } = Array.Empty<string>();
 
-    /// <summary>Local hour of day (0–23) the daily digest goes out.</summary>
+    /// <summary>Local hour of day (0–23) the daily check runs.</summary>
     public int SendHour { get; set; } = 7;
 
-    /// <summary>How many days ahead counts as "expiring soon".</summary>
+    /// <summary>How many days ahead counts as "expiring soon" for the in-app alerts.</summary>
     public int ExpiryDays { get; set; } = 30;
+
+    /// <summary>
+    /// Months-before-expiry at which a reminder email goes out — one email each
+    /// as a lot crosses each milestone. Defaults to 3, 2 and 1 months.
+    /// </summary>
+    public int[] ReminderMonths { get; set; } = { 3, 2, 1 };
 }
