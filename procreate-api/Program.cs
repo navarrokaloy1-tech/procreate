@@ -130,7 +130,24 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // EnsureCreated leaves an existing database untouched, so columns added
+    // after it was first created have to be put in by hand.
+    var labTestColumns = db.Database
+        .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('LabTests')")
+        .ToList();
+
+    if (!labTestColumns.Contains("ProductId"))
+        db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "ProductId" INTEGER NULL""");
+    if (!labTestColumns.Contains("IsActive"))
+        db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "IsActive" INTEGER NOT NULL DEFAULT 1""");
+
+    db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_LabTests_ProductId" ON "LabTests" ("ProductId") WHERE "ProductId" IS NOT NULL""");
+    // Parameters moved onto LabTest before this table ever held anything.
+    db.Database.ExecuteSqlRaw("""DROP TABLE IF EXISTS "ServiceParameters" """);
+
     DataSeeder.SeedSampleData(db);
+    CatalogueReconciler.Reconcile(db);
 }
 
 if (app.Environment.IsDevelopment())

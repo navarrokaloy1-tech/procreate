@@ -306,6 +306,14 @@ public class AppDbContext : DbContext
             .HasIndex(l => new { l.ProductId, l.InventoryItemId })
             .IsUnique();
 
+        // One service, at most one orderable test. Deleting the catalogue entry
+        // leaves the test behind so past orders still read.
+        modelBuilder.Entity<LabTest>()
+            .HasOne(t => t.Product)
+            .WithOne(p => p.LabTest)
+            .HasForeignKey<LabTest>(t => t.ProductId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // The stock ledger and batches belong to the item: removing the item
         // takes its whole history with it.
         modelBuilder.Entity<StockMovement>()

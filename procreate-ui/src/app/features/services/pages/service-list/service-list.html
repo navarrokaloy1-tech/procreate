@@ -39,7 +39,7 @@
         aria-label="Filter by category"
       >
         <option value="">All Categories</option>
-        <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+        <option *ngFor="let category of categories" [value]="category.name">{{ category.name }}</option>
       </select>
       <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
     </span>
@@ -88,7 +88,12 @@
               </span>
             </td>
 
-            <td>{{ service.category }}</td>
+            <td>
+              {{ service.category }}
+              <span class="pill pill--info orderable-tag" *ngIf="service.orderable" title="Appears when staff order tests">
+                Orderable
+              </span>
+            </td>
 
             <td class="text-right">
               <span class="cell-price__value">&#8369;{{ service.price | number: '1.2-2' }}</span>
@@ -272,12 +277,19 @@
           <span class="select-field select-field--block">
             <select id="serviceCategory" [(ngModel)]="form.category">
               <option value="" disabled>Select category</option>
-              <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+              <option *ngFor="let category of categories" [value]="category.name">{{ category.name }}</option>
             </select>
             <span class="select-field__caret">
               <app-icon name="chevron-down" [size]="14"></app-icon>
             </span>
           </span>
+          <p class="form-hint" [class.form-hint--muted]="!isCategoryOrderable">
+            <app-icon [name]="isCategoryOrderable ? 'check' : 'alert-circle'" [size]="14"></app-icon>
+            <ng-container *ngIf="isCategoryOrderable; else billingOnly">
+              Staff can order this from the {{ categoryDepartment }} console.
+            </ng-container>
+            <ng-template #billingOnly>Billed only — this will not appear when ordering tests.</ng-template>
+          </p>
         </div>
         <div class="form-group">
           <label class="form-label" for="serviceFee">
@@ -382,6 +394,94 @@
             <p>No inventory items linked. Add reagents or consumables this service uses.</p>
           </div>
         </ng-template>
+      </div>
+
+      <!-- The measured lines this service reports, in the order they print -->
+      <div class="form-group">
+        <label class="form-label form-label--section">
+          <app-icon name="file-text" [size]="16"></app-icon>
+          Result Parameters
+        </label>
+
+        <div class="params" *ngIf="parameters.length > 0; else noParams">
+          <div class="params__head">
+            <span>Parameter *</span>
+            <span>Unit</span>
+            <span>Reference</span>
+            <span class="params__head__spacer"></span>
+          </div>
+
+          <div class="params__row" *ngFor="let param of parameters; let i = index">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. Hemoglobin"
+              [(ngModel)]="param.name"
+              [name]="'paramName' + i"
+              [attr.aria-label]="'Parameter name ' + (i + 1)"
+            />
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. g/dL"
+              [(ngModel)]="param.unit"
+              [name]="'paramUnit' + i"
+              [attr.aria-label]="'Unit for parameter ' + (i + 1)"
+            />
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. 13.5-17.5"
+              [ngModel]="param.referenceRange"
+              (ngModelChange)="onReferenceRangeChange(param, $event)"
+              [name]="'paramRef' + i"
+              [attr.aria-label]="'Reference range for parameter ' + (i + 1)"
+            />
+            <div class="params__actions">
+              <button
+                type="button"
+                class="table-actions__btn"
+                (click)="moveParameter(i, -1)"
+                [disabled]="i === 0"
+                title="Move up"
+                aria-label="Move parameter up"
+              >
+                <app-icon name="chevron-up" [size]="15"></app-icon>
+              </button>
+              <button
+                type="button"
+                class="table-actions__btn"
+                (click)="moveParameter(i, 1)"
+                [disabled]="i === parameters.length - 1"
+                title="Move down"
+                aria-label="Move parameter down"
+              >
+                <app-icon name="chevron-down" [size]="15"></app-icon>
+              </button>
+              <button
+                type="button"
+                class="table-actions__btn table-actions__btn--danger"
+                (click)="removeParameter(i)"
+                title="Remove parameter"
+                aria-label="Remove parameter"
+              >
+                <app-icon name="trash" [size]="15"></app-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noParams>
+          <div class="linked-empty">
+            <app-icon name="file-text" [size]="22"></app-icon>
+            <p>No parameters yet. Add the measurements this service reports, or leave empty for a narrative result.</p>
+          </div>
+        </ng-template>
+
+        <button type="button" class="btn btn-secondary btn-sm params__add" (click)="addParameter()">
+          <app-icon name="plus" [size]="15"></app-icon>
+          Add Parameter
+        </button>
       </div>
     </div>
 

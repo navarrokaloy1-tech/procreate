@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 import { ComboOption } from '../../../../core/components/combo-select/combo-select';
 
 interface Certificate {
@@ -52,7 +53,11 @@ export class CertificateListComponent implements OnInit {
   /** The certificate currently rendered into the print-only sheet. */
   printing: Certificate | null = null;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => {
@@ -144,8 +149,14 @@ export class CertificateListComponent implements OnInit {
     this.load();
   }
 
-  remove(certificate: Certificate): void {
-    if (!window.confirm(`Delete certificate ${certificate.certificateNumber}?`)) return;
+  async remove(certificate: Certificate): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete certificate',
+      message: `Delete certificate ${certificate.certificateNumber}?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
 
     this.api.delete<void>(`medicalcertificates/${certificate.id}`).subscribe({
       next: () => {

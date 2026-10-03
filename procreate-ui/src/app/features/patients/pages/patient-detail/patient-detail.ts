@@ -1,7 +1,9 @@
-import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 import { AuthService } from '../../../../core/services/auth';
+import { ToastService } from '../../../../core/services/toast';
 import { CertificateRecipient } from '../../../../core/components/certificate-form/certificate-form';
 import { DeliveryPatient } from '../../../../core/components/result-delivery/result-delivery';
 
@@ -123,7 +125,7 @@ type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' |
   templateUrl: './patient-detail.html',
   styleUrl: './patient-detail.scss',
 })
-export class PatientDetailComponent implements OnInit, OnDestroy {
+export class PatientDetailComponent implements OnInit {
   patientId!: number;
   chart: PatientChart | null = null;
   isLoading = true;
@@ -138,10 +140,6 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   /** The send/print-results sheet. Both hero buttons open it, on different tabs. */
   isDeliveryOpen = false;
   deliveryMode: 'email' | 'print' = 'email';
-
-  /** Shared by the sheets above — they all confirm the same way. */
-  notice = '';
-  private noticeTimer?: ReturnType<typeof setTimeout>;
 
   /** The order-lab-tests sheet, opened over the chart for this patient. */
   isOrderOpen = false;
@@ -187,7 +185,9 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     private auth: AuthService,
     private route: ActivatedRoute,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -252,7 +252,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
 
   onCertificateIssued(): void {
     this.isCertificateOpen = false;
-    this.flashNotice('Medical certificate issued.');
+    this.toast.success('Medical certificate issued.');
+    this.cdr.markForCheck();
   }
 
   // ----------------------------------------------------------
@@ -272,7 +273,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
 
   onDelivered(message: string): void {
     this.isDeliveryOpen = false;
-    this.flashNotice(message);
+    this.toast.success(message);
+    this.cdr.markForCheck();
   }
 
   /** Enough of the patient to address a delivery, without a second lookup. */
@@ -303,20 +305,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
 
   onTestsOrdered(result: { visitCode: string; count: number; total: number }): void {
     this.isOrderOpen = false;
-    this.flashNotice(`Ordered ${result.count} test${result.count === 1 ? '' : 's'}.`);
-  }
-
-  /** Confirms an action that closed its own sheet, then clears itself. */
-  private flashNotice(message: string): void {
-    this.notice = message;
+    this.toast.success(`Ordered ${result.count} test${result.count === 1 ? '' : 's'}.`);
     this.cdr.markForCheck();
-
-    clearTimeout(this.noticeTimer);
-    this.noticeTimer = setTimeout(() => {
-      this.notice = '';
-      // Zoneless: a bare timer callback would not trigger a re-render.
-      this.cdr.markForCheck();
-    }, 3500);
   }
 
   editPatient(): void {
@@ -516,8 +506,12 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       });
   }
 
-  deleteVitals(record: VitalSigns): void {
-    const confirmed = window.confirm('Remove this set of vital signs?');
+  async deleteVitals(record: VitalSigns): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Remove vital signs',
+      message: 'Remove this set of vital signs?',
+      confirmLabel: 'Remove',
+    });
     if (!confirmed) return;
 
     this.apiService.delete<void>(`patients/${this.patientId}/vitals/${record.id}`).subscribe({
@@ -624,8 +618,13 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     window.open(this.documentUrl(document), '_blank');
   }
 
-  deleteDocument(document: ResultDocument): void {
-    const confirmed = window.confirm(`Delete "${document.fileName}"? This cannot be undone.`);
+  async deleteDocument(document: ResultDocument): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete file',
+      message: `Delete "${document.fileName}"?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
     if (!confirmed) return;
 
     this.apiService
@@ -751,9 +750,5 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     const p = this.chart?.patient;
     if (!p) return false;
     return !!(p.philHealthNumber || p.seniorCitizenId || p.pwdId || p.hmoProvider);
-  }
-
-  ngOnDestroy(): void {
-    clearTimeout(this.noticeTimer);
   }
 }

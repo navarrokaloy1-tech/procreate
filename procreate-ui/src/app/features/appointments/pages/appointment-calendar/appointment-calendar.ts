@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 export interface Appointment {
   id: number;
@@ -119,7 +120,11 @@ export class AppointmentCalendarComponent implements OnInit {
   /** Date to fetch bookable blocks for; switchMapped so only the latest wins. */
   private batchDate$ = new Subject<string>();
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.patientSearch$
@@ -319,10 +324,14 @@ export class AppointmentCalendarComponent implements OnInit {
       });
   }
 
-  archive(appointment: Appointment): void {
-    if (!window.confirm(`Archive ${appointment.appointmentCode}? It stays in history but leaves the calendar.`)) {
-      return;
-    }
+  async archive(appointment: Appointment): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Archive appointment',
+      message: `Archive ${appointment.appointmentCode}?`,
+      detail: 'It stays in history but leaves the calendar.',
+      confirmLabel: 'Archive',
+    });
+    if (!confirmed) return;
 
     this.api
       .patch<Appointment>(`appointments/${appointment.id}/archive`, { isArchived: true })

@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 export interface QueueEntry {
   id: number;
@@ -40,7 +41,11 @@ export class ReceptionQueueComponent implements OnInit {
   /** The ticket currently rendered into the print-only slip. */
   slipEntry: QueueEntry | null = null;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.loadQueue();
@@ -117,8 +122,13 @@ export class ReceptionQueueComponent implements OnInit {
     });
   }
 
-  remove(entry: QueueEntry): void {
-    if (!window.confirm(`Remove queue number ${entry.queueNumber} (${entry.patientName})?`)) return;
+  async remove(entry: QueueEntry): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Remove ticket',
+      message: `Remove queue number ${entry.queueNumber} (${entry.patientName})?`,
+      confirmLabel: 'Remove',
+    });
+    if (!confirmed) return;
 
     this.api.delete<void>(`queue/${entry.id}`).subscribe({
       next: () => {

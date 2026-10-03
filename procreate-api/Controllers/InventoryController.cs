@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using ProCreateApi.Services.Inventory;
 using Microsoft.AspNetCore.Authorization;
@@ -103,13 +104,15 @@ public class InventoryController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // LIKE rather than Contains: SQLite translates Contains to a
-            // case-sensitive instr(), so "gel" would miss "Ultrasound Gel".
-            var term = $"%{search.Trim()}%";
-            query = query.Where(i =>
-                EF.Functions.Like(i.Name, term) ||
-                EF.Functions.Like(i.BrandName, term) ||
-                EF.Functions.Like(i.Sku, term));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(i =>
+                    EF.Functions.Like(i.Name, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(i.BrandName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(i.Sku, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(i.Dosage, term, SearchTerms.Escape));
+            }
         }
 
         var total = await query.CountAsync();

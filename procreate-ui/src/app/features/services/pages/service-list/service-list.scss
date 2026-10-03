@@ -58,6 +58,23 @@
   font-size: var(--font-size-base);
 }
 
+// Says whether the chosen category also makes the service orderable, so the
+// consequence of the dropdown is visible before saving.
+.form-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: #1a7a48;
+
+  &--muted { color: var(--text-muted); }
+}
+
+.orderable-tag {
+  margin-left: 6px;
+}
+
 .check-row {
   display: flex;
   gap: 18px;
@@ -171,6 +188,70 @@
   p {
     margin: 0;
     font-size: var(--font-size-sm);
+  }
+}
+
+// The parameter sheet: name, unit and reference per measured line.
+// The parameter sheet: name, unit and reference per measured line.
+.params {
+  margin-top: 10px;
+
+  // Matches the row grid below so the labels sit over their own columns.
+  &__head {
+    display: grid;
+    grid-template-columns: 1.6fr 0.9fr 1.1fr auto;
+    gap: 10px;
+    padding: 0 10px 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+
+    &__spacer {
+      width: 108px;
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1.6fr 0.9fr 1.1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+
+    & + & { margin-top: 8px; }
+
+    .form-control {
+      padding: 0.35rem 0.5rem;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 4px;
+    width: 108px;
+    justify-content: flex-end;
+  }
+
+  &__add {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .params__head {
+    display: none;
+  }
+
+  .params__row {
+    grid-template-columns: 1fr;
+  }
+
+  .params__actions {
+    width: auto;
   }
 }
 

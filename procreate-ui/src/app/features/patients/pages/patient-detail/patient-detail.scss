@@ -352,21 +352,6 @@
   background: rgba(45, 27, 14, 0.45);
 }
 
-// Confirmation after issuing from the chart. The sheet closes on success, so
-// without this there would be no sign anything happened.
-.cert-issued {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0.4rem 0.7rem;
-  border-radius: var(--border-radius);
-  background: rgba(255, 255, 255, 0.9);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: #1a7a48;
-  white-space: nowrap;
-}
-
 // The Lab Results History footer carries the send/print actions and reads as
 // part of the card rather than a separate strip, so it drops the shared
 // footer's grey fill. It keeps the rule, which divides it from the content the

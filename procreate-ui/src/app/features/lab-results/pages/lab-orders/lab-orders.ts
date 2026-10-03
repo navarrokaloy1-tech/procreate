@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 export interface LabOrder {
   id: number;
@@ -69,7 +70,8 @@ export class LabOrders implements OnInit, OnDestroy {
   constructor(
     private apiService: ApiService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -177,12 +179,16 @@ export class LabOrders implements OnInit, OnDestroy {
     return order.resultKind === 'parameters' ? 'Encode Results' : 'Enter Findings';
   }
 
-  collectSpecimen(order: LabOrder): void {
-    const confirmed = window.confirm(
-      order.department === 'Laboratory'
+  async collectSpecimen(order: LabOrder): Promise<void> {
+    const isLab = order.department === 'Laboratory';
+    const confirmed = await this.confirm.ask({
+      title: isLab ? 'Collect specimen' : 'Start study',
+      message: isLab
         ? 'Confirm specimen collection for this order?'
-        : 'Mark this study as started?'
-    );
+        : 'Mark this study as started?',
+      confirmLabel: isLab ? 'Collect' : 'Start',
+      tone: 'primary',
+    });
     if (!confirmed) return;
 
     this.apiService.post<void>('lab/orders/' + order.id + '/collect', {}).subscribe({

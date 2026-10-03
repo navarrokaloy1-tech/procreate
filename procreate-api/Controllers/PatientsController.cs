@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using ProCreateApi.Services.Auth;
 using ProCreateApi.Services.Lis;
@@ -36,16 +37,20 @@ public class PatientsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // Tokenized search: each word must match some field, so multi-word /
-            // "LastName, FirstName" queries (as shown in the UI dropdown) still match.
-            var tokens = search.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var token in tokens)
+            // Each word must match some field, so a complete name spanning two
+            // columns ("Juan Dela Cruz") and the "LastName, FirstName" form the
+            // pickers display both land on the same patient.
+            foreach (var token in SearchTerms.Tokenize(search))
             {
-                var term = token;
+                var term = SearchTerms.Pattern(token);
                 query = query.Where(p =>
-                    p.FirstName.Contains(term) || p.LastName.Contains(term) ||
-                    p.MiddleName.Contains(term) || p.PatientCode.Contains(term) ||
-                    p.ContactNumber.Contains(term) || p.Email.Contains(term));
+                    EF.Functions.Like(p.FirstName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.LastName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.MiddleName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.Suffix, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.PatientCode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.ContactNumber, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(p.Email, term, SearchTerms.Escape));
             }
         }
 

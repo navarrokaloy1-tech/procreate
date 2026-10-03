@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -44,14 +45,18 @@ public class MedicalCertificatesController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-            query = query.Where(c =>
-                c.CertificateNumber.Contains(term) ||
-                c.WalkInName.Contains(term) ||
-                (c.Patient != null &&
-                    (c.Patient.FirstName.Contains(term) ||
-                     c.Patient.LastName.Contains(term) ||
-                     c.Patient.PatientCode.Contains(term))));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(c =>
+                    EF.Functions.Like(c.CertificateNumber, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(c.WalkInName, term, SearchTerms.Escape) ||
+                    (c.Patient != null &&
+                        (EF.Functions.Like(c.Patient.FirstName, term, SearchTerms.Escape) ||
+                         EF.Functions.Like(c.Patient.MiddleName, term, SearchTerms.Escape) ||
+                         EF.Functions.Like(c.Patient.LastName, term, SearchTerms.Escape) ||
+                         EF.Functions.Like(c.Patient.PatientCode, term, SearchTerms.Escape))));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(template))

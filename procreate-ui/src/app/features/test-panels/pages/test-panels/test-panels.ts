@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 interface TestItem {
   id: number;
@@ -46,7 +47,11 @@ export class TestPanelsComponent implements OnInit {
   selectedTestIds = new Set<number>();
   testSearch = '';
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.loadPanels();
@@ -182,8 +187,14 @@ export class TestPanelsComponent implements OnInit {
     });
   }
 
-  remove(panel: Panel): void {
-    if (!window.confirm(`Delete the "${panel.name}" panel? This cannot be undone.`)) return;
+  async remove(panel: Panel): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete panel',
+      message: `Delete the "${panel.name}" panel?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
 
     this.api.delete(`lab/panels/${panel.id}`).subscribe({
       next: () => {

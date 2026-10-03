@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,10 +20,18 @@ public class OrdersController : ControllerBase
         var query = _db.Orders.Include(o => o.Patient).Include(o => o.Items).AsQueryable();
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(o => o.Status == status);
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(o => o.OrderCode.Contains(search) ||
-                                     o.Patient.FirstName.Contains(search) ||
-                                     o.Patient.LastName.Contains(search) ||
-                                     o.Patient.PatientCode.Contains(search));
+        {
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(o =>
+                    EF.Functions.Like(o.OrderCode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Patient.FirstName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Patient.MiddleName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Patient.LastName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Patient.PatientCode, term, SearchTerms.Escape));
+            }
+        }
 
         var total = await query.CountAsync();
         var orders = await query.OrderByDescending(o => o.CreatedAt)

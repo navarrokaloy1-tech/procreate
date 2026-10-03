@@ -60,7 +60,6 @@ export class TestOrderSheetComponent implements OnChanges {
   isLoading = false;
   isSaving = false;
   errorMessage = '';
-  private loaded = false;
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -70,7 +69,9 @@ export class TestOrderSheetComponent implements OnChanges {
       this.appliedPanels.clear();
       this.testSearch = '';
       this.errorMessage = '';
-      if (!this.loaded) this.loadCatalog();
+      // Reloaded every time: Service Management can add or retire an orderable
+      // service while this page is open.
+      this.loadCatalog();
     }
   }
 
@@ -80,7 +81,6 @@ export class TestOrderSheetComponent implements OnChanges {
       next: (c) => {
         this.categories = c;
         this.isLoading = false;
-        this.loaded = true;
         this.cdr.markForCheck();
       },
       error: () => {

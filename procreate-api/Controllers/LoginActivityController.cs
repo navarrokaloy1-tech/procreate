@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -37,10 +38,14 @@ public class LoginActivityController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim().ToLower();
-            q = q.Where(a => a.UsernameAttempted.ToLower().Contains(s)
-                          || a.FullName.ToLower().Contains(s)
-                          || a.IpAddress.Contains(s));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                q = q.Where(a =>
+                    EF.Functions.Like(a.UsernameAttempted, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(a.FullName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(a.IpAddress, term, SearchTerms.Escape));
+            }
         }
 
         if (string.Equals(result, "success", StringComparison.OrdinalIgnoreCase))

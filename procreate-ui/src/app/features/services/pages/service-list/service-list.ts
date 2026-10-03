@@ -2,12 +2,22 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 export interface RequiredItem {
   inventoryItemId: number;
   quantity: number;
   name: string;
   unit: string;
+}
+
+/** One measured line on the service's result sheet. */
+export interface ServiceParameter {
+  name: string;
+  unit: string;
+  referenceRange: string;
+  normalMin: string | null;
+  normalMax: string | null;
 }
 
 export interface Service {
@@ -21,6 +31,9 @@ export interface Service {
   philHealthCovered: boolean;
   isActive: boolean;
   requiredItems: RequiredItem[];
+  parameters: ServiceParameter[];
+  /** True once the service also exists as a test staff can order. */
+  orderable: boolean;
 }
 
 interface InventoryOption {
@@ -28,6 +41,13 @@ interface InventoryOption {
   name: string;
   unitOfMeasure: string;
   brandName: string;
+}
+
+/** A category, and whether a service in it can be ordered or is only billed. */
+interface CategoryOption {
+  name: string;
+  orderable: boolean;
+  department: string | null;
 }
 
 @Component({
@@ -38,7 +58,7 @@ interface InventoryOption {
 })
 export class ServiceListComponent implements OnInit, OnDestroy {
   services: Service[] = [];
-  categories: string[] = [];
+  categories: CategoryOption[] = [];
   totalCount = 0;
 
   pageIndex = 0;
@@ -65,11 +85,18 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   inventoryQuery = '';
   inventoryResults: InventoryOption[] = [];
 
+  /** The result-sheet lines reported for the service. */
+  parameters: ServiceParameter[] = [];
+
   private searchSubject = new Subject<string>();
   private inventorySearch = new Subject<string>();
   private subscriptions = new Subscription();
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.subscriptions.add(
@@ -112,7 +139,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   // ----------------------------------------------------------
 
   loadCategories(): void {
-    this.api.get<string[]>('services/categories').subscribe({
+    this.api.get<CategoryOption[]>('services/categories').subscribe({
       next: (categories) => {
         this.categories = categories;
         this.cdr.markForCheck();
@@ -193,8 +220,9 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   openAdd(): void {
     this.editingId = null;
     this.form = this.blankForm();
-    this.form.category = this.categories[0] ?? '';
+    this.form.category = this.categories[0]?.name ?? '';
     this.requiredItems = [];
+    this.parameters = [];
     this.resetInventoryPicker();
     this.modalError = '';
     this.isModalOpen = true;
@@ -213,6 +241,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       isActive: service.isActive,
     };
     this.requiredItems = service.requiredItems.map((r) => ({ ...r }));
+    this.parameters = (service.parameters ?? []).map((p) => ({ ...p }));
     this.resetInventoryPicker();
     this.modalError = '';
     this.isModalOpen = true;
@@ -237,6 +266,10 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       this.modalError = 'Enter a fee of zero or more.';
       return;
     }
+    if (this.parameters.some((p) => !p.name.trim())) {
+      this.modalError = 'Name every parameter, or remove the blank rows.';
+      return;
+    }
 
     const payload = {
       ...this.form,
@@ -244,6 +277,13 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       requiredItems: this.requiredItems.map((r) => ({
         inventoryItemId: r.inventoryItemId,
         quantity: r.quantity,
+      })),
+      parameters: this.parameters.map((p) => ({
+        name: p.name.trim(),
+        unit: p.unit.trim(),
+        referenceRange: p.referenceRange.trim(),
+        normalMin: p.normalMin,
+        normalMax: p.normalMax,
       })),
     };
 
@@ -267,8 +307,13 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     });
   }
 
-  remove(service: Service): void {
-    const confirmed = window.confirm(`Delete "${service.name}"? This cannot be undone.`);
+  async remove(service: Service): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete service',
+      message: `Delete "${service.name}"?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
     if (!confirmed) return;
 
     this.api.delete<{ message?: string }>(`services/${service.id}`).subscribe({
@@ -344,11 +389,53 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   }
 
   // ----------------------------------------------------------
+  // Result parameters
+  // ----------------------------------------------------------
+
+  addParameter(): void {
+    this.parameters.push({ name: '', unit: '', referenceRange: '', normalMin: null, normalMax: null });
+  }
+
+  removeParameter(index: number): void {
+    this.parameters.splice(index, 1);
+  }
+
+  moveParameter(index: number, offset: number): void {
+    const target = index + offset;
+    if (target < 0 || target >= this.parameters.length) return;
+
+    const [row] = this.parameters.splice(index, 1);
+    this.parameters.splice(target, 0, row);
+  }
+
+  /**
+   * Keeps the numeric bounds in step with the typed range, so a value entered
+   * at result time can still be flagged high or low. Anything that is not a
+   * plain "low-high" ("Negative", say) just clears them.
+   */
+  onReferenceRangeChange(parameter: ServiceParameter, value: string): void {
+    parameter.referenceRange = value;
+
+    const match = value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[-\u2013to]+\s*(-?\d+(?:\.\d+)?)\s*$/i);
+    parameter.normalMin = match ? match[1] : null;
+    parameter.normalMax = match ? match[2] : null;
+  }
+
+  // ----------------------------------------------------------
   // Presentation
   // ----------------------------------------------------------
 
   categoryOptions(includeAll: boolean): string[] {
-    return includeAll ? ['', ...this.categories] : this.categories;
+    return includeAll ? ['', ...this.categories.map((c) => c.name)] : this.categories.map((c) => c.name);
+  }
+
+  /** Whether a service in the chosen category also becomes an orderable test. */
+  get isCategoryOrderable(): boolean {
+    return this.categories.find((c) => c.name === this.form.category)?.orderable ?? false;
+  }
+
+  get categoryDepartment(): string {
+    return this.categories.find((c) => c.name === this.form.category)?.department ?? '';
   }
 
   get hasFilters(): boolean {

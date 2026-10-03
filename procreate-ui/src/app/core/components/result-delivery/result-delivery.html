@@ -1,5 +1,11 @@
 <div class="modal-backdrop" *ngIf="open" (click)="close()">
   <div class="modal-sheet delivery" (click)="$event.stopPropagation()">
+    <div class="delivery__sending" *ngIf="isSending" role="status" aria-live="polite">
+      <span class="delivery__sending__spinner" aria-hidden="true"></span>
+      <p class="delivery__sending__title">Sending results…</p>
+      <p class="delivery__sending__note">Emailing {{ toAddress }}. Please keep this window open.</p>
+    </div>
+
     <div class="delivery__head">
       <div class="delivery__tabs">
         <button
@@ -206,7 +212,8 @@
         (click)="send()"
         [disabled]="isWorking || nothingAvailable"
       >
-        <app-icon name="mail" [size]="16"></app-icon>
+        <span class="btn-spinner" *ngIf="isSending" aria-hidden="true"></span>
+        <app-icon name="mail" [size]="16" *ngIf="!isSending"></app-icon>
         {{ isWorking ? 'Sending...' : 'Send' }}
       </button>
       <button

@@ -128,6 +128,18 @@ public class LabTest
     public string Method { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int TurnaroundHours { get; set; }
+
+    /// <summary>
+    /// The catalogue entry this test is the orderable face of. Service
+    /// Management owns both, so a test is created, priced and retired from
+    /// there; null only for seeded tests nobody has edited yet.
+    /// </summary>
+    public int? ProductId { get; set; }
+    public Product? Product { get; set; }
+
+    /// <summary>Retired tests stay for past orders but leave the picker.</summary>
+    public bool IsActive { get; set; } = true;
+
     public List<TestParameter> Parameters { get; set; } = new();
 }
 
@@ -288,6 +300,13 @@ public class Product
 
     /// <summary>Reagents and consumables drawn down when the service is performed.</summary>
     public List<ServiceInventoryItem> RequiredItems { get; set; } = new();
+
+    /// <summary>
+    /// Set for services that can be ordered rather than only billed. The
+    /// measured parameters live on the test, which is what the LIS maps its
+    /// observations onto.
+    /// </summary>
+    public LabTest? LabTest { get; set; }
 }
 
 /// <summary>The service categories offered on the Add Service form, in order.</summary>
@@ -298,6 +317,22 @@ public static class ServiceCategories
         "Consultation", "Laboratory", "Imaging", "Ultrasound", "Heart Station",
         "Procedure", "Vaccination", "Dental", "Physical Therapy", "Others"
     };
+
+    /// <summary>
+    /// Categories that are ordered rather than only billed, and the console
+    /// each lands on. A service outside this set has no orderable test.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> DepartmentByCategory =
+        new Dictionary<string, string>
+        {
+            ["Laboratory"] = Departments.Laboratory,
+            ["Imaging"] = Departments.Imaging,
+            ["Ultrasound"] = Departments.Ultrasound,
+            ["Heart Station"] = Departments.HeartStation
+        };
+
+    public static string? CategoryForDepartment(string? department) =>
+        DepartmentByCategory.FirstOrDefault(p => p.Value == department).Key;
 }
 
 public class Order

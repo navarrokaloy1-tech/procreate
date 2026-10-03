@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 interface VisitTest {
   testName: string;
@@ -90,7 +91,8 @@ export class VisitDetail implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private apiService: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -291,9 +293,15 @@ export class VisitDetail implements OnInit {
       });
   }
 
-  removeOrder(order: LabOrder): void {
+  async removeOrder(order: LabOrder): Promise<void> {
     if (!this.visit) return;
-    if (!window.confirm('Remove this test from the consultation?')) return;
+
+    const confirmed = await this.confirm.ask({
+      title: 'Remove test',
+      message: 'Remove this test from the consultation?',
+      confirmLabel: 'Remove',
+    });
+    if (!confirmed) return;
 
     this.apiService.delete(`visits/${this.visit.id}/tests/${order.id}`).subscribe({
       next: () => {

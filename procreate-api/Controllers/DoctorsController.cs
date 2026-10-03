@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -44,11 +45,18 @@ public class DoctorsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-            query = query.Where(d =>
-                d.FirstName.Contains(term) || d.LastName.Contains(term) ||
-                d.DoctorCode.Contains(term) || d.PrcLicenseNumber.Contains(term) ||
-                d.Email.Contains(term) || d.ContactNumber.Contains(term));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(d =>
+                    EF.Functions.Like(d.FirstName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.LastName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.DoctorCode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.PrcLicenseNumber, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.Specialty, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.Email, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(d.ContactNumber, term, SearchTerms.Escape));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(specialty))

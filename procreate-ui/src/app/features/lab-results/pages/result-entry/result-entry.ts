@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 import { AuthService } from '../../../../core/services/auth';
 
 export interface ResultParameter {
@@ -80,7 +81,8 @@ export class ResultEntry implements OnInit {
     private auth: AuthService,
     private route: ActivatedRoute,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -168,15 +170,20 @@ export class ResultEntry implements OnInit {
     });
   }
 
-  releaseResults(): void {
+  async releaseResults(): Promise<void> {
     if (!this.order || !this.canRelease) return;
 
-    const confirmed = window.confirm(
-      'Release this result? It becomes part of the patient record and can no longer be edited.'
-    );
+    const confirmed = await this.confirm.ask({
+      title: 'Release result',
+      message: 'Release this result?',
+      detail: 'It becomes part of the patient record and can no longer be edited.',
+      confirmLabel: 'Release',
+      tone: 'primary',
+    });
     if (!confirmed) return;
 
     this.isReleasing = true;
+    this.cdr.markForCheck();
     this.apiService.post<void>('lab/orders/' + this.orderId + '/release', {}).subscribe({
       next: () => {
         this.isReleasing = false;

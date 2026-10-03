@@ -14,6 +14,56 @@
 
 .delivery {
   max-width: 620px;
+  position: relative;
+
+  // Covers the whole sheet while the send is in flight: the form must not be
+  // touched once the message is on its way.
+  &__sending {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.92);
+
+    &__spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--border-color);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    &__title {
+      margin: 0;
+      font-weight: 600;
+      font-size: var(--font-size-lg);
+      color: var(--text-primary);
+    }
+
+    &__note {
+      margin: 0;
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .btn-spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
 
   &__head {
     display: flex;

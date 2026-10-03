@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
+import { ToastService } from '../../../../core/services/toast';
 
 export interface InventoryItem {
   id: number;
@@ -211,7 +213,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.subscriptions.add(
@@ -545,7 +552,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     };
 
     this.isSaving = true;
-    const request = this.editingId
+    const isEdit = !!this.editingId;
+    const request = isEdit
       ? this.api.put<InventoryItem>(`inventory/items/${this.editingId}`, payload)
       : this.api.post<InventoryItem>('inventory/items', payload);
 
@@ -554,28 +562,37 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         this.closeSheet();
         this.refreshAll();
+        this.toast.success(
+          isEdit ? `"${payload.name}" updated successfully.` : `"${payload.name}" added to inventory.`
+        );
       },
       error: (err) => {
         this.isSaving = false;
         this.sheetError = err?.error?.message ?? 'Saving failed. Please try again.';
+        this.toast.error(this.sheetError);
         this.cdr.markForCheck();
       },
     });
   }
 
-  removeItem(item: InventoryItem): void {
-    const confirmed = window.confirm(`Delete "${item.name}"? This cannot be undone.`);
+  async removeItem(item: InventoryItem): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete item',
+      message: `Delete "${item.name}"?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
     if (!confirmed) return;
 
     this.api.delete<{ message?: string }>(`inventory/items/${item.id}`).subscribe({
       next: (res) => {
         // An item a service depends on is deactivated instead, so say so
         // rather than leaving a still-listed row looking like a failure.
-        if (res?.message) window.alert(res.message);
+        this.toast.success(res?.message ?? `"${item.name}" deleted.`);
         this.refreshAll();
       },
       error: (err) => {
-        window.alert(err?.error?.message ?? 'Could not delete the item.');
+        this.toast.error(err?.error?.message ?? 'Could not delete the item.');
         this.cdr.markForCheck();
       },
     });
@@ -641,16 +658,20 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   private submitStock(path: string, body: any): void {
+    const itemName = this.stockForm.item?.name ?? 'Item';
+    const action = this.stockModeLabel;
     this.isSaving = true;
     this.api.post<InventoryItem>(path, body).subscribe({
       next: () => {
         this.isSaving = false;
         this.closeSheet();
         this.refreshAll();
+        this.toast.success(`${action} recorded for "${itemName}".`);
       },
       error: (err) => {
         this.isSaving = false;
         this.sheetError = err?.error?.message ?? 'The stock update failed.';
+        this.toast.error(this.sheetError);
         this.cdr.markForCheck();
       },
     });
@@ -677,12 +698,15 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.api.post<Category>('inventory/categories', this.categoryForm).subscribe({
       next: () => {
         this.isSaving = false;
+        const name = this.categoryForm.name;
         this.closeSheet();
         this.loadCategories();
+        this.toast.success(`Category "${name}" added.`);
       },
       error: (err) => {
         this.isSaving = false;
         this.sheetError = err?.error?.message ?? 'Saving failed.';
+        this.toast.error(this.sheetError);
         this.cdr.markForCheck();
       },
     });
@@ -705,12 +729,15 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.api.post<Supplier>('inventory/suppliers', this.supplierForm).subscribe({
       next: () => {
         this.isSaving = false;
+        const name = this.supplierForm.name;
         this.closeSheet();
         this.loadSuppliers();
+        this.toast.success(`Supplier "${name}" added.`);
       },
       error: (err) => {
         this.isSaving = false;
         this.sheetError = err?.error?.message ?? 'Saving failed.';
+        this.toast.error(this.sheetError);
         this.cdr.markForCheck();
       },
     });
@@ -791,6 +818,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       .map((l) => ({ inventoryItemId: Number(l.inventoryItemId), quantity: Math.trunc(Number(l.quantity)) }));
 
     this.isRecipeSaving = true;
+    const recipeName = this.editingRecipe.testName;
     this.api
       .put(`inventory/test-recipes/${this.editingRecipe.labTestId}`, { supplies })
       .subscribe({
@@ -798,11 +826,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
           this.isRecipeSaving = false;
           this.editingRecipe = null;
           this.loadRecipes();
+          this.toast.success(`Supplies for "${recipeName}" saved.`);
           this.cdr.markForCheck();
         },
         error: (err) => {
           this.isRecipeSaving = false;
           this.sheetError = err?.error?.message ?? 'Could not save the recipe.';
+          this.toast.error(this.sheetError);
           this.cdr.markForCheck();
         },
       });

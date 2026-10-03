@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -52,12 +53,14 @@ public class UsersController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // LIKE rather than Contains, which SQLite makes case-sensitive.
-            var term = $"%{search.Trim()}%";
-            query = query.Where(u =>
-                EF.Functions.Like(u.FullName, term) ||
-                EF.Functions.Like(u.Username, term) ||
-                EF.Functions.Like(u.Email, term));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(u =>
+                    EF.Functions.Like(u.FullName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(u.Username, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(u.Email, term, SearchTerms.Escape));
+            }
         }
 
         var total = await query.CountAsync();

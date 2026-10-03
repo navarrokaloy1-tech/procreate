@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as QRCode from 'qrcode';
 import { ApiService } from '../../services/api';
+import { ToastService } from '../../services/toast';
 import { IconComponent } from '../icon/icon';
 
 /** Enough of a patient to address the delivery without another lookup. */
@@ -161,6 +162,8 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
 
   isLoading = false;
   isWorking = false;
+  /** Narrower than isWorking: only the email send, which blocks the sheet. */
+  isSending = false;
   errorMessage = '';
 
   /** The assembled sheet, shown in the preview panel and used for printing. */
@@ -170,7 +173,7 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   /** QR of the patient code, drawn top-right of the sheet for staff to scan. */
   qrDataUrl = '';
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.loadDoctors();
@@ -187,6 +190,8 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     this.toAddress = this.patient?.email ?? '';
     this.message = '';
     this.errorMessage = '';
+    this.isWorking = false;
+    this.isSending = false;
     this.preview = null;
     this.loadAvailable();
   }
@@ -293,6 +298,10 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   // ----------------------------------------------------------
 
   close(): void {
+    // Backdrop and the X bypass the disabled footer buttons, and a half-sent
+    // email should not be abandoned.
+    if (this.isSending) return;
+
     this.errorMessage = '';
     this.preview = null;
     this.closed.emit();
@@ -377,7 +386,9 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     }
 
     this.isWorking = true;
+    this.isSending = true;
     this.errorMessage = '';
+    this.cdr.markForCheck();
 
     this.api
       .post<{ message: string }>(`patients/${this.patient.id}/result-delivery/send`, {
@@ -388,12 +399,15 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
       .subscribe({
         next: (res) => {
           this.isWorking = false;
+          this.isSending = false;
           this.delivered.emit(res.message ?? 'Results sent.');
           this.cdr.markForCheck();
         },
         error: (err) => {
           this.errorMessage = err?.error?.message ?? 'The results could not be sent.';
+          this.toast.error(this.errorMessage);
           this.isWorking = false;
+          this.isSending = false;
           this.cdr.markForCheck();
         },
       });

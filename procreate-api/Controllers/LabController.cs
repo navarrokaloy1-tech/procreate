@@ -1,4 +1,5 @@
 using ProCreateApi.Data;
+using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,21 +14,29 @@ public class LabController : ControllerBase
     public LabController(AppDbContext db) => _db = db;
 
     [HttpGet("tests")]
-    public async Task<IActionResult> GetTests()
+    public async Task<IActionResult> GetTests([FromQuery] bool includeInactive = false)
     {
-        var tests = await _db.LabTests.Include(t => t.Category).Include(t => t.Parameters).ToListAsync();
+        var query = _db.LabTests.Include(t => t.Category).Include(t => t.Parameters).AsQueryable();
+        if (!includeInactive) query = query.Where(t => t.IsActive);
+
+        var tests = await query.ToListAsync();
         return Ok(tests);
     }
 
     [HttpGet("categories")]
     public async Task<IActionResult> GetCategories([FromQuery] string? department)
     {
-        var query = _db.TestCategories.Include(c => c.Tests).AsQueryable();
+        // Retired tests are filtered in the include: a category that empties
+        // out is then dropped so the picker does not show a bare heading.
+        var query = _db.TestCategories
+            .Include(c => c.Tests.Where(t => t.IsActive))
+            .AsQueryable();
+
         if (!string.IsNullOrWhiteSpace(department))
             query = query.Where(c => c.Department == department);
 
         var cats = await query.OrderBy(c => c.Id).ToListAsync();
-        return Ok(cats);
+        return Ok(cats.Where(c => c.Tests.Count > 0));
     }
 
     // ----------------------------------------------------------
@@ -171,15 +180,19 @@ public class LabController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
-            query = query.Where(o =>
-                o.SpecimenBarcode.Contains(term) ||
-                o.LabTest.Name.Contains(term) ||
-                o.LabTest.Code.Contains(term) ||
-                o.Visit.VisitCode.Contains(term) ||
-                o.Visit.Patient.PatientCode.Contains(term) ||
-                o.Visit.Patient.FirstName.Contains(term) ||
-                o.Visit.Patient.LastName.Contains(term));
+            foreach (var token in SearchTerms.Tokenize(search))
+            {
+                var term = SearchTerms.Pattern(token);
+                query = query.Where(o =>
+                    EF.Functions.Like(o.SpecimenBarcode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.LabTest.Name, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.LabTest.Code, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Visit.VisitCode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Visit.Patient.PatientCode, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Visit.Patient.FirstName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Visit.Patient.MiddleName, term, SearchTerms.Escape) ||
+                    EF.Functions.Like(o.Visit.Patient.LastName, term, SearchTerms.Escape));
+            }
         }
 
         var orders = await query.OrderByDescending(o => o.Id).ToListAsync();

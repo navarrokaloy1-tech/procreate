@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 interface DoctorRow {
   id: number;
@@ -110,7 +111,11 @@ export class DoctorListComponent implements OnInit {
 
   private searchSubject = new Subject<string>();
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
+  ) {}
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => {
@@ -432,10 +437,14 @@ export class DoctorListComponent implements OnInit {
     });
   }
 
-  remove(row: DoctorRow): void {
-    if (!window.confirm(`Remove ${row.fullName}? Doctors with appointment history are deactivated instead.`)) {
-      return;
-    }
+  async remove(row: DoctorRow): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Remove doctor',
+      message: `Remove ${row.fullName}?`,
+      detail: 'Doctors with appointment history are deactivated instead.',
+      confirmLabel: 'Remove',
+    });
+    if (!confirmed) return;
 
     this.api.delete<void>(`doctors/${row.id}`).subscribe({
       next: () => {

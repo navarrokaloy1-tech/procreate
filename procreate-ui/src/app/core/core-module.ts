@@ -9,6 +9,8 @@ import { HeaderComponent } from './components/header/header';
 import { LoginComponent } from './pages/login/login';
 import { SsoCallbackComponent } from './pages/sso-callback/sso-callback';
 import { IconComponent } from './components/icon/icon';
+import { ToastComponent } from './components/toast/toast';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog';
 
 @NgModule({
   declarations: [
@@ -23,14 +25,18 @@ import { IconComponent } from './components/icon/icon';
     RouterModule,
     ReactiveFormsModule,
     HttpClientModule,
-    IconComponent
+    IconComponent,
+    ToastComponent,
+    ConfirmDialogComponent
   ],
   exports: [
     LayoutComponent,
     SidebarComponent,
     HeaderComponent,
     LoginComponent,
-    IconComponent
+    IconComponent,
+    ToastComponent,
+    ConfirmDialogComponent
   ]
 })
 export class CoreModule { }

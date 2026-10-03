@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 import { AuthService } from '../../../../core/services/auth';
 
 export interface ManagedUser {
@@ -72,7 +73,8 @@ export class UserListComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private auth: AuthService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -266,10 +268,14 @@ export class UserListComponent implements OnInit, OnDestroy {
     });
   }
 
-  resetPassword(user: ManagedUser): void {
-    const confirmed = window.confirm(
-      `Issue a new temporary password for ${user.fullName}? Their current password stops working immediately.`
-    );
+  async resetPassword(user: ManagedUser): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Reset password',
+      message: `Issue a new temporary password for ${user.fullName}?`,
+      detail: 'Their current password stops working immediately.',
+      confirmLabel: 'Reset password',
+      tone: 'primary',
+    });
     if (!confirmed) return;
 
     this.api
@@ -291,10 +297,13 @@ export class UserListComponent implements OnInit, OnDestroy {
       });
   }
 
-  remove(user: ManagedUser): void {
-    const confirmed = window.confirm(
-      `Delete the account for ${user.fullName}? This cannot be undone.`
-    );
+  async remove(user: ManagedUser): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete account',
+      message: `Delete the account for ${user.fullName}?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
     if (!confirmed) return;
 
     this.api.delete<void>(`users/${user.id}`).subscribe({

@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
+import { ConfirmService } from '../../../../core/services/confirm';
 
 export interface Patient {
   id: number;
@@ -64,7 +65,8 @@ export class PatientListComponent implements OnInit, OnDestroy {
   constructor(
     private apiService: ApiService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private confirm: ConfirmService
   ) {}
 
   ngOnInit(): void {
@@ -136,10 +138,13 @@ export class PatientListComponent implements OnInit, OnDestroy {
     this.loadPatients();
   }
 
-  deletePatient(id: number): void {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this patient? This action cannot be undone.'
-    );
+  async deletePatient(id: number): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete patient',
+      message: 'Are you sure you want to delete this patient?',
+      detail: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+    });
     if (!confirmed) return;
 
     this.apiService.delete<void>('patients/' + id).subscribe({
