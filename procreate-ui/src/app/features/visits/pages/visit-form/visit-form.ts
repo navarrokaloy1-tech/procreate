@@ -42,6 +42,8 @@ export interface PatientOption {
 interface BatchEntry {
   patient: PatientOption;
   testIds: Set<number>;
+  /** Panels the user explicitly applied, so overlapping panels don't light up. */
+  appliedPanels: Set<number>;
 }
 
 @Component({
@@ -152,7 +154,7 @@ export class VisitForm implements OnInit {
       return false;
     }
 
-    this.entries.push({ patient, testIds: new Set<number>() });
+    this.entries.push({ patient, testIds: new Set<number>(), appliedPanels: new Set<number>() });
     this.activeIndex = this.entries.length - 1;
     this.patientSearch = '';
     this.patientOptions = [];
@@ -250,18 +252,31 @@ export class VisitForm implements OnInit {
     return this.testCategories.filter((c) => this.visibleTests(c).length > 0);
   }
 
-  /** Applies a panel's tests to the active patient — additive and still editable. */
+  /**
+   * Toggles a panel for the active patient. Applying adds its tests; clicking
+   * again removes them — but keeps any test still needed by another panel the
+   * user applied, since panels overlap. Tests stay individually editable.
+   */
   applyPanel(panel: TestPanelOption): void {
     const entry = this.activeEntry;
     if (!entry) return;
-    for (const id of panel.testIds) entry.testIds.add(id);
+
+    if (entry.appliedPanels.has(panel.id)) {
+      const keep = new Set<number>();
+      for (const other of this.panels)
+        if (other.id !== panel.id && entry.appliedPanels.has(other.id))
+          other.testIds.forEach((id) => keep.add(id));
+      panel.testIds.forEach((id) => { if (!keep.has(id)) entry.testIds.delete(id); });
+      entry.appliedPanels.delete(panel.id);
+    } else {
+      panel.testIds.forEach((id) => entry.testIds.add(id));
+      entry.appliedPanels.add(panel.id);
+    }
   }
 
-  /** True once every test in the panel is already selected for the active patient. */
-  isPanelFullyApplied(panel: TestPanelOption): boolean {
-    const entry = this.activeEntry;
-    if (!entry || panel.testIds.length === 0) return false;
-    return panel.testIds.every((id) => entry.testIds.has(id));
+  /** True only when the user explicitly applied this panel to the active patient. */
+  isPanelApplied(panel: TestPanelOption): boolean {
+    return this.activeEntry?.appliedPanels.has(panel.id) ?? false;
   }
 
   /** Copies the active patient's selection onto everyone else in the batch. */
@@ -272,6 +287,7 @@ export class VisitForm implements OnInit {
     for (const other of this.entries) {
       if (other === entry) continue;
       other.testIds = new Set(entry.testIds);
+      other.appliedPanels = new Set(entry.appliedPanels);
     }
   }
 

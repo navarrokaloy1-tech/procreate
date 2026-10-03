@@ -31,7 +31,7 @@
       <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
       <!-- Patients in this batch -->
-      <div class="card">
+      <div class="card patient-card">
         <div class="card-header">
           <h3 class="info-card__title">
             <app-icon name="patients" [size]="17"></app-icon>
@@ -188,12 +188,12 @@
               type="button"
               class="panel-chip"
               *ngFor="let panel of panels"
-              [class.panel-chip--applied]="isPanelFullyApplied(panel)"
+              [class.panel-chip--applied]="isPanelApplied(panel)"
               [disabled]="!activeEntry"
               [title]="panel.description"
               (click)="applyPanel(panel)"
             >
-              <app-icon [name]="isPanelFullyApplied(panel) ? 'check' : 'plus'" [size]="13"></app-icon>
+              <app-icon [name]="isPanelApplied(panel) ? 'check' : 'plus'" [size]="13"></app-icon>
               {{ panel.name }}
               <span class="panel-chip__count">{{ panel.testIds.length }}</span>
             </button>

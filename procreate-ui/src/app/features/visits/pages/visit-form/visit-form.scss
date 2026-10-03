@@ -103,6 +103,12 @@
 // Patient search
 // ------------------------------------------------------------
 
+// The Patients card must let the search results escape it, so the dropdown can
+// overlap the content below instead of being clipped at the card's edge.
+.card.patient-card {
+  overflow: visible;
+}
+
 .patient-picker {
   position: relative;
 

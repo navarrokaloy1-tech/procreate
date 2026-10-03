@@ -55,6 +55,7 @@ export class TestOrderSheetComponent implements OnChanges {
   categories: TestCategory[] = [];
   panels: PanelOption[] = [];
   selected = new Set<number>();
+  appliedPanels = new Set<number>();
   testSearch = '';
   isLoading = false;
   isSaving = false;
@@ -66,6 +67,7 @@ export class TestOrderSheetComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open'] && this.open) {
       this.selected.clear();
+      this.appliedPanels.clear();
       this.testSearch = '';
       this.errorMessage = '';
       if (!this.loaded) this.loadCatalog();
@@ -117,12 +119,26 @@ export class TestOrderSheetComponent implements OnChanges {
     return this.selected.has(id);
   }
 
+  /**
+   * Toggles a panel. Applying adds its tests; clicking again removes them, but
+   * keeps any test still needed by another applied panel (panels overlap).
+   */
   applyPanel(panel: PanelOption): void {
-    for (const id of panel.testIds) this.selected.add(id);
+    if (this.appliedPanels.has(panel.id)) {
+      const keep = new Set<number>();
+      for (const other of this.panels)
+        if (other.id !== panel.id && this.appliedPanels.has(other.id))
+          other.testIds.forEach((id) => keep.add(id));
+      panel.testIds.forEach((id) => { if (!keep.has(id)) this.selected.delete(id); });
+      this.appliedPanels.delete(panel.id);
+    } else {
+      panel.testIds.forEach((id) => this.selected.add(id));
+      this.appliedPanels.add(panel.id);
+    }
   }
 
   isPanelApplied(panel: PanelOption): boolean {
-    return panel.testIds.length > 0 && panel.testIds.every((id) => this.selected.has(id));
+    return this.appliedPanels.has(panel.id);
   }
 
   private allTests(): TestItem[] {

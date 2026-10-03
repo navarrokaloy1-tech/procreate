@@ -84,6 +84,7 @@ export class VisitDetail implements OnInit {
   testSearch = '';
   isLoadingTests = false;
   selectedTestIds = new Set<number>();
+  appliedPanels = new Set<number>();
 
   constructor(
     private route: ActivatedRoute,
@@ -152,6 +153,7 @@ export class VisitDetail implements OnInit {
     this.addError = '';
     this.testSearch = '';
     this.selectedTestIds.clear();
+    this.appliedPanels.clear();
 
     if (this.testCategories.length === 0) this.loadTests();
     if (this.panels.length === 0) this.loadPanels();
@@ -229,16 +231,30 @@ export class VisitDetail implements OnInit {
       .filter((t): t is TestItem => !!t && !this.isAlreadyOrdered(t));
   }
 
-  /** Applies a panel's tests to the selection — additive, skipping already-ordered ones. */
+  /**
+   * Toggles a panel. Applying adds its addable tests (skipping ones already on
+   * the visit); clicking again removes them, keeping any still needed by another
+   * applied panel (panels overlap).
+   */
   applyPanel(panel: TestPanelOption): void {
-    for (const t of this.applicablePanelTests(panel)) this.selectedTestIds.add(t.id);
+    if (this.appliedPanels.has(panel.id)) {
+      const keep = new Set<number>();
+      for (const other of this.panels)
+        if (other.id !== panel.id && this.appliedPanels.has(other.id))
+          this.applicablePanelTests(other).forEach((t) => keep.add(t.id));
+      this.applicablePanelTests(panel).forEach((t) => {
+        if (!keep.has(t.id)) this.selectedTestIds.delete(t.id);
+      });
+      this.appliedPanels.delete(panel.id);
+    } else {
+      for (const t of this.applicablePanelTests(panel)) this.selectedTestIds.add(t.id);
+      this.appliedPanels.add(panel.id);
+    }
   }
 
-  /** True once every addable test in the panel is already selected. */
-  isPanelFullyApplied(panel: TestPanelOption): boolean {
-    const applicable = this.applicablePanelTests(panel);
-    if (applicable.length === 0) return false;
-    return applicable.every((t) => this.selectedTestIds.has(t.id));
+  /** True only when the user explicitly applied this panel. */
+  isPanelApplied(panel: TestPanelOption): boolean {
+    return this.appliedPanels.has(panel.id);
   }
 
   get selectedTests(): TestItem[] {
