@@ -10,6 +10,14 @@
       "autoPort": false
     },
     {
+      "name": "dev-idp",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "cwd": "tools/dev-idp",
+      "port": 9399,
+      "autoPort": false
+    },
+    {
       "name": "procreate-ui",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],

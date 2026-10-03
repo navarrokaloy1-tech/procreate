@@ -10,7 +10,9 @@ import { IconComponent } from '../../core/components/icon/icon';
 import { QrScannerComponent } from '../../core/components/qr-scanner/qr-scanner';
 
 @NgModule({
-  declarations: [VisitList, VisitForm, VisitDetail],
+  // VisitForm is standalone (reused by the Cashier Desk), so it is imported
+  // rather than declared.
+  declarations: [VisitList, VisitDetail],
   imports: [
     CommonModule,
     VisitsRoutingModule,
@@ -18,6 +20,7 @@ import { QrScannerComponent } from '../../core/components/qr-scanner/qr-scanner'
     FormsModule,
     IconComponent,
     QrScannerComponent,
+    VisitForm,
   ],
 })
 export class VisitsModule {}

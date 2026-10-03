@@ -1,7 +1,10 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { IconComponent } from '../../../../core/components/icon/icon';
+import { QrScannerComponent } from '../../../../core/components/qr-scanner/qr-scanner';
 
 export interface TestItem {
   id: number;
@@ -43,7 +46,8 @@ interface BatchEntry {
 
 @Component({
   selector: 'app-visit-form',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, IconComponent, QrScannerComponent],
   templateUrl: './visit-form.html',
   styleUrl: './visit-form.scss',
 })
@@ -57,6 +61,8 @@ export class VisitForm implements OnInit {
   isLoadingTests = true;
   isSaving = false;
   errorMessage = '';
+  successMessage = '';
+  private successTimer?: ReturnType<typeof setTimeout>;
 
   /**
    * Patients queued for registration. Each becomes its own consultation —
@@ -333,14 +339,25 @@ export class VisitForm implements OnInit {
 
     // One request for the whole batch, so a group is registered atomically
     // rather than leaving half the queue created if something fails midway.
+    const registered = this.entries.length;
     this.apiService.post<{ created: number }>('visits/batch', payload).subscribe({
       next: () => {
         this.isSaving = false;
-        this.router.navigate(['/app/lab-results']);
+        // On the Cashier Desk the clerk usually serves the next patient straight
+        // away, so the batch resets in place rather than leaving the desk. From
+        // New Consultation it hands off to the lab worklist.
+        if (this.onCashier) {
+          this.resetBatch();
+          this.flashSuccess(
+            `Registered ${registered} ${registered === 1 ? 'patient' : 'patients'}. Ready for the next.`
+          );
+        } else {
+          this.router.navigate(['/app/lab-results']);
+        }
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.errorMessage = err?.error?.message ?? 'Could not register the consultations.';
+        this.errorMessage = err?.error?.message ?? 'Could not register the order.';
         this.isSaving = false;
         this.cdr.markForCheck();
       },
@@ -348,7 +365,38 @@ export class VisitForm implements OnInit {
   }
 
   cancel(): void {
+    // Nowhere to go back to on the Cashier Desk — clear and start fresh instead.
+    if (this.onCashier) {
+      this.resetBatch();
+      this.cdr.markForCheck();
+      return;
+    }
     this.router.navigate(['/app/lab-results']);
+  }
+
+  /** True when this screen is serving the Cashier Desk route. */
+  private get onCashier(): boolean {
+    return this.router.url.split('?')[0].startsWith('/app/cashier');
+  }
+
+  /** Clears the batch back to an empty state for the next patient. */
+  private resetBatch(): void {
+    this.entries = [];
+    this.activeIndex = 0;
+    this.patientSearch = '';
+    this.patientOptions = [];
+    this.testSearch = '';
+    this.errorMessage = '';
+    this.visitForm.reset({ referringPhysician: '', purposeOfVisit: '', notes: '' });
+  }
+
+  private flashSuccess(message: string): void {
+    this.successMessage = message;
+    clearTimeout(this.successTimer);
+    this.successTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.cdr.markForCheck();
+    }, 4000);
   }
 
   initials(patient: PatientOption): string {

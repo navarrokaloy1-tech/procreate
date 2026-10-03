@@ -28,6 +28,7 @@
     <!-- LEFT: batch + tests -->
     <div class="visit-layout__main">
       <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+      <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
       <!-- Patients in this batch -->
       <div class="card">
