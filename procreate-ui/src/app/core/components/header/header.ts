@@ -112,9 +112,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.bellOpen = false;
   }
 
-  goToInventory(): void {
+  goToInventory(filter?: string): void {
     this.bellOpen = false;
-    this.router.navigate(['/app/inventory']);
+    this.router.navigate(['/app/inventory'], filter ? { queryParams: { filter } } : {});
   }
 
   private resolveCrumb(): Crumb {

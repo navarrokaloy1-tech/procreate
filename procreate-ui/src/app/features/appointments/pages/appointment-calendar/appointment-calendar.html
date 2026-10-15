@@ -74,6 +74,7 @@
           [class.day--today]="day.isToday"
           [class.day--selected]="isSelected(day)"
           (click)="selectDate(day.date)"
+          (dblclick)="openModalForDate(day.date)"
         >
           <span class="day__number">{{ day.date | date: 'd' }}</span>
           <span class="day__slots">
@@ -200,7 +201,7 @@
       </button>
     </div>
 
-    <div class="modal-sheet__body">
+    <div class="modal-sheet__body" #modalBody>
       <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
 
       <div class="form-group patient-picker">

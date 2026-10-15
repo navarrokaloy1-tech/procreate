@@ -30,19 +30,19 @@
         <div class="menu-panel__divider"></div>
 
         <ng-container *ngIf="alerts && alerts.counts.total > 0; else allClear">
-          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.expired > 0" (click)="goToInventory()">
+          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.expired > 0" (click)="goToInventory('expired')">
             <app-icon name="alert-triangle" [size]="15"></app-icon>
             <span>{{ alerts.counts.expired }} expired batch{{ alerts.counts.expired === 1 ? '' : 'es' }}</span>
           </button>
-          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.expiringSoon > 0" (click)="goToInventory()">
+          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.expiringSoon > 0" (click)="goToInventory('expiring')">
             <app-icon name="clock" [size]="15"></app-icon>
             <span>{{ alerts.counts.expiringSoon }} batch{{ alerts.counts.expiringSoon === 1 ? '' : 'es' }} expiring soon</span>
           </button>
-          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.outOfStock > 0" (click)="goToInventory()">
+          <button type="button" class="bell__line bell__line--danger" *ngIf="alerts.counts.outOfStock > 0" (click)="goToInventory('out-of-stock')">
             <app-icon name="package" [size]="15"></app-icon>
             <span>{{ alerts.counts.outOfStock }} item{{ alerts.counts.outOfStock === 1 ? '' : 's' }} out of stock</span>
           </button>
-          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.lowStock > 0" (click)="goToInventory()">
+          <button type="button" class="bell__line bell__line--warning" *ngIf="alerts.counts.lowStock > 0" (click)="goToInventory('low-stock')">
             <app-icon name="trending-up" [size]="15"></app-icon>
             <span>{{ alerts.counts.lowStock }} item{{ alerts.counts.lowStock === 1 ? '' : 's' }} low on stock</span>
           </button>

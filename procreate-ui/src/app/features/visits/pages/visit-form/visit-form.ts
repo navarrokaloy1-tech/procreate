@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { ToastService } from '../../../../core/services/toast';
 import { IconComponent } from '../../../../core/components/icon/icon';
 import { QrScannerComponent } from '../../../../core/components/qr-scanner/qr-scanner';
 
@@ -82,7 +83,8 @@ export class VisitForm implements OnInit {
     private fb: FormBuilder,
     private apiService: ApiService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -368,6 +370,9 @@ export class VisitForm implements OnInit {
             `Registered ${registered} ${registered === 1 ? 'patient' : 'patients'}. Ready for the next.`
           );
         } else {
+          this.toast.success(
+            `Lab order created for ${registered} ${registered === 1 ? 'patient' : 'patients'}.`
+          );
           this.router.navigate(['/app/lab-results']);
         }
         this.cdr.markForCheck();

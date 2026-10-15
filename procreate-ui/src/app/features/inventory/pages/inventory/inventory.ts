@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
@@ -217,7 +218,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     private api: ApiService,
     private cdr: ChangeDetectorRef,
     private toast: ToastService,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -233,6 +235,28 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loadAlerts();
     this.loadCategories();
     this.loadSuppliers();
+
+    // Deep links from the alert bell land here filtered to the thing that
+    // raised the alert, so a "1 item out of stock" line opens that one item.
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((params) => this.applyDeepLinkFilter(params['filter'])),
+    );
+  }
+
+  /** Maps a bell/alert deep-link key onto the matching tab + filter. */
+  private applyDeepLinkFilter(filter: string | undefined): void {
+    switch (filter) {
+      case 'out-of-stock':
+        this.showStockState('Out of Stock');
+        break;
+      case 'low-stock':
+        this.showStockState('Low Stock');
+        break;
+      case 'expired':
+      case 'expiring':
+        this.showBatches();
+        break;
+    }
   }
 
   ngOnDestroy(): void {
@@ -408,12 +432,22 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
+    this.resetFilters();
+    this.loadItems();
+  }
+
+  /**
+   * Clears every filter back to its default without reloading. Callers that go
+   * on to set their own filter use this so there is a single load with the
+   * final filter — calling clearFilters() first put an unfiltered request in
+   * flight that could land last and overwrite the filtered result with "all".
+   */
+  private resetFilters(): void {
     this.searchTerm = '';
     this.typeFilter = '';
     this.categoryFilter = '';
     this.stockFilter = '';
     this.pageIndex = 0;
-    this.loadItems();
   }
 
   onPageSizeChange(size: string | number): void {
@@ -432,8 +466,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   /** The whole catalogue, unfiltered — from the Total Items tile. */
   showAllItems(): void {
-    this.clearFilters();
+    this.resetFilters();
     this.activeTab = 'Items';
+    this.loadItems();
   }
 
   /** Who the clinic buys from, from the Suppliers tile. */
@@ -445,7 +480,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   /** Jumps to the Items tab filtered to one item type, from the Manage menu. */
   showTypeFilter(itemType: string): void {
-    this.clearFilters();
+    this.resetFilters();
     this.typeFilter = itemType;
     this.activeTab = 'Items';
     this.isManageOpen = false;
@@ -454,7 +489,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   /** Jumps to the Items tab already filtered, so an alert leads somewhere. */
   showStockState(state: string): void {
-    this.clearFilters();
+    this.resetFilters();
     this.stockFilter = state;
     this.activeTab = 'Items';
     this.loadItems();

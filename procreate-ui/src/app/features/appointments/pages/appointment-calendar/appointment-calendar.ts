@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
+import { ToastService } from '../../../../core/services/toast';
 
 export interface Appointment {
   id: number;
@@ -120,10 +121,14 @@ export class AppointmentCalendarComponent implements OnInit {
   /** Date to fetch bookable blocks for; switchMapped so only the latest wins. */
   private batchDate$ = new Subject<string>();
 
+  /** The scrollable modal body, so an error can bring itself into view. */
+  @ViewChild('modalBody') private modalBody?: ElementRef<HTMLElement>;
+
   constructor(
     private api: ApiService,
     private cdr: ChangeDetectorRef,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -351,6 +356,12 @@ export class AppointmentCalendarComponent implements OnInit {
   // New appointment modal
   // ----------------------------------------------------------
 
+  /** Double-clicking a day jumps straight into booking for that date. */
+  openModalForDate(date: Date): void {
+    this.selectDate(date);
+    this.openModal();
+  }
+
   openModal(): void {
     this.isModalOpen = true;
     this.modalError = '';
@@ -455,19 +466,19 @@ export class AppointmentCalendarComponent implements OnInit {
 
   save(): void {
     if (!this.form.patientId) {
-      this.modalError = 'Please choose a patient.';
+      this.failModal('Please choose a patient.');
       return;
     }
     if (!this.form.doctorId) {
-      this.modalError = 'Please choose a doctor.';
+      this.failModal('Please choose a doctor.');
       return;
     }
     if (!this.form.date) {
-      this.modalError = 'Please set a date.';
+      this.failModal('Please set a date.');
       return;
     }
     if (!this.form.batchId && !this.form.time) {
-      this.modalError = 'Please choose a time block, or set an exact time.';
+      this.failModal('Please choose a time block, or set an exact time.');
       return;
     }
 
@@ -494,15 +505,26 @@ export class AppointmentCalendarComponent implements OnInit {
           this.isModalOpen = false;
           this.selectedDate = this.startOfDay(new Date(created.scheduledAt));
           this.loadMonth();
+          this.toast.success(`Appointment booked for ${created.patientName}.`);
           this.cdr.markForCheck();
         },
         error: (err) => {
           // The API returns specific conflict / out-of-hours messages worth showing verbatim.
-          this.modalError = err?.error?.message ?? 'Could not create the appointment.';
           this.isSaving = false;
-          this.cdr.markForCheck();
+          this.failModal(err?.error?.message ?? 'Could not create the appointment.');
         },
       });
+  }
+
+  /**
+   * Shows an error inside the modal and scrolls it back into view. The Create
+   * button sits at the foot of a scrollable sheet, so after a failed submit the
+   * message at the top would otherwise be out of sight.
+   */
+  private failModal(message: string): void {
+    this.modalError = message;
+    this.cdr.markForCheck();
+    setTimeout(() => this.modalBody?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' }));
   }
 
   // ----------------------------------------------------------
