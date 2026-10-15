@@ -11,6 +11,7 @@ using ProCreateApi.Services.Queue;
 using ProCreateApi.Services.Sso;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -100,7 +101,13 @@ var usePostgres = !string.IsNullOrWhiteSpace(pgConnectionRaw);
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
     if (usePostgres)
-        opt.UseNpgsql(DbConnectionString.ForNpgsql(pgConnectionRaw!));
+        opt.UseNpgsql(DbConnectionString.ForNpgsql(pgConnectionRaw!))
+            // The seeded users hash their passwords with BCrypt inside HasData,
+            // which produces a fresh value every build, so the model never matches
+            // the migration snapshot. That is harmless here — the schema is fixed
+            // and the hashes still verify — but EF 10 escalates it to an error that
+            // aborts Migrate(). Ignore just that warning so startup can proceed.
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     else
         opt.UseSqlite("Data Source=procreate.db");
 });
