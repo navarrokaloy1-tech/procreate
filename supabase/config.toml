@@ -1,0 +1,4 @@
+# Supabase project configuration.
+# project_id links this repo to the hosted project; the GitHub integration and
+# the Supabase CLI both read it. Everything else falls back to CLI defaults.
+project_id = "mdinkwftkjrhkrdmamfi"

@@ -14,6 +14,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+// The app's DateTimes are naive clinic-local values (as they were under SQLite),
+// so keep Npgsql mapping them to "timestamp without time zone" instead of
+// enforcing UTC-kind. Must run before any Npgsql type mapping is built, and must
+// match AppDbContextFactory so the migration and runtime agree on the type.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // LIS integration services
@@ -83,7 +89,21 @@ builder.Services.AddSingleton(inventoryAlertSettings);
 builder.Services.AddScoped<InventoryAlertDigest>();
 builder.Services.AddHostedService<InventoryAlertScheduler>();
 
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=procreate.db"));
+// Postgres (Supabase) when a connection string is configured; SQLite otherwise,
+// so local dev still runs offline with no external database. Supabase's string
+// is accepted in either the postgres:// URI form or Npgsql key=value form.
+var pgConnectionRaw =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+var usePostgres = !string.IsNullOrWhiteSpace(pgConnectionRaw);
+
+builder.Services.AddDbContext<AppDbContext>(opt =>
+{
+    if (usePostgres)
+        opt.UseNpgsql(DbConnectionString.ForNpgsql(pgConnectionRaw!));
+    else
+        opt.UseSqlite("Data Source=procreate.db");
+});
 builder.Services.AddControllers()
     .AddJsonOptions(opt =>
     {
@@ -129,22 +149,36 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
 
-    // EnsureCreated leaves an existing database untouched, so columns added
-    // after it was first created have to be put in by hand.
-    var labTestColumns = db.Database
-        .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('LabTests')")
-        .ToList();
+    if (usePostgres)
+    {
+        // Postgres (Supabase) owns its schema through EF migrations. The same
+        // migration is also shipped as SQL under supabase/migrations, which the
+        // Supabase GitHub integration applies on push; because that script writes
+        // the __EFMigrationsHistory row, Migrate() here sees it as already done
+        // and is a no-op. Either path alone creates the database.
+        db.Database.Migrate();
+    }
+    else
+    {
+        // Local SQLite dev keeps the lightweight EnsureCreated path. EnsureCreated
+        // leaves an existing database untouched, so columns added after it was
+        // first created have to be put in by hand.
+        db.Database.EnsureCreated();
 
-    if (!labTestColumns.Contains("ProductId"))
-        db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "ProductId" INTEGER NULL""");
-    if (!labTestColumns.Contains("IsActive"))
-        db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "IsActive" INTEGER NOT NULL DEFAULT 1""");
+        var labTestColumns = db.Database
+            .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('LabTests')")
+            .ToList();
 
-    db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_LabTests_ProductId" ON "LabTests" ("ProductId") WHERE "ProductId" IS NOT NULL""");
-    // Parameters moved onto LabTest before this table ever held anything.
-    db.Database.ExecuteSqlRaw("""DROP TABLE IF EXISTS "ServiceParameters" """);
+        if (!labTestColumns.Contains("ProductId"))
+            db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "ProductId" INTEGER NULL""");
+        if (!labTestColumns.Contains("IsActive"))
+            db.Database.ExecuteSqlRaw("""ALTER TABLE "LabTests" ADD COLUMN "IsActive" INTEGER NOT NULL DEFAULT 1""");
+
+        db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_LabTests_ProductId" ON "LabTests" ("ProductId") WHERE "ProductId" IS NOT NULL""");
+        // Parameters moved onto LabTest before this table ever held anything.
+        db.Database.ExecuteSqlRaw("""DROP TABLE IF EXISTS "ServiceParameters" """);
+    }
 
     DataSeeder.SeedSampleData(db);
     CatalogueReconciler.Reconcile(db);
