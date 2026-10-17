@@ -305,6 +305,22 @@
             [(ngModel)]="form.price"
           />
         </div>
+        <div class="form-group">
+          <label class="form-label" for="serviceRebate">Rebate (&#8369;)</label>
+          <input
+            id="serviceRebate"
+            type="number"
+            min="0"
+            step="0.01"
+            class="form-control"
+            placeholder="0.00"
+            [(ngModel)]="form.rebateAmount"
+          />
+          <p class="form-hint form-hint--muted">
+            <app-icon name="alert-circle" [size]="14"></app-icon>
+            Paid to the referring party when this service is rendered.
+          </p>
+        </div>
       </div>
 
       <div class="form-group">

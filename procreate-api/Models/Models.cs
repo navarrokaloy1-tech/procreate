@@ -346,6 +346,8 @@ public class Product
     /// <summary>See <see cref="ServiceCategories"/>.</summary>
     public string Category { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    /// <summary>Amount rebated to the referring party for this service.</summary>
+    public decimal RebateAmount { get; set; }
     public bool IsActive { get; set; } = true;
 
     public string Description { get; set; } = string.Empty;

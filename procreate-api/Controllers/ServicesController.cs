@@ -101,6 +101,7 @@ public class ServicesController : ControllerBase
             Name = request.Name.Trim(),
             Category = request.Category?.Trim() ?? "Others",
             Price = request.Price,
+            RebateAmount = request.RebateAmount,
             Description = request.Description?.Trim() ?? string.Empty,
             SeniorPwdDiscount = request.SeniorPwdDiscount,
             PhilHealthCovered = request.PhilHealthCovered,
@@ -133,6 +134,7 @@ public class ServicesController : ControllerBase
         service.Name = request.Name.Trim();
         service.Category = request.Category?.Trim() ?? "Others";
         service.Price = request.Price;
+        service.RebateAmount = request.RebateAmount;
         service.Description = request.Description?.Trim() ?? string.Empty;
         service.SeniorPwdDiscount = request.SeniorPwdDiscount;
         service.PhilHealthCovered = request.PhilHealthCovered;
@@ -343,6 +345,7 @@ public class ServicesController : ControllerBase
         p.Name,
         p.Category,
         p.Price,
+        p.RebateAmount,
         p.Description,
         p.SeniorPwdDiscount,
         p.PhilHealthCovered,
@@ -383,6 +386,7 @@ public record ServiceRequest(
     string? Code,
     string? Category,
     decimal Price,
+    decimal RebateAmount,
     string? Description,
     bool SeniorPwdDiscount,
     bool PhilHealthCovered,

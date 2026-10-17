@@ -26,6 +26,7 @@ export interface Service {
   name: string;
   category: string;
   price: number;
+  rebateAmount: number;
   description: string;
   seniorPwdDiscount: boolean;
   philHealthCovered: boolean;
@@ -127,6 +128,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       code: '',
       category: '',
       price: null as number | null,
+      rebateAmount: null as number | null,
       description: '',
       seniorPwdDiscount: true,
       philHealthCovered: false,
@@ -235,6 +237,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       code: service.code,
       category: service.category,
       price: service.price,
+      rebateAmount: service.rebateAmount,
       description: service.description,
       seniorPwdDiscount: service.seniorPwdDiscount,
       philHealthCovered: service.philHealthCovered,
@@ -274,6 +277,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     const payload = {
       ...this.form,
       price: Number(this.form.price),
+      rebateAmount: Number(this.form.rebateAmount ?? 0),
       requiredItems: this.requiredItems.map((r) => ({
         inventoryItemId: r.inventoryItemId,
         quantity: r.quantity,
