@@ -12,6 +12,7 @@ export interface CustomRole {
   name: string;
   description: string;
   features: string[];
+  labCategories: string[];
   users: number;
   createdAt: string;
 }
@@ -25,6 +26,7 @@ export interface CustomRole {
 export class CustomRolesComponent implements OnInit {
   roles: CustomRole[] = [];
   features: FeatureOption[] = [];
+  labCategoryOptions: string[] = [];
   isLoading = false;
   errorMessage = '';
   searchTerm = '';
@@ -35,11 +37,13 @@ export class CustomRolesComponent implements OnInit {
   editingId: number | null = null;
   form = { name: '', description: '' };
   selected = new Set<string>();
+  selectedLabCategories = new Set<string>();
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadFeatures();
+    this.loadLabCategories();
     this.load();
   }
 
@@ -47,6 +51,16 @@ export class CustomRolesComponent implements OnInit {
     this.api.get<FeatureOption[]>('custom-roles/features').subscribe({
       next: (f) => {
         this.features = f;
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
+    });
+  }
+
+  loadLabCategories(): void {
+    this.api.get<string[]>('custom-roles/lab-categories').subscribe({
+      next: (c) => {
+        this.labCategoryOptions = c;
         this.cdr.markForCheck();
       },
       error: () => this.cdr.markForCheck(),
@@ -90,6 +104,7 @@ export class CustomRolesComponent implements OnInit {
     this.editingId = null;
     this.form = { name: '', description: '' };
     this.selected = new Set<string>();
+    this.selectedLabCategories = new Set<string>();
     this.modalError = '';
     this.isModalOpen = true;
   }
@@ -98,6 +113,7 @@ export class CustomRolesComponent implements OnInit {
     this.editingId = role.id;
     this.form = { name: role.name, description: role.description };
     this.selected = new Set(role.features);
+    this.selectedLabCategories = new Set(role.labCategories ?? []);
     this.modalError = '';
     this.isModalOpen = true;
   }
@@ -117,6 +133,20 @@ export class CustomRolesComponent implements OnInit {
     return this.selected.has(key);
   }
 
+  toggleLabCategory(name: string): void {
+    if (this.selectedLabCategories.has(name)) this.selectedLabCategories.delete(name);
+    else this.selectedLabCategories.add(name);
+  }
+
+  isLabCategorySelected(name: string): boolean {
+    return this.selectedLabCategories.has(name);
+  }
+
+  /** Whether the Laboratory feature is granted — lab scoping only matters then. */
+  get hasLabFeature(): boolean {
+    return this.selected.has('laboratory');
+  }
+
   save(): void {
     if (!this.form.name.trim()) {
       this.modalError = 'Enter a role name.';
@@ -131,6 +161,9 @@ export class CustomRolesComponent implements OnInit {
       name: this.form.name.trim(),
       description: this.form.description.trim(),
       features: Array.from(this.selected),
+      // Only meaningful with the Laboratory feature; cleared otherwise so a
+      // role that loses lab access does not keep a stale scope.
+      labCategories: this.hasLabFeature ? Array.from(this.selectedLabCategories) : [],
     };
 
     this.isSaving = true;

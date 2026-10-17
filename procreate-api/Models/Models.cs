@@ -333,9 +333,20 @@ public class CustomRole
     /// <summary>Comma-separated feature keys. Small and read whole, so not a table.</summary>
     public string Features { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Comma-separated lab departments (see <see cref="Departments"/>) this role
+    /// may work in. Empty means every department — the common case; set it to,
+    /// say, "Imaging" for a role that only reads imaging studies.
+    /// </summary>
+    public string LabCategories { get; set; } = string.Empty;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<string> FeatureList() => Features
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    public List<string> LabCategoryList() => LabCategories
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .ToList();
 }

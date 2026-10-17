@@ -37,10 +37,16 @@ public class TokenIssuer
         await _db.SaveChangesAsync();
 
         // A custom role narrows the sidebar to its feature set; null leaves the
-        // built-in role to decide what the account sees.
+        // built-in role to decide what the account sees. LabCategories narrows
+        // the Laboratory console further — empty means every department.
         List<string>? features = null;
+        List<string>? labCategories = null;
         if (user.CustomRoleId is int roleId)
-            features = (await _db.CustomRoles.FindAsync(roleId))?.FeatureList();
+        {
+            var role = await _db.CustomRoles.FindAsync(roleId);
+            features = role?.FeatureList();
+            labCategories = role?.LabCategoryList();
+        }
 
         var token = IssueToken(
             subject: user.Id,
@@ -51,7 +57,7 @@ public class TokenIssuer
         return new
         {
             token,
-            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email, user.MustChangePassword, features }
+            user = new { user.Id, user.Username, user.FullName, user.Role, user.Email, user.MustChangePassword, features, labCategories }
         };
     }
 

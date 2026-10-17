@@ -24,6 +24,10 @@ public class CustomRolesController : ControllerBase
     public IActionResult GetFeatures() =>
         Ok(CustomRoleFeatures.Labels.Select(f => new { key = f.Key, label = f.Value }));
 
+    /// <summary>The lab departments a role can be scoped to, for the editor.</summary>
+    [HttpGet("lab-categories")]
+    public IActionResult GetLabCategories() => Ok(Departments.All);
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -40,6 +44,7 @@ public class CustomRolesController : ControllerBase
             r.Name,
             r.Description,
             features = r.FeatureList(),
+            labCategories = r.LabCategoryList(),
             users = counts.FirstOrDefault(c => c.RoleId == r.Id)?.Count ?? 0,
             r.CreatedAt
         }));
@@ -59,7 +64,8 @@ public class CustomRolesController : ControllerBase
         {
             Name = name,
             Description = request.Description?.Trim() ?? string.Empty,
-            Features = CleanFeatures(request.Features)
+            Features = CleanFeatures(request.Features),
+            LabCategories = CleanLabCategories(request.LabCategories)
         };
         _db.CustomRoles.Add(role);
         await _db.SaveChangesAsync();
@@ -82,6 +88,7 @@ public class CustomRolesController : ControllerBase
         role.Name = name;
         role.Description = request.Description?.Trim() ?? string.Empty;
         role.Features = CleanFeatures(request.Features);
+        role.LabCategories = CleanLabCategories(request.LabCategories);
         await _db.SaveChangesAsync();
         return Ok(new { role.Id });
     }
@@ -117,6 +124,14 @@ public class CustomRolesController : ControllerBase
         var ordered = CustomRoleFeatures.All.Where(chosen.Contains);
         return string.Join(',', ordered);
     }
+
+    /// <summary>Known departments only; empty means every department.</summary>
+    private static string CleanLabCategories(List<string>? categories)
+    {
+        var chosen = (categories ?? new List<string>()).ToHashSet();
+        var ordered = Departments.All.Where(chosen.Contains);
+        return string.Join(',', ordered);
+    }
 }
 
-public record CustomRoleRequest(string Name, string? Description, List<string>? Features);
+public record CustomRoleRequest(string Name, string? Description, List<string>? Features, List<string>? LabCategories);

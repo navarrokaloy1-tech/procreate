@@ -3,6 +3,7 @@ using ProCreateApi.Services.Search;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ProCreateApi.Controllers;
 
@@ -12,6 +13,28 @@ public class LabController : ControllerBase
 {
     private readonly AppDbContext _db;
     public LabController(AppDbContext db) => _db = db;
+
+    /// <summary>
+    /// The lab departments the signed-in user may work in. An empty list means
+    /// no restriction (every department) — built-in roles and custom roles that
+    /// name no departments are unrestricted; a custom role scoped to, say,
+    /// Imaging returns just that.
+    /// </summary>
+    private async Task<List<string>> AllowedDepartmentsAsync()
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return new();
+
+        var roleId = await _db.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.CustomRoleId)
+            .FirstOrDefaultAsync();
+
+        if (roleId is null) return new();
+
+        var role = await _db.CustomRoles.FindAsync(roleId.Value);
+        return role?.LabCategoryList() ?? new();
+    }
 
     [HttpGet("tests")]
     public async Task<IActionResult> GetTests([FromQuery] bool includeInactive = false)
@@ -143,7 +166,13 @@ public class LabController : ControllerBase
             .Select(g => new { department = g.Key, count = g.Count() })
             .ToListAsync();
 
-        var data = Departments.All.Select(d => new
+        // A role scoped to specific departments only sees those tabs.
+        var allowed = await AllowedDepartmentsAsync();
+        var departments = allowed.Count == 0
+            ? Departments.All
+            : Departments.All.Where(allowed.Contains).ToArray();
+
+        var data = departments.Select(d => new
         {
             name = d,
             count = counts.FirstOrDefault(c => c.department == d)?.count ?? 0
@@ -171,6 +200,12 @@ public class LabController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(department))
             query = query.Where(o => o.LabTest.Category.Department == department);
+
+        // A department-scoped role never sees orders outside its departments,
+        // even if it asks for one directly.
+        var allowed = await AllowedDepartmentsAsync();
+        if (allowed.Count > 0)
+            query = query.Where(o => allowed.Contains(o.LabTest.Category.Department));
 
         if (!string.IsNullOrWhiteSpace(status))
         {

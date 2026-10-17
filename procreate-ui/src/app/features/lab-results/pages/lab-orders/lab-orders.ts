@@ -97,6 +97,13 @@ export class LabOrders implements OnInit, OnDestroy {
     this.apiService.get<DepartmentTab[]>('lab/departments').subscribe({
       next: (departments) => {
         this.departments = Array.isArray(departments) ? departments : [];
+        // A role scoped to specific departments may not include the default
+        // tab, so fall back to the first one it is allowed to see.
+        if (this.departments.length > 0 &&
+            !this.departments.some((d) => d.name === this.activeDepartment)) {
+          this.activeDepartment = this.departments[0].name;
+          this.loadOrders();
+        }
         this.cdr.markForCheck();
       },
       error: () => {

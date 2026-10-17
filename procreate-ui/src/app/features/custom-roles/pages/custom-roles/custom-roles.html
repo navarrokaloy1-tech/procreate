@@ -147,6 +147,25 @@
           <span>{{ f.label }}</span>
         </label>
       </div>
+
+      <!-- Lab department scope — only relevant once Laboratory access is granted -->
+      <ng-container *ngIf="hasLabFeature">
+        <div class="section-label section-label--split">
+          <span>Laboratory departments</span>
+          <small>Leave all unchecked for every department</small>
+        </div>
+
+        <div class="feature-list">
+          <label
+            class="feature-item"
+            *ngFor="let c of labCategoryOptions"
+            [class.selected]="isLabCategorySelected(c)"
+          >
+            <input type="checkbox" [checked]="isLabCategorySelected(c)" (change)="toggleLabCategory(c)" />
+            <span>{{ c }}</span>
+          </label>
+        </div>
+      </ng-container>
     </div>
 
     <div class="modal-sheet__foot">
