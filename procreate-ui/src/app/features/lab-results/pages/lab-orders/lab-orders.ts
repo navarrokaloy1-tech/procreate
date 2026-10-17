@@ -411,6 +411,62 @@ export class LabOrders implements OnInit, OnDestroy {
     return this.visibleOrders.slice(start, start + this.pageSize);
   }
 
+  // ----------------------------------------------------------
+  // Group by patient
+  // ----------------------------------------------------------
+
+  /** When on, orders are shown gathered under each patient instead of a flat list. */
+  groupByPatient = false;
+  /** Patients whose group is currently folded away. */
+  private collapsedPatients = new Set<number>();
+
+  toggleGrouping(): void {
+    this.groupByPatient = !this.groupByPatient;
+    this.pageIndex = 0;
+  }
+
+  togglePatientGroup(patientId: number): void {
+    if (this.collapsedPatients.has(patientId)) this.collapsedPatients.delete(patientId);
+    else this.collapsedPatients.add(patientId);
+  }
+
+  isGroupCollapsed(patientId: number): boolean {
+    return this.collapsedPatients.has(patientId);
+  }
+
+  /** The filtered orders gathered per patient, each group alphabetical by name. */
+  get patientGroups(): {
+    patientId: number;
+    patientName: string;
+    patientCode: string;
+    orders: LabOrder[];
+  }[] {
+    const groups = new Map<number, {
+      patientId: number;
+      patientName: string;
+      patientCode: string;
+      orders: LabOrder[];
+    }>();
+
+    for (const order of this.visibleOrders) {
+      let group = groups.get(order.patientId);
+      if (!group) {
+        group = {
+          patientId: order.patientId,
+          patientName: order.patientName,
+          patientCode: order.patientCode,
+          orders: [],
+        };
+        groups.set(order.patientId, group);
+      }
+      group.orders.push(order);
+    }
+
+    return Array.from(groups.values()).sort((a, b) =>
+      a.patientName.localeCompare(b.patientName),
+    );
+  }
+
   onPageChange(page: number): void {
     this.pageIndex = page;
   }

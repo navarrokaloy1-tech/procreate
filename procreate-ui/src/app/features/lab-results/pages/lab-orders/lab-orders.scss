@@ -156,3 +156,29 @@
 @media (max-width: 768px) {
   .toolbar__search { flex: 1 1 100%; }
 }
+
+/* Patient grouping — header row for each patient's gathered tests */
+.group-row {
+  cursor: pointer;
+  background: var(--light);
+
+  &:hover { background: var(--primary-light); }
+
+  td { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+
+  &__body {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  &__name {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__sub {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+}

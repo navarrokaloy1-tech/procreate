@@ -63,6 +63,19 @@
         {{ stage }}
       </button>
     </div>
+
+    <button
+      type="button"
+      class="btn btn-sm"
+      [class.btn-primary]="groupByPatient"
+      [class.btn-outline-primary]="!groupByPatient"
+      (click)="toggleGrouping()"
+      [attr.aria-pressed]="groupByPatient"
+      title="Group all of a patient's tests together"
+    >
+      <app-icon name="user" [size]="15"></app-icon>
+      {{ groupByPatient ? 'Grouped by patient' : 'Group by patient' }}
+    </button>
   </div>
 
   <!-- What a scan narrowed the list to, and how to get back -->
@@ -97,90 +110,127 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let order of pagedOrders" class="order-row" (click)="openOrder(order.id)">
-            <td>
-              <span class="cell-stack">
-                <span class="cell-code">{{ order.orderCode }}</span>
-                <span class="cell-stack__sub">{{ order.specimenBarcode || order.visitCode }}</span>
-              </span>
-            </td>
+          <!-- Flat list -->
+          <ng-container *ngIf="!groupByPatient">
+            <ng-container *ngFor="let order of pagedOrders">
+              <ng-container *ngTemplateOutlet="orderRow; context: { $implicit: order }"></ng-container>
+            </ng-container>
+          </ng-container>
 
-            <td>
-              <div class="cell-user">
-                <span class="avatar">{{ initials(order.patientName) }}</span>
-                <span class="cell-user__body">
-                  <a
-                    href="javascript:void(0)"
-                    class="cell-user__name cell-link"
-                    (click)="openPatient(order, $event)"
-                  >
-                    {{ order.patientName }}
-                  </a>
-                  <span class="cell-user__sub">{{ order.patientCode }}</span>
-                </span>
-              </div>
-            </td>
-
-            <td>
-              <span class="cell-stack">
-                <span class="cell-stack__value">{{ order.testName }}</span>
-                <span class="cell-stack__sub">{{ order.categoryName }}</span>
-              </span>
-            </td>
-
-            <td class="text-center">
-              <span class="cell-badges">
-                <span [class]="stagePill(order.stage)">{{ order.stage }}</span>
-                <span class="pill pill--danger" *ngIf="order.isAbnormal">
-                  <app-icon name="alert-triangle" [size]="13"></app-icon>
-                  Abnormal
-                </span>
-              </span>
-            </td>
-
-            <td>{{ order.orderedDate | date: 'MMM d, y' }}</td>
-
-            <td class="text-center">
-              <div class="row-actions" (click)="$event.stopPropagation()">
-                <button
-                  *ngIf="order.stage === 'Pending'"
-                  type="button"
-                  class="btn btn-sm btn-primary"
-                  (click)="collectSpecimen(order)"
-                >
-                  {{ collectLabel(order) }}
-                </button>
-                <button
-                  *ngIf="order.stage === 'In Progress'"
-                  type="button"
-                  class="btn btn-sm btn-warning"
-                  (click)="openOrder(order.id)"
-                >
-                  {{ encodeLabel(order) }}
-                </button>
-                <button
-                  *ngIf="order.stage === 'For Reading'"
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  (click)="openOrder(order.id)"
-                >
-                  Read &amp; Release
-                </button>
-                <button
-                  *ngIf="order.stage === 'Completed'"
-                  type="button"
-                  class="table-actions__btn"
-                  (click)="openOrder(order.id)"
-                  title="View result"
-                  aria-label="View result"
-                >
-                  <app-icon name="eye" [size]="17"></app-icon>
-                </button>
-              </div>
-            </td>
-          </tr>
+          <!-- Grouped: every test for a patient gathered under one header -->
+          <ng-container *ngIf="groupByPatient">
+            <ng-container *ngFor="let group of patientGroups">
+              <tr class="group-row" (click)="togglePatientGroup(group.patientId)">
+                <td colspan="6">
+                  <span class="group-row__body">
+                    <app-icon
+                      [name]="isGroupCollapsed(group.patientId) ? 'chevron-right' : 'chevron-down'"
+                      [size]="16"
+                    ></app-icon>
+                    <span class="avatar">{{ initials(group.patientName) }}</span>
+                    <span class="group-row__name">{{ group.patientName }}</span>
+                    <span class="group-row__sub">{{ group.patientCode }}</span>
+                    <span class="pill pill--neutral">
+                      {{ group.orders.length }} test{{ group.orders.length === 1 ? '' : 's' }}
+                    </span>
+                  </span>
+                </td>
+              </tr>
+              <ng-container *ngIf="!isGroupCollapsed(group.patientId)">
+                <ng-container *ngFor="let order of group.orders">
+                  <ng-container *ngTemplateOutlet="orderRow; context: { $implicit: order }"></ng-container>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+          </ng-container>
         </tbody>
       </table>
+
+      <!-- One order row, shared by the flat and grouped views -->
+      <ng-template #orderRow let-order>
+        <tr class="order-row" (click)="openOrder(order.id)">
+          <td>
+            <span class="cell-stack">
+              <span class="cell-code">{{ order.orderCode }}</span>
+              <span class="cell-stack__sub">{{ order.specimenBarcode || order.visitCode }}</span>
+            </span>
+          </td>
+
+          <td>
+            <div class="cell-user">
+              <span class="avatar">{{ initials(order.patientName) }}</span>
+              <span class="cell-user__body">
+                <a
+                  href="javascript:void(0)"
+                  class="cell-user__name cell-link"
+                  (click)="openPatient(order, $event)"
+                >
+                  {{ order.patientName }}
+                </a>
+                <span class="cell-user__sub">{{ order.patientCode }}</span>
+              </span>
+            </div>
+          </td>
+
+          <td>
+            <span class="cell-stack">
+              <span class="cell-stack__value">{{ order.testName }}</span>
+              <span class="cell-stack__sub">{{ order.categoryName }}</span>
+            </span>
+          </td>
+
+          <td class="text-center">
+            <span class="cell-badges">
+              <span [class]="stagePill(order.stage)">{{ order.stage }}</span>
+              <span class="pill pill--danger" *ngIf="order.isAbnormal">
+                <app-icon name="alert-triangle" [size]="13"></app-icon>
+                Abnormal
+              </span>
+            </span>
+          </td>
+
+          <td>{{ order.orderedDate | date: 'MMM d, y' }}</td>
+
+          <td class="text-center">
+            <div class="row-actions" (click)="$event.stopPropagation()">
+              <button
+                *ngIf="order.stage === 'Pending'"
+                type="button"
+                class="btn btn-sm btn-primary"
+                (click)="collectSpecimen(order)"
+              >
+                {{ collectLabel(order) }}
+              </button>
+              <button
+                *ngIf="order.stage === 'In Progress'"
+                type="button"
+                class="btn btn-sm btn-warning"
+                (click)="openOrder(order.id)"
+              >
+                {{ encodeLabel(order) }}
+              </button>
+              <button
+                *ngIf="order.stage === 'For Reading'"
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                (click)="openOrder(order.id)"
+              >
+                Read &amp; Release
+              </button>
+              <button
+                *ngIf="order.stage === 'Completed'"
+                type="button"
+                class="table-actions__btn"
+                (click)="openOrder(order.id)"
+                title="View result"
+                aria-label="View result"
+              >
+                <app-icon name="eye" [size]="17"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
     </div>
 
     <ng-template #emptyState>
@@ -214,7 +264,7 @@
       </div>
     </ng-template>
 
-    <div class="table-footer" *ngIf="filteredCount > 0">
+    <div class="table-footer" *ngIf="filteredCount > 0 && !groupByPatient">
       <div class="table-footer__left">
         <span class="select-field select-field--sm">
           <select
