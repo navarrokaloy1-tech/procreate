@@ -98,35 +98,46 @@ function pickerPage(params) {
 <html lang="en"><head><meta charset="utf-8">
 <title>Development sign-in</title>
 <style>
-  :root { --ink:#2D1B0E; --muted:#8A7663; --line:#E4DBD2; --accent:#6F7D56; }
+  /* Palette mirrors the app's brand sheet (styles.scss): Axolotl green,
+     Eerie Black, Light Taupe, on a cream field — so this dev screen looks
+     like the real sign-in rather than a generic stub. */
+  :root { --ink:#1E1E19; --muted:#B9916E; --line:#E4DBD2; --accent:#5F6E50; --accent-dark:#4d5a41; --cream:#F7F4F1; }
   * { box-sizing: border-box; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-         background:#F7F4F1; font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; color:var(--ink); padding:32px; }
-  .card { width:100%; max-width:440px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px; }
-  .warn { background:#FDF3E3; border:1px solid #E8C99A; border-radius:8px; padding:10px 12px;
-          font-size:13px; color:#7A5A1E; margin-bottom:20px; }
-  h1 { font-size:19px; margin:0 0 4px; font-weight:600; }
-  .sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
+         background:var(--cream); font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; color:var(--ink); padding:32px; }
+  .card { width:100%; max-width:440px; background:#fff; border:1px solid var(--line); border-radius:16px;
+          padding:32px; box-shadow:0 10px 30px rgba(30,30,25,0.06); }
+  .brand { text-align:center; margin-bottom:22px; }
+  .brand__mark { display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px;
+                 border-radius:14px; background:var(--accent); color:#fff; font-size:24px; font-weight:700;
+                 margin-bottom:12px; }
+  .warn { background:#FDF3E3; border:1px solid #E8C99A; border-radius:10px; padding:10px 12px;
+          font-size:13px; color:#7A5A1E; margin-bottom:22px; }
+  h1 { font-size:22px; margin:0 0 4px; font-weight:600; color:var(--ink); text-align:center; }
+  .sub { margin:0 0 22px; color:var(--muted); font-size:13px; text-align:center; }
   .google { display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
-            padding:11px; border:1px solid var(--line); border-radius:8px; background:#fff;
-            font:inherit; font-weight:500; cursor:pointer; margin-bottom:8px; }
-  .google:hover { background:#FAF8F6; }
+            padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff;
+            font:inherit; font-weight:500; cursor:pointer; margin-bottom:8px; transition:all .15s; }
+  .google:hover { background:#FAFBF7; border-color:var(--accent); }
   .google svg { width:18px; height:18px; }
   .hint { margin:0 0 18px; font-size:12px; color:var(--muted); text-align:center; }
   .rule { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:18px 0; }
   .rule::before, .rule::after { content:""; flex:1; height:1px; background:var(--line); }
-  .account { display:block; width:100%; text-align:left; padding:11px 13px; margin-bottom:8px;
-             border:1px solid var(--line); border-radius:8px; background:#fff; font:inherit; cursor:pointer; }
+  .account { display:block; width:100%; text-align:left; padding:12px 14px; margin-bottom:8px;
+             border:1px solid var(--line); border-radius:10px; background:#fff; font:inherit; cursor:pointer;
+             transition:all .15s; }
   .account:hover { border-color:var(--accent); background:#FAFBF7; }
-  .account__name { display:block; font-weight:600; }
+  .account__name { display:block; font-weight:600; color:var(--ink); }
   .account__meta { display:block; font-size:12px; color:var(--muted); }
-  fieldset { border:1px solid var(--line); border-radius:8px; padding:14px; margin:0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:16px; margin:0; }
   legend { font-size:12px; color:var(--muted); padding:0 6px; }
-  input[type=email] { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:7px;
-                      font:inherit; margin-bottom:10px; }
+  input[type=email] { width:100%; padding:10px 12px; border:1px solid var(--muted); border-radius:8px;
+                      font:inherit; margin-bottom:10px; color:var(--ink); }
+  input[type=email]:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(95,110,80,0.18); }
   label.check { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-bottom:8px; }
-  .submit { width:100%; padding:10px; border:0; border-radius:8px; background:var(--accent);
-            color:#fff; font:inherit; font-weight:600; cursor:pointer; }
+  .submit { width:100%; padding:12px; border:0; border-radius:10px; background:var(--accent);
+            color:#fff; font:inherit; font-weight:600; cursor:pointer; transition:background-color .15s; }
+  .submit:hover { background:var(--accent-dark); }
 </style></head>
 <body>
   <form class="card" method="post" action="/pick">
@@ -134,6 +145,9 @@ function pickerPage(params) {
     <div class="warn"><strong>Development sign-in.</strong> This is a stub standing in for
       Authentik. It does not check any password &mdash; pick an account and you are signed in.</div>
 
+    <div class="brand">
+      <span class="brand__mark">P</span>
+    </div>
     <h1>Sign in to Pro-Create</h1>
     <p class="sub">Fertility and OB-GYN Clinic</p>
 
