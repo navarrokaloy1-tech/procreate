@@ -16,6 +16,7 @@ public class DoctorsController : ControllerBase
 
     public record DoctorListDto(
         int Id, string DoctorCode, string FullName, string Specialty, string SubSpecialty,
+        string Affiliation, int ReferralCount,
         string Email, string ContactNumber, string PrcLicenseNumber,
         decimal ConsultationFee, bool IsActive, bool HasLogin);
 
@@ -23,15 +24,16 @@ public class DoctorsController : ControllerBase
 
     public record DoctorDetailDto(
         int Id, string DoctorCode, string FirstName, string MiddleName, string LastName,
-        string Suffix, string Gender, string Specialty, string SubSpecialty, string Email,
-        string ContactNumber, string PrcLicenseNumber, DateTime? PrcLicenseExpiry,
+        string Suffix, string Gender, string Specialty, string SubSpecialty, string Affiliation,
+        string Email, string ContactNumber, string PrcLicenseNumber, DateTime? PrcLicenseExpiry,
         string PtrNumber, string S2LicenseNumber, string TinNumber,
         decimal ConsultationFee, decimal FollowUpFee, decimal SpecialistFee,
-        string Bio, bool IsActive, int? UserId, bool HasSignature, List<ScheduleDto> Schedules);
+        string Bio, bool IsActive, int? UserId, bool HasSignature, int ReferralCount,
+        List<ScheduleDto> Schedules);
 
     public record DoctorWriteRequest(
         string FirstName, string MiddleName, string LastName, string Suffix, string Gender,
-        string Specialty, string SubSpecialty, string Email, string ContactNumber,
+        string Specialty, string SubSpecialty, string Affiliation, string Email, string ContactNumber,
         string PrcLicenseNumber, DateTime? PrcLicenseExpiry, string PtrNumber,
         string S2LicenseNumber, string TinNumber, decimal ConsultationFee,
         decimal FollowUpFee, decimal SpecialistFee, string Bio, bool IsActive, int? UserId);
@@ -68,12 +70,16 @@ public class DoctorsController : ControllerBase
         var total = await query.CountAsync();
 
         var doctors = await query
-            .OrderBy(d => d.LastName).ThenBy(d => d.FirstName)
+            // In-house doctors sort to the top, outside below, each alphabetical.
+            .OrderBy(d => d.Affiliation == "In-House" ? 0 : 1)
+            .ThenBy(d => d.LastName).ThenBy(d => d.FirstName)
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(d => new DoctorListDto(
                 d.Id, d.DoctorCode,
                 ("Dr. " + d.FirstName + " " + d.LastName).Trim(),
-                d.Specialty, d.SubSpecialty, d.Email, d.ContactNumber,
+                d.Specialty, d.SubSpecialty, d.Affiliation,
+                _db.Visits.Count(v => v.ReferringDoctorId == d.Id),
+                d.Email, d.ContactNumber,
                 d.PrcLicenseNumber, d.ConsultationFee, d.IsActive, d.UserId != null))
             .ToListAsync();
 
@@ -102,7 +108,7 @@ public class DoctorsController : ControllerBase
 
         if (doctor is null) return NotFound();
 
-        return Ok(ToDetail(doctor));
+        return Ok(ToDetail(doctor, await _db.Visits.CountAsync(v => v.ReferringDoctorId == doctor.Id)));
     }
 
     [HttpPost]
@@ -146,7 +152,7 @@ public class DoctorsController : ControllerBase
         Apply(doctor, request);
         await _db.SaveChangesAsync();
 
-        return Ok(ToDetail(doctor));
+        return Ok(ToDetail(doctor, await _db.Visits.CountAsync(v => v.ReferringDoctorId == doctor.Id)));
     }
 
     /// <summary>Replace a doctor's weekly availability in one call.</summary>
@@ -184,7 +190,7 @@ public class DoctorsController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
-        return Ok(ToDetail(doctor));
+        return Ok(ToDetail(doctor, await _db.Visits.CountAsync(v => v.ReferringDoctorId == doctor.Id)));
     }
 
     [HttpDelete("{id}")]
@@ -217,6 +223,7 @@ public class DoctorsController : ControllerBase
         doctor.Gender = r.Gender ?? "";
         doctor.Specialty = r.Specialty?.Trim() ?? "";
         doctor.SubSpecialty = r.SubSpecialty?.Trim() ?? "";
+        doctor.Affiliation = r.Affiliation == "Outside" ? "Outside" : "In-House";
         doctor.Email = r.Email?.Trim() ?? "";
         doctor.ContactNumber = r.ContactNumber?.Trim() ?? "";
         doctor.PrcLicenseNumber = r.PrcLicenseNumber?.Trim() ?? "";
@@ -232,12 +239,12 @@ public class DoctorsController : ControllerBase
         doctor.UserId = r.UserId;
     }
 
-    private static DoctorDetailDto ToDetail(Doctor d) => new(
+    private static DoctorDetailDto ToDetail(Doctor d, int referralCount = 0) => new(
         d.Id, d.DoctorCode, d.FirstName, d.MiddleName, d.LastName, d.Suffix, d.Gender,
-        d.Specialty, d.SubSpecialty, d.Email, d.ContactNumber, d.PrcLicenseNumber,
+        d.Specialty, d.SubSpecialty, d.Affiliation, d.Email, d.ContactNumber, d.PrcLicenseNumber,
         d.PrcLicenseExpiry, d.PtrNumber, d.S2LicenseNumber, d.TinNumber,
         d.ConsultationFee, d.FollowUpFee, d.SpecialistFee, d.Bio, d.IsActive, d.UserId,
-        d.SignatureImage != null && d.SignatureImage.Length > 0,
+        d.SignatureImage != null && d.SignatureImage.Length > 0, referralCount,
         d.Schedules.OrderBy(s => s.DayOfWeek)
             .Select(s => new ScheduleDto(s.DayOfWeek, s.IsAvailable, s.StartTime, s.EndTime))
             .ToList());

@@ -158,6 +158,14 @@ public class AppDbContext : DbContext
             .HasForeignKey(q => q.PatientId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // A referral may name a registered doctor; clearing the doctor keeps the
+        // visit and its free-text referrer rather than deleting history.
+        modelBuilder.Entity<Visit>()
+            .HasOne(v => v.ReferringDoctor)
+            .WithMany()
+            .HasForeignKey(v => v.ReferringDoctorId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Queue numbers are allocated per day, so the pair must stay unique.
         modelBuilder.Entity<QueueEntry>()
             .HasIndex(q => new { q.QueueDate, q.QueueNumber })

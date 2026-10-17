@@ -80,6 +80,13 @@ public class Visit
     public Patient Patient { get; set; } = null!;
     public DateTime VisitDate { get; set; } = DateTime.UtcNow;
     public string ReferringPhysician { get; set; } = string.Empty;
+    /// <summary>
+    /// Set when the referring physician is a registered doctor, so referrals
+    /// can be counted per doctor. The free-text name above is kept for walk-in
+    /// referrals and for what was typed at the time.
+    /// </summary>
+    public int? ReferringDoctorId { get; set; }
+    public Doctor? ReferringDoctor { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public string Status { get; set; } = "Pending";
     public decimal TotalAmount { get; set; }
@@ -455,6 +462,8 @@ public class Doctor
     public string Gender { get; set; } = string.Empty;
     public string Specialty { get; set; } = string.Empty;
     public string SubSpecialty { get; set; } = string.Empty;
+    /// <summary>"In-House" or "Outside" — drives list ordering and referral tallies.</summary>
+    public string Affiliation { get; set; } = "In-House";
     public string Email { get; set; } = string.Empty;
     public string ContactNumber { get; set; } = string.Empty;
 

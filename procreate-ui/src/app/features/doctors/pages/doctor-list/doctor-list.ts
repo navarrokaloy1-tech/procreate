@@ -9,6 +9,8 @@ interface DoctorRow {
   fullName: string;
   specialty: string;
   subSpecialty: string;
+  affiliation: string;
+  referralCount: number;
   email: string;
   contactNumber: string;
   prcLicenseNumber: string;
@@ -34,6 +36,7 @@ interface DoctorDetail {
   gender: string;
   specialty: string;
   subSpecialty: string;
+  affiliation: string;
   email: string;
   contactNumber: string;
   prcLicenseNumber: string;
@@ -48,6 +51,7 @@ interface DoctorDetail {
   isActive: boolean;
   userId: number | null;
   hasSignature: boolean;
+  referralCount: number;
   schedules: ScheduleRow[];
 }
 
@@ -131,7 +135,7 @@ export class DoctorListComponent implements OnInit {
   private emptyForm() {
     return {
       firstName: '', middleName: '', lastName: '', suffix: '', gender: '',
-      specialty: '', subSpecialty: '', email: '', contactNumber: '',
+      specialty: '', subSpecialty: '', affiliation: 'In-House', email: '', contactNumber: '',
       prcLicenseNumber: '', prcLicenseExpiry: '', ptrNumber: '',
       s2LicenseNumber: '', tinNumber: '',
       consultationFee: 0, followUpFee: 0, specialistFee: 0,
@@ -325,6 +329,7 @@ export class DoctorListComponent implements OnInit {
           gender: detail.gender,
           specialty: detail.specialty,
           subSpecialty: detail.subSpecialty,
+          affiliation: detail.affiliation,
           email: detail.email,
           contactNumber: detail.contactNumber,
           prcLicenseNumber: detail.prcLicenseNumber,

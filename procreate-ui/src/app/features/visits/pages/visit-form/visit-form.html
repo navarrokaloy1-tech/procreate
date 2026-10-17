@@ -117,7 +117,7 @@
         </div>
         <div class="card-body">
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group patient-picker">
               <label class="form-label" for="referringPhysician">Referring Physician</label>
               <input
                 id="referringPhysician"
@@ -125,7 +125,16 @@
                 class="form-control"
                 placeholder="e.g. Dr. Juan dela Cruz"
                 formControlName="referringPhysician"
+                autocomplete="off"
               />
+              <ul class="patient-picker__results" *ngIf="doctorResults.length > 0">
+                <li *ngFor="let doctor of doctorResults">
+                  <button type="button" (click)="chooseDoctor(doctor)">
+                    <strong>{{ doctor.fullName }}</strong>
+                    <small>{{ doctor.specialty }}</small>
+                  </button>
+                </li>
+              </ul>
             </div>
             <div class="form-group">
               <label class="form-label" for="purposeOfVisit">Purpose of Visit</label>

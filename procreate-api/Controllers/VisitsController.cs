@@ -113,6 +113,7 @@ public class VisitsController : ControllerBase
             VisitCode = await NextVisitCodeAsync(),
             PatientId = req.PatientId,
             ReferringPhysician = req.ReferringPhysician,
+            ReferringDoctorId = req.ReferringDoctorId,
             Purpose = req.PurposeOfVisit,
             Status = "Registered",
             VisitDate = DateTime.UtcNow
@@ -304,6 +305,7 @@ public class VisitsController : ControllerBase
                 VisitCode = prefix + (sequence++).ToString("D4"),
                 PatientId = entry.PatientId,
                 ReferringPhysician = entry.ReferringPhysician ?? req.ReferringPhysician ?? "",
+                ReferringDoctorId = entry.ReferringDoctorId ?? req.ReferringDoctorId,
                 Purpose = entry.PurposeOfVisit ?? req.PurposeOfVisit ?? "",
                 Status = "Registered",
                 VisitDate = DateTime.UtcNow
@@ -389,8 +391,8 @@ public class VisitsController : ControllerBase
     }
 }
 
-public record CreateVisitRequest(int PatientId, string ReferringPhysician, string PurposeOfVisit, string? Notes, List<int> TestIds);
+public record CreateVisitRequest(int PatientId, string ReferringPhysician, string PurposeOfVisit, string? Notes, List<int> TestIds, int? ReferringDoctorId = null);
 public record UpdateStatusRequest(string Status);
 public record AddTestsRequest(List<int> TestIds);
-public record BatchVisitEntry(int PatientId, string? ReferringPhysician, string? PurposeOfVisit, List<int>? TestIds);
-public record BatchVisitRequest(string? ReferringPhysician, string? PurposeOfVisit, List<BatchVisitEntry> Entries);
+public record BatchVisitEntry(int PatientId, string? ReferringPhysician, string? PurposeOfVisit, List<int>? TestIds, int? ReferringDoctorId = null);
+public record BatchVisitRequest(string? ReferringPhysician, string? PurposeOfVisit, List<BatchVisitEntry> Entries, int? ReferringDoctorId = null);

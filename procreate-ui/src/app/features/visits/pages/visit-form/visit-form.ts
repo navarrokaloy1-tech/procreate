@@ -1,7 +1,9 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
 import { ToastService } from '../../../../core/services/toast';
 import { IconComponent } from '../../../../core/components/icon/icon';
@@ -54,8 +56,14 @@ interface BatchEntry {
   templateUrl: './visit-form.html',
   styleUrl: './visit-form.scss',
 })
-export class VisitForm implements OnInit {
+export class VisitForm implements OnInit, OnDestroy {
   visitForm!: FormGroup;
+
+  /** Registered-doctor suggestions for the Referring Physician field. */
+  doctorResults: { id: number; fullName: string; specialty: string }[] = [];
+  /** Set when a suggestion is picked, so the referral is attributed to a doctor. */
+  referringDoctorId: number | null = null;
+  private subscriptions = new Subscription();
   testCategories: TestCategory[] = [];
   panels: TestPanelOption[] = [];
   testSearch = '';
@@ -96,6 +104,54 @@ export class VisitForm implements OnInit {
 
     this.loadTests();
     this.loadPanels();
+
+    // Suggest registered doctors as the referring physician is typed. Editing
+    // the text drops any previously picked doctor so a typed-over name is not
+    // silently attributed to the wrong one.
+    const ref = this.visitForm.get('referringPhysician')!;
+    this.subscriptions.add(
+      ref.valueChanges.pipe(debounceTime(250), distinctUntilChanged()).subscribe((term: string) => {
+        this.referringDoctorId = null;
+        this.searchDoctors(term ?? '');
+      }),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private searchDoctors(term: string): void {
+    if (!term.trim()) {
+      this.doctorResults = [];
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.apiService
+      .get<{ data: { id: number; fullName: string; specialty: string }[] }>('doctors', {
+        search: term,
+        isActive: true,
+        pageSize: 6,
+      })
+      .subscribe({
+        next: (res) => {
+          this.doctorResults = res.data ?? [];
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.doctorResults = [];
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /** Picks a registered doctor: fills the name and attributes the referral. */
+  chooseDoctor(doctor: { id: number; fullName: string }): void {
+    this.referringDoctorId = doctor.id;
+    // Suppress valueChanges so picking does not clear the id we just set.
+    this.visitForm.get('referringPhysician')!.setValue(doctor.fullName, { emitEvent: false });
+    this.doctorResults = [];
   }
 
   loadTests(): void {
@@ -348,6 +404,7 @@ export class VisitForm implements OnInit {
 
     const payload = {
       referringPhysician: shared.referringPhysician ?? '',
+      referringDoctorId: this.referringDoctorId,
       purposeOfVisit: shared.purposeOfVisit ?? '',
       entries: this.entries.map((e) => ({
         patientId: e.patient.id,
@@ -408,6 +465,8 @@ export class VisitForm implements OnInit {
     this.patientOptions = [];
     this.testSearch = '';
     this.errorMessage = '';
+    this.referringDoctorId = null;
+    this.doctorResults = [];
     this.visitForm.reset({ referringPhysician: '', purposeOfVisit: '', notes: '' });
   }
 
