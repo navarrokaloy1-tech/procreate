@@ -45,13 +45,12 @@ services:
     staticPublishPath: dist/procreate-ui/browser
     pullRequestPreviewsEnabled: false
     envVars:
-      # The API service's hostname, injected into the production build so the UI
-      # calls the real API URL even if the service is renamed.
+      # The API's PUBLIC URL, baked into the production build. Note: a
+      # fromService `host` gives Render's internal hostname ("procreate-api"),
+      # which the browser cannot resolve — the UI runs in the user's browser, so
+      # it needs the public onrender.com URL. Update this if the API is renamed.
       - key: API_BASE
-        fromService:
-          type: web
-          name: procreate-api
-          property: host
+        value: https://procreate-api.onrender.com
     routes:
       # Single-page app: every path serves index.html, Angular routes the rest.
       - type: rewrite
