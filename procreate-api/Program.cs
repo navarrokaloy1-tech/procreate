@@ -23,6 +23,12 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render (and most PaaS) assign the listening port through $PORT. Bind to it
+// when present; locally this is unset and launchSettings decides the port.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // LIS integration services
 var lisSettings = builder.Configuration.GetSection("Lis").Get<LisSettings>() ?? new LisSettings();
 builder.Services.AddSingleton(lisSettings);
@@ -148,8 +154,16 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// Allowed browser origins come from configuration so the deployed UI's URL can
+// be set per environment (Cors:AllowedOrigins, comma-separated, or the
+// Cors__AllowedOrigins env var). Local dev falls back to the dev servers.
+var corsOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+if (corsOrigins.Length == 0)
+    corsOrigins = new[] { "http://localhost:4200", "http://192.168.254.103:4200" };
+
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
-    p.WithOrigins("http://localhost:4200", "http://192.168.254.103:4200").AllowAnyHeader().AllowAnyMethod()));
+    p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
 
@@ -201,4 +215,9 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Unauthenticated liveness probe for the host's health check.
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .AllowAnonymous();
+
 app.Run();

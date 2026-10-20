@@ -1,0 +1,60 @@
+# Render Blueprint — deploys the API and UI from this repo and auto-deploys on
+# every push to the connected branch. Create it once via the Render dashboard:
+# New → Blueprint → connect navarrokaloy1-tech/procreate → Apply. Then set the
+# one required secret (the Supabase connection string) when prompted.
+#
+# Singapore is Render's closest region to the Supabase project (ap-south-1),
+# which keeps API↔database latency down.
+
+services:
+  # ---- .NET API (Docker web service) ----
+  - type: web
+    name: procreate-api
+    runtime: docker
+    rootDir: procreate-api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # Supabase Postgres connection string — set in the dashboard (secret).
+      # Accepts the postgres:// URI form from Supabase → Project Settings →
+      # Database → Connection string.
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      # Signing key for the app's JWT — generated once and kept by Render.
+      - key: Jwt__Key
+        generateValue: true
+      # The deployed UI's origin, for CORS. Update if the UI service is renamed.
+      - key: Cors__AllowedOrigins
+        value: https://procreate-ui.onrender.com
+      # Optional: SMTP app password for result/alert emails. Leave blank to skip.
+      - key: Email__Password
+        sync: false
+
+  # ---- Angular UI (static site) ----
+  - type: web
+    name: procreate-ui
+    runtime: static
+    rootDir: procreate-ui
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci && node scripts/set-api-base.mjs && npm run build
+    staticPublishPath: dist/procreate-ui/browser
+    pullRequestPreviewsEnabled: false
+    envVars:
+      # The API service's hostname, injected into the production build so the UI
+      # calls the real API URL even if the service is renamed.
+      - key: API_BASE
+        fromService:
+          type: web
+          name: procreate-api
+          property: host
+    routes:
+      # Single-page app: every path serves index.html, Angular routes the rest.
+      - type: rewrite
+        source: /*
+        destination: /index.html

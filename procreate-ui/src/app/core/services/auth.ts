@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 export interface AuthUser {
   id: number;
@@ -20,7 +21,7 @@ export interface AuthUser {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private base = 'http://localhost:5230/api';
+  private base = environment.apiBase;
   private userSubject = new BehaviorSubject<AuthUser | null>(this.loadUser());
   user$ = this.userSubject.asObservable();
 
