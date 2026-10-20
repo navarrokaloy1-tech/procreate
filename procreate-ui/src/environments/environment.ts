@@ -1,5 +1,7 @@
-// Generated at build time by scripts/set-api-base.mjs from API_BASE.
+// API base for the app. Committed value is the local dev default; the Render
+// build rewrites this file from the API_BASE env var (scripts/set-api-base.mjs)
+// so the deployed UI points at the real API.
 export const environment = {
-  production: true,
-  apiBase: 'https://procreate-api.onrender.com/api',
+  production: false,
+  apiBase: 'http://localhost:5230/api',
 };

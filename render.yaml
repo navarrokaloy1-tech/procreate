@@ -40,7 +40,6 @@ services:
     name: procreate-ui
     runtime: static
     rootDir: procreate-ui
-    plan: free
     autoDeploy: true
     buildCommand: npm ci && node scripts/set-api-base.mjs && npm run build
     staticPublishPath: dist/procreate-ui/browser
