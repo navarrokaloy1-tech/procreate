@@ -28,9 +28,9 @@ services:
       # Signing key for the app's JWT — generated once and kept by Render.
       - key: Jwt__Key
         generateValue: true
-      # The deployed UI's origin, for CORS. Update if the UI service is renamed.
+      # The deployed UI's origin, for CORS. Matches the UI service name below.
       - key: Cors__AllowedOrigins
-        value: https://procreate-ui.onrender.com
+        value: https://procreate.onrender.com
       # Optional: SMTP app password for result/alert emails. Leave blank to skip.
       - key: Email__Password
         sync: false
@@ -39,7 +39,9 @@ services:
   # A static site cannot password-protect itself, so the built app is served by
   # a tiny Node server (server.js) that optionally enforces HTTP Basic Auth.
   - type: web
-    name: procreate-ui
+    # The service name sets the public URL — "procreate" → procreate.onrender.com.
+    # (rootDir stays procreate-ui; that's the repo folder, unrelated to the name.)
+    name: procreate
     runtime: node
     rootDir: procreate-ui
     plan: free
