@@ -35,24 +35,27 @@ services:
       - key: Email__Password
         sync: false
 
-  # ---- Angular UI (static site) ----
+  # ---- Angular UI (Node web service, so a UAT Basic Auth gate can sit in front) ----
+  # A static site cannot password-protect itself, so the built app is served by
+  # a tiny Node server (server.js) that optionally enforces HTTP Basic Auth.
   - type: web
     name: procreate-ui
-    runtime: static
+    runtime: node
     rootDir: procreate-ui
+    plan: free
+    region: singapore
     autoDeploy: true
     buildCommand: npm ci && node scripts/set-api-base.mjs && npm run build
-    staticPublishPath: dist/procreate-ui/browser
-    pullRequestPreviewsEnabled: false
+    startCommand: node server.js
     envVars:
-      # The API's PUBLIC URL, baked into the production build. Note: a
-      # fromService `host` gives Render's internal hostname ("procreate-api"),
-      # which the browser cannot resolve — the UI runs in the user's browser, so
-      # it needs the public onrender.com URL. Update this if the API is renamed.
+      # The API's PUBLIC URL, baked into the production build. A fromService
+      # `host` would give Render's internal name ("procreate-api"), which the
+      # browser can't resolve — it needs the public onrender.com URL.
       - key: API_BASE
         value: https://procreate-api.onrender.com
-    routes:
-      # Single-page app: every path serves index.html, Angular routes the rest.
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      # UAT gate: set BOTH to turn on the browser password prompt; delete both
+      # after UAT to serve the site with no gate (no redeploy type change).
+      - key: UAT_USER
+        sync: false
+      - key: UAT_PASSWORD
+        sync: false
