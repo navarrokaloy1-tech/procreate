@@ -274,6 +274,7 @@
 @mixin status-colour($colour) {
   &.legend__dot { background: $colour; }
   &.day__slot { border-left-color: $colour; }
+  &.week-slot { border-left-color: $colour; }
   &.pill { background: var(--light); color: $colour; }
 }
 
@@ -381,4 +382,160 @@ textarea.form-control {
   margin-top: 4px;
   font-size: var(--font-size-sm);
   color: var(--text-muted);
+}
+
+// ------------------------------------------------------------
+// View switcher (Month / Week / Day)
+// ------------------------------------------------------------
+.view-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+
+  &__btn {
+    padding: 0.35rem 0.75rem;
+    border: none;
+    background: var(--white);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    & + & { border-left: 1px solid var(--border-color); }
+    &:hover { background: var(--light); }
+    &.active { background: var(--primary); color: var(--white); }
+  }
+}
+
+// ------------------------------------------------------------
+// Week view — seven day columns
+// ------------------------------------------------------------
+.week-view {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+    min-height: 260px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--white);
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition);
+
+    &:hover { background: var(--light); }
+    &--today { border-color: var(--primary); }
+    &--selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+  }
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  &__dow { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+  &__date {
+    font-weight: 600;
+    color: var(--text-primary);
+
+    &--today {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--white);
+    }
+  }
+
+  &__slots {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    overflow-y: auto;
+  }
+
+  &__empty { margin: auto 0; text-align: center; color: var(--text-muted); }
+}
+
+.week-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--border-radius-sm);
+  background: var(--white);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: var(--light); }
+  &--void { opacity: 0.55; text-decoration: line-through; }
+
+  &__time { font-size: var(--font-size-sm); font-weight: 600; color: var(--text-primary); }
+  &__name {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// ------------------------------------------------------------
+// Day view — single day, one row per appointment
+// ------------------------------------------------------------
+.day-view {
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  &__count { font-size: var(--font-size-sm); color: var(--text-secondary); }
+  &__empty { padding: 2rem 0; }
+}
+
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--white);
+
+  & + & { margin-top: 6px; }
+
+  &__time {
+    flex: 0 0 72px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+
+    &--void { opacity: 0.6; text-decoration: line-through; }
+  }
+
+  &__name { font-weight: 600; color: var(--text-primary); }
+  &__meta { font-size: var(--font-size-sm); color: var(--text-secondary); }
 }

@@ -44,15 +44,20 @@
   <div class="card">
     <div class="card-header calendar-head">
       <h3 class="calendar-head__month">
-        {{ viewMonth | date: 'MMMM y' }}
+        {{ calendarHeading }}
         <span class="pill calendar-head__filter">{{ doctorFilterLabel }}</span>
       </h3>
       <div class="calendar-head__nav">
+        <div class="view-switch">
+          <button type="button" class="view-switch__btn" [class.active]="calendarView === 'month'" (click)="setView('month')">Month</button>
+          <button type="button" class="view-switch__btn" [class.active]="calendarView === 'week'" (click)="setView('week')">Week</button>
+          <button type="button" class="view-switch__btn" [class.active]="calendarView === 'day'" (click)="setView('day')">Day</button>
+        </div>
         <button type="button" class="btn btn-sm btn-secondary" (click)="goToToday()">Today</button>
-        <button type="button" class="tool-btn" (click)="shiftMonth(-1)" aria-label="Previous month">
+        <button type="button" class="tool-btn" (click)="shift(-1)" aria-label="Previous">
           <app-icon name="chevron-left" [size]="16"></app-icon>
         </button>
-        <button type="button" class="tool-btn" (click)="shiftMonth(1)" aria-label="Next month">
+        <button type="button" class="tool-btn" (click)="shift(1)" aria-label="Next">
           <app-icon name="chevron-right" [size]="16"></app-icon>
         </button>
       </div>
@@ -60,7 +65,8 @@
 
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-    <div class="calendar">
+    <!-- Month grid -->
+    <div class="calendar" *ngIf="calendarView === 'month'">
       <div class="calendar__weekdays">
         <span *ngFor="let label of weekdayLabels">{{ label }}</span>
       </div>
@@ -91,6 +97,67 @@
           </span>
         </button>
       </div>
+    </div>
+
+    <!-- Week view: seven day columns, like a Teams week. Double-click a column to book. -->
+    <div class="week-view" *ngIf="calendarView === 'week'">
+      <div
+        class="week-view__col"
+        *ngFor="let day of weekDays"
+        [class.week-view__col--today]="day.isToday"
+        [class.week-view__col--selected]="isSelected(day)"
+        (click)="selectDate(day.date)"
+        (dblclick)="openModalForDate(day.date)"
+      >
+        <div class="week-view__head">
+          <span class="week-view__dow">{{ weekdayLabels[day.date.getDay()] }}</span>
+          <span class="week-view__date" [class.week-view__date--today]="day.isToday">
+            {{ day.date | date: 'd' }}
+          </span>
+        </div>
+        <div class="week-view__slots">
+          <button
+            type="button"
+            *ngFor="let appointment of day.appointments"
+            [class]="'week-slot ' + statusClass(appointment.status)"
+            [class.week-slot--void]="isVoided(appointment)"
+            (click)="selectDate(day.date); $event.stopPropagation()"
+            [title]="appointment.patientName + ' — ' + appointment.service"
+          >
+            <span class="week-slot__time">{{ appointment.scheduledAt | date: 'shortTime' }}</span>
+            <span class="week-slot__name">{{ appointment.patientName }}</span>
+          </button>
+          <p class="week-view__empty" *ngIf="day.appointments.length === 0">—</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day view: a single day, filtered down. -->
+    <div class="day-view" *ngIf="calendarView === 'day'">
+      <div class="day-view__head">
+        <span class="day-view__count">
+          {{ dayAppointments.length }} appointment{{ dayAppointments.length === 1 ? '' : 's' }}
+        </span>
+        <button type="button" class="btn btn-sm btn-primary" (click)="openModalForDate(selectedDate)">
+          <app-icon name="plus" [size]="14"></app-icon>
+          New
+        </button>
+      </div>
+
+      <p class="text-muted text-center day-view__empty" *ngIf="dayAppointments.length === 0">
+        Nothing booked for this day. Double-click a day in month or week view, or use New.
+      </p>
+
+      <article class="day-row" *ngFor="let appointment of dayAppointments">
+        <span class="day-row__time">{{ appointment.scheduledAt | date: 'shortTime' }}</span>
+        <span class="day-row__body" [class.day-row__body--void]="isVoided(appointment)">
+          <span class="day-row__name">{{ appointment.patientName }}</span>
+          <span class="day-row__meta">{{ appointment.service }} · {{ appointment.doctorName }}</span>
+        </span>
+        <span class="pill" [class]="'pill ' + statusClass(appointment.status)">
+          {{ statusLabel(appointment.status) }}
+        </span>
+      </article>
     </div>
   </div>
 

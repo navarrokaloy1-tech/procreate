@@ -81,6 +81,11 @@ export class AppointmentCalendarComponent implements OnInit {
   selectedDate = new Date();
   weeks: CalendarDay[][] = [];
 
+  /** Which layout is shown: the month grid, a single week, or one day. */
+  calendarView: 'month' | 'week' | 'day' = 'month';
+  /** The Sun–Sat week containing selectedDate, for the week view. */
+  weekDays: CalendarDay[] = [];
+
   monthAppointments: Appointment[] = [];
   dayAppointments: Appointment[] = [];
   archivedCount = 0;
@@ -172,19 +177,25 @@ export class AppointmentCalendarComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
-    const first = new Date(this.viewMonth.getFullYear(), this.viewMonth.getMonth(), 1);
-    const last = new Date(this.viewMonth.getFullYear(), this.viewMonth.getMonth() + 1, 0);
+    // Load the whole 6-week grid range (Sunday before the 1st, +41 days), not
+    // just the calendar month — so week views at the month's edges still have
+    // their appointments.
+    const gridStart = new Date(this.viewMonth.getFullYear(), this.viewMonth.getMonth(), 1);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+    const gridEnd = new Date(gridStart);
+    gridEnd.setDate(gridStart.getDate() + 41);
 
     this.api
       .get<{ data: Appointment[] }>('appointments', {
-        from: this.toIsoDate(first),
-        to: this.toIsoDate(last),
+        from: this.toIsoDate(gridStart),
+        to: this.toIsoDate(gridEnd),
         doctorId: this.doctorFilter === '' ? null : this.doctorFilter,
       })
       .subscribe({
         next: (res) => {
           this.monthAppointments = res.data;
           this.buildGrid();
+          this.buildWeek();
           this.selectDate(this.selectedDate, false);
           this.isLoading = false;
           this.cdr.markForCheck();
@@ -248,6 +259,54 @@ export class AppointmentCalendarComponent implements OnInit {
     this.weeks = weeks;
   }
 
+  /** Builds the Sun–Sat week around selectedDate, for the week view. */
+  private buildWeek(): void {
+    const base = this.startOfDay(this.selectedDate);
+    const sunday = new Date(base);
+    sunday.setDate(base.getDate() - base.getDay());
+
+    const today = this.startOfDay(new Date());
+    const month = this.viewMonth.getMonth();
+
+    this.weekDays = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
+      return {
+        date,
+        inMonth: date.getMonth() === month,
+        isToday: date.getTime() === today.getTime(),
+        appointments: this.appointmentsOn(date),
+      };
+    });
+  }
+
+  setView(view: 'month' | 'week' | 'day'): void {
+    this.calendarView = view;
+    this.buildWeek();
+    this.cdr.markForCheck();
+  }
+
+  /** Heading for the current view: the month, the week range, or the day. */
+  get calendarHeading(): string {
+    if (this.calendarView === 'week' && this.weekDays.length === 7) {
+      const start = this.weekDays[0].date;
+      const end = this.weekDays[6].date;
+      const startStr = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const endStr = end.toLocaleDateString(undefined, {
+        month: start.getMonth() === end.getMonth() ? undefined : 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return `${startStr} – ${endStr}`;
+    }
+    if (this.calendarView === 'day') {
+      return this.selectedDate.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+      });
+    }
+    return this.viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }
+
   private appointmentsOn(date: Date): Appointment[] {
     const key = this.toIsoDate(date);
     return this.monthAppointments
@@ -258,6 +317,7 @@ export class AppointmentCalendarComponent implements OnInit {
   selectDate(date: Date, refreshGrid = true): void {
     this.selectedDate = this.startOfDay(date);
     this.dayAppointments = this.appointmentsOn(this.selectedDate);
+    this.buildWeek();
     if (refreshGrid) this.cdr.markForCheck();
   }
 
@@ -272,6 +332,30 @@ export class AppointmentCalendarComponent implements OnInit {
       1
     );
     this.loadMonth();
+  }
+
+  /** Previous/next, stepping by the active view's unit (month, week, or day). */
+  shift(delta: number): void {
+    if (this.calendarView === 'month') {
+      this.shiftMonth(delta);
+      return;
+    }
+
+    const step = this.calendarView === 'week' ? 7 * delta : delta;
+    const next = new Date(this.selectedDate);
+    next.setDate(next.getDate() + step);
+    this.selectedDate = this.startOfDay(next);
+
+    // Moving into another month needs that month's data; otherwise just rebuild.
+    if (next.getMonth() !== this.viewMonth.getMonth() ||
+        next.getFullYear() !== this.viewMonth.getFullYear()) {
+      this.viewMonth = new Date(next.getFullYear(), next.getMonth(), 1);
+      this.loadMonth();
+    } else {
+      this.dayAppointments = this.appointmentsOn(this.selectedDate);
+      this.buildWeek();
+      this.cdr.markForCheck();
+    }
   }
 
   goToToday(): void {
