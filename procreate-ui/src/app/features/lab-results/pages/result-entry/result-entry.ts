@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
 import { AuthService } from '../../../../core/services/auth';
+import { ToastService } from '../../../../core/services/toast';
 
 export interface ResultParameter {
   id: number;
@@ -82,7 +83,8 @@ export class ResultEntry implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -159,12 +161,13 @@ export class ResultEntry implements OnInit {
     this.apiService.post<void>('lab/orders/' + this.orderId + '/results', payload).subscribe({
       next: () => {
         this.isSaving = false;
+        this.toast.success('Results saved.');
         this.loadOrder();
         this.cdr.markForCheck();
       },
       error: () => {
         this.isSaving = false;
-        window.alert('Failed to save the results. Please try again.');
+        this.toast.error('Failed to save the results. Please try again.');
         this.cdr.markForCheck();
       },
     });
@@ -187,12 +190,13 @@ export class ResultEntry implements OnInit {
     this.apiService.post<void>('lab/orders/' + this.orderId + '/release', {}).subscribe({
       next: () => {
         this.isReleasing = false;
+        this.toast.success('Result released to the patient record.');
         this.loadOrder();
         this.cdr.markForCheck();
       },
       error: () => {
         this.isReleasing = false;
-        window.alert('Failed to release the result. Please try again.');
+        this.toast.error('Failed to release the result. Please try again.');
         this.cdr.markForCheck();
       },
     });

@@ -109,6 +109,16 @@
   overflow: visible;
 }
 
+// Same for the Visit Details card: the Referring Physician autosuggest has to
+// overlap the card and show in full rather than being cut off at its edge.
+.card.visit-details-card {
+  overflow: visible;
+
+  .card-body {
+    overflow: visible;
+  }
+}
+
 .patient-picker {
   position: relative;
 

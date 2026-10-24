@@ -3,6 +3,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
+import { ToastService } from '../../../../core/services/toast';
 
 export interface RequiredItem {
   inventoryItemId: number;
@@ -96,7 +97,8 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private cdr: ChangeDetectorRef,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -292,6 +294,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     };
 
     this.isSaving = true;
+    const editing = !!this.editingId;
     const request = this.editingId
       ? this.api.put<Service>(`services/${this.editingId}`, payload)
       : this.api.post<Service>('services', payload);
@@ -300,6 +303,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       next: () => {
         this.isSaving = false;
         this.closeModal();
+        this.toast.success(`Service "${payload.name}" ${editing ? 'updated' : 'added'}.`);
         this.load();
         this.cdr.markForCheck();
       },

@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
+import { ToastService } from '../../../../core/services/toast';
 
 interface TestItem {
   id: number;
@@ -50,7 +51,8 @@ export class TestPanelsComponent implements OnInit {
   constructor(
     private api: ApiService,
     private cdr: ChangeDetectorRef,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -168,6 +170,7 @@ export class TestPanelsComponent implements OnInit {
     };
 
     this.isSaving = true;
+    const editing = !!this.editingId;
     const request: Observable<any> = this.editingId
       ? this.api.put(`lab/panels/${this.editingId}`, payload)
       : this.api.post('lab/panels', payload);
@@ -176,6 +179,7 @@ export class TestPanelsComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.closeModal();
+        this.toast.success(`Test panel "${payload.name}" ${editing ? 'updated' : 'added'}.`);
         this.loadPanels();
         this.cdr.markForCheck();
       },

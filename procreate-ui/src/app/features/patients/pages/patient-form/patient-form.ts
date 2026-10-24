@@ -12,6 +12,7 @@ import {
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subscription, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
+import { ToastService } from '../../../../core/services/toast';
 import { ComboOption } from '../../../../core/components/combo-select/combo-select';
 import { Patient } from '../patient-list/patient-list';
 
@@ -152,7 +153,8 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private apiService: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {
     this.patientForm = this.buildForm();
   }
@@ -501,6 +503,11 @@ export class PatientFormComponent implements OnInit, OnChanges, OnDestroy {
     request$.subscribe({
       next: (patient) => {
         this.isSaving = false;
+        this.toast.success(
+          this.isEditMode
+            ? 'Patient details updated.'
+            : `Patient ${patient.firstName} ${patient.lastName} registered.`,
+        );
         this.saved.emit(patient);
         this.cdr.markForCheck();
       },
