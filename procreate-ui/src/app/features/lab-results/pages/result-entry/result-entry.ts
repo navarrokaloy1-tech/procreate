@@ -202,23 +202,32 @@ export class ResultEntry implements OnInit {
     });
   }
 
-  /** Renders the print-only report and opens the dialog. */
+  /**
+   * Opens the clinic result sheet PDF — the same letterhead layout the emailed
+   * and delivered copies use, generated server-side so every result sheet looks
+   * identical. Fetched as a blob so the request carries the auth token.
+   */
   print(): void {
+    if (!this.order) return;
     this.isPrinting = true;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
 
-    document.body.classList.add('printing-slip');
-
-    const cleanup = () => {
-      document.body.classList.remove('printing-slip');
-      this.isPrinting = false;
-      this.cdr.markForCheck();
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    window.addEventListener('afterprint', cleanup);
-    window.print();
-    setTimeout(cleanup, 1000);
+    this.apiService.getBlob(`lab/orders/${this.orderId}/result-sheet`).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) this.toast.error('Allow pop-ups to open the result sheet.');
+        // Give the new tab time to load before releasing the object URL.
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        this.isPrinting = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isPrinting = false;
+        this.toast.error('Could not generate the result sheet. Please try again.');
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   back(): void {

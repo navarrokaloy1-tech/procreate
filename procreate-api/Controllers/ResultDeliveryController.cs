@@ -266,6 +266,69 @@ public class ResultDeliveryController : ControllerBase
         return Ok(new { message = "Printout recorded." });
     }
 
+    /// <summary>
+    /// The clinic result sheet for a single lab order, as a PDF — the same
+    /// letterhead layout (logo, QR, grouped table, signatures, watermark) the
+    /// emailed and delivered copies use, so the lab print matches them. Absolute
+    /// route so it sits under /api/lab rather than the patient prefix.
+    /// </summary>
+    [HttpGet("/api/lab/orders/{orderId:int}/result-sheet")]
+    public async Task<IActionResult> SingleResultSheet(int orderId)
+    {
+        var order = await _db.LabOrders
+            .Include(o => o.Visit).ThenInclude(v => v.Patient)
+            .Include(o => o.Visit).ThenInclude(v => v.ReferringDoctor)
+            .Include(o => o.LabTest).ThenInclude(t => t.Category)
+            .Include(o => o.LabTest).ThenInclude(t => t.Parameters)
+            .Include(o => o.Results).ThenInclude(r => r.TestParameter)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order is null) return NotFound(new { message = "Lab order not found." });
+
+        var patient = order.Visit.Patient;
+        var patientDto = new DeliveryPatientDto(
+            patient.Id, patient.PatientCode,
+            $"{patient.FirstName} {patient.LastName}".Trim(),
+            patient.Gender, patient.DateOfBirth,
+            LabController.AgeOn(patient.DateOfBirth, DateTime.Today),
+            patient.Email, patient.ContactNumber);
+
+        // The referring doctor signs when one is linked; otherwise the sheet
+        // carries just the referring name with no signature.
+        var refDoc = order.Visit.ReferringDoctor;
+        var doctorDto = refDoc is not null
+            ? new DeliveryDoctorDto(
+                refDoc.Id, $"Dr. {refDoc.FirstName} {refDoc.LastName}".Trim(),
+                refDoc.Specialty, refDoc.PrcLicenseNumber,
+                refDoc.SignatureImage != null && refDoc.SignatureImage.Length > 0)
+            : new DeliveryDoctorDto(0, order.Visit.ReferringPhysician, "", "", false);
+
+        var result = new DeliveryResultDto(
+            order.Id, order.LabTest.Name, order.LabTest.Category.Department,
+            order.LabTest.Category.Name, order.PanelName, order.LabTest.Specimen,
+            order.LabTest.Method, order.CollectedAt, order.ReleasedAt,
+            order.SpecimenBarcode, order.Visit.ReferringPhysician, order.IsAbnormal,
+            order.NarrativeFindings, order.ResultedBy,
+            order.LabTest.Parameters.Count > 0 ? "parameters" : "narrative",
+            order.LabTest.Parameters.Select(prm =>
+            {
+                var value = order.Results.FirstOrDefault(r => r.TestParameterId == prm.Id);
+                return new DeliveryParameterDto(
+                    prm.Name, prm.Unit, prm.ReferenceRange, value?.Value ?? "", value?.Flag ?? "");
+            }).ToList());
+
+        // Signatures only once released, matching the delivered copy.
+        var includeSignature = order.ReleasedAt != null;
+        var qrPng = GetPatientQrPng(patient.PatientCode);
+
+        var pdf = _pdf.Build(
+            _clinic, patientDto, doctorDto, new List<DeliveryResultDto> { result },
+            order.ResultedBy, includeSignature, qrPng,
+            includeSignature ? refDoc?.SignatureImage : null);
+
+        return File(pdf, "application/pdf", $"Pro-Create Result - {patient.PatientCode}.pdf");
+    }
+
     /// <summary>What has already gone out for this patient.</summary>
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory(int patientId)
