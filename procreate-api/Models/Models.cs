@@ -105,23 +105,26 @@ public class TestCategory
 
     /// <summary>
     /// The service line that performs the test, and the tab the order appears
-    /// under on the Laboratory console: Laboratory | Imaging | Ultrasound |
-    /// Heart Station. See <see cref="Departments"/>.
+    /// under on the Laboratory console: Laboratory | Imaging | Heart Station.
+    /// See <see cref="Departments"/>.
     /// </summary>
     public string Department { get; set; } = Departments.Laboratory;
 
     public List<LabTest> Tests { get; set; } = new();
 }
 
-/// <summary>The four diagnostic service lines, in console tab order.</summary>
+/// <summary>The diagnostic service lines, in console tab order.</summary>
 public static class Departments
 {
     public const string Laboratory = "Laboratory";
     public const string Imaging = "Imaging";
+    /// <summary>Retired tab: Ultrasound studies are now part of Imaging. Kept as
+    /// a constant for older data and code paths that still reference it.</summary>
     public const string Ultrasound = "Ultrasound";
     public const string HeartStation = "Heart Station";
 
-    public static readonly string[] All = { Laboratory, Imaging, Ultrasound, HeartStation };
+    // Ultrasound was merged into Imaging, so it is no longer its own tab.
+    public static readonly string[] All = { Laboratory, Imaging, HeartStation };
 }
 
 public class LabTest
@@ -389,22 +392,26 @@ public class Product
 /// <summary>The service categories offered on the Add Service form, in order.</summary>
 public static class ServiceCategories
 {
+    // "Ultrasound" is no longer offered as its own category — imaging and
+    // ultrasound services share the Imaging line now.
     public static readonly string[] All =
     {
-        "Consultation", "Laboratory", "Imaging", "Ultrasound", "Heart Station",
+        "Consultation", "Laboratory", "Imaging", "Heart Station",
         "Procedure", "Vaccination", "Dental", "Physical Therapy", "Others"
     };
 
     /// <summary>
     /// Categories that are ordered rather than only billed, and the console
-    /// each lands on. A service outside this set has no orderable test.
+    /// each lands on. A service outside this set has no orderable test. The
+    /// "Ultrasound" key is kept so services created under it before the merge
+    /// still resolve — now onto the Imaging line.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string> DepartmentByCategory =
         new Dictionary<string, string>
         {
             ["Laboratory"] = Departments.Laboratory,
             ["Imaging"] = Departments.Imaging,
-            ["Ultrasound"] = Departments.Ultrasound,
+            ["Ultrasound"] = Departments.Imaging,
             ["Heart Station"] = Departments.HeartStation
         };
 

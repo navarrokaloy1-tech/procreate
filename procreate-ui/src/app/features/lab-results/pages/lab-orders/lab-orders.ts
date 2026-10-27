@@ -109,7 +109,7 @@ export class LabOrders implements OnInit, OnDestroy {
       error: () => {
         // Without counts the tabs are still usable, so fall back to the
         // four known service lines rather than leaving the strip empty.
-        this.departments = ['Laboratory', 'Imaging', 'Ultrasound', 'Heart Station'].map(
+        this.departments = ['Laboratory', 'Imaging', 'Heart Station'].map(
           (name) => ({ name, count: 0 })
         );
         this.cdr.markForCheck();

@@ -467,7 +467,7 @@ public class AppDbContext : DbContext
             new TestCategory { Id = 3, Name = "Urinalysis", Description = "Urine examination", Department = Departments.Laboratory },
             new TestCategory { Id = 4, Name = "Serology", Description = "Antibody and antigen tests", Department = Departments.Laboratory },
             new TestCategory { Id = 5, Name = "Radiology", Description = "Plain-film radiography", Department = Departments.Imaging },
-            new TestCategory { Id = 6, Name = "Sonography", Description = "Ultrasound studies", Department = Departments.Ultrasound },
+            new TestCategory { Id = 6, Name = "Sonography", Description = "Ultrasound studies", Department = Departments.Imaging },
             new TestCategory { Id = 7, Name = "Cardiology", Description = "Cardiac tracing and echo", Department = Departments.HeartStation }
         );
 
