@@ -200,6 +200,12 @@ public class LabOrder
     public int LabTestId { get; set; }
     public LabTest LabTest { get; set; } = null!;
     public string Status { get; set; } = "Ordered";
+    /// <summary>
+    /// The test panel this order was placed under (e.g. "Annual Physical Exam"),
+    /// snapshotted at order time so the result sheet can group tests by panel.
+    /// Empty when the test was ordered on its own rather than as part of a panel.
+    /// </summary>
+    public string PanelName { get; set; } = string.Empty;
     public string SpecimenBarcode { get; set; } = string.Empty;
     public DateTime? CollectedAt { get; set; }
     public DateTime? ProcessedAt { get; set; }

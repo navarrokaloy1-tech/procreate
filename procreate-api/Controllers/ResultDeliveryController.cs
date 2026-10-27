@@ -40,7 +40,10 @@ public class ResultDeliveryController : ControllerBase
 
     public record SendRequest(
         List<int> LabOrderIds, List<int> DocumentIds, int DoctorId,
-        bool IncludeSignature, string? ToAddress, string? Message);
+        bool IncludeSignature, string? ToAddress, string? Message,
+        // When true, one result sheet per panel is attached instead of a single
+        // combined sheet with everything on it.
+        bool PerPanel = false);
 
     public record PackageRequest(
         List<int> LabOrderIds, List<int> DocumentIds, int DoctorId, bool IncludeSignature);
@@ -173,12 +176,38 @@ public class ResultDeliveryController : ControllerBase
         // none of which an email body can carry.
         var medTech = package.Results.Select(r => r.ResultedBy).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "";
         var qrPng = GetPatientQrPng(package.Patient!.PatientCode);
-        var sheetPdf = _pdf.Build(
-            _clinic, package.Patient!, package.Doctor!, package.Results,
-            medTech, request.IncludeSignature, qrPng, signatureImage);
+        var code = package.Patient!.PatientCode;
 
-        attachments.Add(new EmailAttachment(
-            $"Pro-Create Results - {package.Patient!.PatientCode}.pdf", "application/pdf", sheetPdf));
+        // One combined sheet, or one sheet per panel when requested.
+        var sheetCount = 0;
+        if (request.PerPanel)
+        {
+            var groups = package.Results
+                .GroupBy(r =>
+                    !string.IsNullOrWhiteSpace(r.PanelName) ? r.PanelName
+                    : !string.IsNullOrWhiteSpace(r.CategoryName) ? r.CategoryName
+                    : r.Department)
+                .ToList();
+
+            foreach (var group in groups)
+            {
+                var pdf = _pdf.Build(
+                    _clinic, package.Patient!, package.Doctor!, group.ToList(),
+                    medTech, request.IncludeSignature, qrPng, signatureImage);
+                attachments.Add(new EmailAttachment(
+                    $"Pro-Create Results - {code} - {SafeFileName(group.Key)}.pdf", "application/pdf", pdf));
+                sheetCount++;
+            }
+        }
+        else
+        {
+            var sheetPdf = _pdf.Build(
+                _clinic, package.Patient!, package.Doctor!, package.Results,
+                medTech, request.IncludeSignature, qrPng, signatureImage);
+            attachments.Add(new EmailAttachment(
+                $"Pro-Create Results - {code}.pdf", "application/pdf", sheetPdf));
+            sheetCount = 1;
+        }
 
         var body = RenderCoverNote(package.Patient!, request.Message, uploadedFileNames);
 
@@ -209,8 +238,8 @@ public class ResultDeliveryController : ControllerBase
         {
             message = $"Results sent to {address}.",
             sentTo = address,
-            // The result sheet PDF plus any uploaded documents.
-            attachments = uploadedFileNames.Count + 1
+            // The result sheet PDF(s) plus any uploaded documents.
+            attachments = uploadedFileNames.Count + sheetCount
         });
     }
 
@@ -287,7 +316,7 @@ public class ResultDeliveryController : ControllerBase
         string ParameterName, string Unit, string Reference, string Value, string Flag);
 
     public record DeliveryResultDto(
-        int Id, string TestName, string Department, string CategoryName,
+        int Id, string TestName, string Department, string CategoryName, string PanelName,
         string Specimen, string Method, DateTime? CollectedAt, DateTime? ReleasedAt,
         string SpecimenBarcode, string ReferringPhysician, bool IsAbnormal,
         string NarrativeFindings, string ResultedBy, string ResultKind,
@@ -338,6 +367,7 @@ public class ResultDeliveryController : ControllerBase
                 o.LabTest.Name,
                 o.LabTest.Category.Department,
                 o.LabTest.Category.Name,
+                o.PanelName,
                 o.LabTest.Specimen,
                 o.LabTest.Method,
                 o.CollectedAt,
@@ -375,6 +405,15 @@ public class ResultDeliveryController : ControllerBase
 
     private static Assembled Fail(IActionResult error) =>
         new(null, null, new List<DeliveryResultDto>(), null, error);
+
+    /// <summary>A panel name trimmed to something safe for an attachment filename.</summary>
+    private static string SafeFileName(string name)
+    {
+        var cleaned = new string((name ?? "")
+            .Select(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '_' ? c : '_')
+            .ToArray()).Trim();
+        return cleaned.Length == 0 ? "Results" : cleaned;
+    }
 
     private ClinicDto ClinicPayload() => new(
         _clinic.Name, _clinic.Tagline, _clinic.SubTagline,

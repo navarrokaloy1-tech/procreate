@@ -409,6 +409,8 @@ export class VisitForm implements OnInit, OnDestroy {
       entries: this.entries.map((e) => ({
         patientId: e.patient.id,
         testIds: Array.from(e.testIds),
+        // Panels the clerk applied, so each test's panel is recorded on its order.
+        appliedPanelIds: Array.from(e.appliedPanels),
       })),
     };
 

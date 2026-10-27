@@ -66,6 +66,7 @@ interface PackageResult {
   testName: string;
   department: string;
   categoryName: string;
+  panelName: string;
   specimen: string;
   method: string;
   collectedAt: string;
@@ -157,6 +158,8 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
 
   doctorId: number | '' = '';
   includeSignature = true;
+  /** Send one result sheet per panel instead of a single combined sheet. */
+  sendPerPanel = false;
   toAddress = '';
   message = '';
 
@@ -187,6 +190,7 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     this.rows = [{ key: '' }];
     this.doctorId = this.doctors[0]?.id ?? '';
     this.includeSignature = true;
+    this.sendPerPanel = false;
     this.toAddress = this.patient?.email ?? '';
     this.message = '';
     this.errorMessage = '';
@@ -395,6 +399,7 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
         ...this.packageBody(),
         toAddress: this.toAddress.trim(),
         message: this.message.trim(),
+        perPanel: this.sendPerPanel,
       })
       .subscribe({
         next: (res) => {
@@ -548,13 +553,13 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   // Sheet layout — shared by the preview and the printed copy
   // ----------------------------------------------------------
 
-  /** Results grouped into sections by category (falling back to department). */
+  /** Results grouped by the panel they were ordered as, falling back to category. */
   sections(pkg: DeliveryPackage): ResultSection[] {
     const order: string[] = [];
     const byTitle = new Map<string, PackageResult[]>();
 
     for (const result of pkg.results) {
-      const title = (result.categoryName || result.department || 'Results').toUpperCase();
+      const title = (result.panelName || result.categoryName || result.department || 'Results').toUpperCase();
       if (!byTitle.has(title)) {
         byTitle.set(title, []);
         order.push(title);

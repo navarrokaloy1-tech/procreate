@@ -190,26 +190,27 @@ public class ResultSheetPdf
         doc.Add(table);
     }
 
+    /// <summary>
+    /// Results are laid out one table per date, newest first. Within a date the
+    /// tests are gathered under the panel they were ordered as (e.g. "Annual
+    /// Physical Exam"), or their category when they were ordered on their own —
+    /// so a panel's tests always sit together.
+    /// </summary>
     private void AddSections(
         Document doc,
         IReadOnlyList<ResultDeliveryController.DeliveryResultDto> results,
         PdfFont regular, PdfFont bold)
     {
-        var order = new List<string>();
-        var byTitle = new Dictionary<string, List<ResultDeliveryController.DeliveryResultDto>>();
-        foreach (var r in results)
-        {
-            var title = (string.IsNullOrWhiteSpace(r.CategoryName) ? r.Department : r.CategoryName).ToUpperInvariant();
-            if (!byTitle.ContainsKey(title)) { byTitle[title] = new(); order.Add(title); }
-            byTitle[title].Add(r);
-        }
+        var byDate = results
+            .GroupBy(r => (r.ReleasedAt ?? r.CollectedAt ?? DateTime.Today).Date)
+            .OrderByDescending(g => g.Key);
 
-        foreach (var title in order)
+        foreach (var dateGroup in byDate)
         {
-            doc.Add(new Paragraph(title)
-                .SetFont(bold).SetFontSize(11).SetFontColor(Ink)
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetMarginTop(16).SetMarginBottom(4).SetCharacterSpacing(0.5f));
+            doc.Add(new Paragraph(dateGroup.Key.ToString("MMMM d, yyyy"))
+                .SetFont(bold).SetFontSize(12).SetFontColor(Rule)
+                .SetMarginTop(16).SetMarginBottom(2)
+                .SetBorderBottom(new SolidBorder(Rule, 1f)).SetPaddingBottom(3));
 
             var table = new Table(UnitValue.CreatePercentArray(new float[] { 40, 18, 14, 28 }))
                 .UseAllAvailableWidth();
@@ -222,34 +223,59 @@ public class ResultSheetPdf
                     .SetBorderBottom(new SolidBorder(Ink, 1f))
                     .SetPadding(3));
 
-            foreach (var result in byTitle[title])
+            // Panel (or category) groupings within the date, in first-seen order.
+            var order = new List<string>();
+            var byGroup = new Dictionary<string, List<ResultDeliveryController.DeliveryResultDto>>();
+            foreach (var r in dateGroup)
             {
-                table.AddCell(GroupCell(result.TestName, bold));
+                var groupName = (
+                    !string.IsNullOrWhiteSpace(r.PanelName) ? r.PanelName
+                    : !string.IsNullOrWhiteSpace(r.CategoryName) ? r.CategoryName
+                    : r.Department).ToUpperInvariant();
+                if (!byGroup.ContainsKey(groupName)) { byGroup[groupName] = new(); order.Add(groupName); }
+                byGroup[groupName].Add(r);
+            }
 
-                if (!string.IsNullOrWhiteSpace(result.NarrativeFindings))
-                    table.AddCell(new Cell(1, 4)
-                        .Add(new Paragraph(result.NarrativeFindings)
-                            .SetFont(regular).SetFontSize(9).SetMultipliedLeading(1.3f))
-                        .SetBorder(Border.NO_BORDER).SetPaddingLeft(14).SetPaddingBottom(4));
+            foreach (var groupName in order)
+            {
+                table.AddCell(new Cell(1, 4)
+                    .Add(new Paragraph(groupName).SetFont(bold).SetFontSize(10).SetFontColor(Rule))
+                    .SetBorder(Border.NO_BORDER).SetPaddingTop(10).SetPaddingBottom(2));
 
-                foreach (var p in result.Parameters)
-                {
-                    var (mark, abnormal) = FlagMark(p.Flag);
-
-                    table.AddCell(Body(p.ParameterName, regular).SetPaddingLeft(14));
-
-                    var value = new Paragraph().SetFontSize(9).SetMultipliedLeading(1.15f);
-                    if (mark.Length > 0) value.Add(new Text(mark + " ").SetFont(bold).SetFontColor(Danger));
-                    value.Add(new Text(p.Value ?? "").SetFont(abnormal ? bold : regular)
-                        .SetFontColor(abnormal ? Danger : Ink));
-                    table.AddCell(new Cell().Add(value).SetBorder(Border.NO_BORDER).SetPadding(2));
-
-                    table.AddCell(Body(p.Unit, regular).SetFontColor(Muted));
-                    table.AddCell(RefCell(p.Reference, regular));
-                }
+                foreach (var result in byGroup[groupName])
+                    AddResultRows(table, result, regular, bold);
             }
 
             doc.Add(table);
+        }
+    }
+
+    /// <summary>Renders one test: its name, any narrative, then its parameter rows.</summary>
+    private void AddResultRows(
+        Table table, ResultDeliveryController.DeliveryResultDto result, PdfFont regular, PdfFont bold)
+    {
+        table.AddCell(GroupCell(result.TestName, bold));
+
+        if (!string.IsNullOrWhiteSpace(result.NarrativeFindings))
+            table.AddCell(new Cell(1, 4)
+                .Add(new Paragraph(result.NarrativeFindings)
+                    .SetFont(regular).SetFontSize(9).SetMultipliedLeading(1.3f))
+                .SetBorder(Border.NO_BORDER).SetPaddingLeft(14).SetPaddingBottom(4));
+
+        foreach (var p in result.Parameters)
+        {
+            var (mark, abnormal) = FlagMark(p.Flag);
+
+            table.AddCell(Body(p.ParameterName, regular).SetPaddingLeft(14));
+
+            var value = new Paragraph().SetFontSize(9).SetMultipliedLeading(1.15f);
+            if (mark.Length > 0) value.Add(new Text(mark + " ").SetFont(bold).SetFontColor(Danger));
+            value.Add(new Text(p.Value ?? "").SetFont(abnormal ? bold : regular)
+                .SetFontColor(abnormal ? Danger : Ink));
+            table.AddCell(new Cell().Add(value).SetBorder(Border.NO_BORDER).SetPadding(2));
+
+            table.AddCell(Body(p.Unit, regular).SetFontColor(Muted));
+            table.AddCell(RefCell(p.Reference, regular));
         }
     }
 

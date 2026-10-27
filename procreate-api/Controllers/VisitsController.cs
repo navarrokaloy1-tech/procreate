@@ -323,6 +323,21 @@ public class VisitsController : ControllerBase
             var visit = created[i];
             decimal total = 0;
 
+            // Which panel each test was ordered under, snapshotted so the result
+            // sheet can group by panel. First applied panel that contains a test
+            // wins; tests not in any applied panel are left unpanelled.
+            var panelByTest = new Dictionary<int, string>();
+            if (entry.AppliedPanelIds is { Count: > 0 })
+            {
+                var panels = await _db.TestPanels
+                    .Include(p => p.Items)
+                    .Where(p => entry.AppliedPanelIds.Contains(p.Id))
+                    .ToListAsync();
+                foreach (var panel in panels)
+                    foreach (var item in panel.Items)
+                        panelByTest.TryAdd(item.LabTestId, panel.Name);
+            }
+
             foreach (var testId in (entry.TestIds ?? new List<int>()).Distinct())
             {
                 var test = await _db.LabTests.FindAsync(testId);
@@ -333,6 +348,7 @@ public class VisitsController : ControllerBase
                     VisitId = visit.Id,
                     LabTestId = testId,
                     Status = "Ordered",
+                    PanelName = panelByTest.TryGetValue(testId, out var pn) ? pn : string.Empty,
                     SpecimenBarcode = $"SPX-{DateTime.Now:yyyyMMddHHmmss}-{visit.Id}-{testId}"
                 });
 
@@ -394,5 +410,5 @@ public class VisitsController : ControllerBase
 public record CreateVisitRequest(int PatientId, string ReferringPhysician, string PurposeOfVisit, string? Notes, List<int> TestIds, int? ReferringDoctorId = null);
 public record UpdateStatusRequest(string Status);
 public record AddTestsRequest(List<int> TestIds);
-public record BatchVisitEntry(int PatientId, string? ReferringPhysician, string? PurposeOfVisit, List<int>? TestIds, int? ReferringDoctorId = null);
+public record BatchVisitEntry(int PatientId, string? ReferringPhysician, string? PurposeOfVisit, List<int>? TestIds, int? ReferringDoctorId = null, List<int>? AppliedPanelIds = null);
 public record BatchVisitRequest(string? ReferringPhysician, string? PurposeOfVisit, List<BatchVisitEntry> Entries, int? ReferringDoctorId = null);
