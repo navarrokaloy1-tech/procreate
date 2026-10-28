@@ -34,6 +34,8 @@ interface AvailableResult {
   id: number;
   label: string;
   department: string;
+  categoryName: string;
+  panelName: string;
   releasedAt: string;
   isAbnormal: boolean;
   resultKind: string;
@@ -122,11 +124,6 @@ export interface DeliveryPackage {
   generatedAt: string;
 }
 
-/** One row of the results picker. Blank until something is chosen. */
-interface PickerRow {
-  /** "lab:12" or "doc:4" — the kind has to travel with the id, they overlap. */
-  key: string;
-}
 
 /**
  * Sending or printing a patient's results.
@@ -154,12 +151,13 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   labResults: AvailableResult[] = [];
   documents: AvailableDocument[] = [];
 
-  rows: PickerRow[] = [{ key: '' }];
+  /** Chosen results/documents, and whether the picker dropdown is open. */
+  selectedLab = new Set<number>();
+  selectedDoc = new Set<number>();
+  pickerOpen = false;
 
   doctorId: number | '' = '';
   includeSignature = true;
-  /** Send one result sheet per panel instead of a single combined sheet. */
-  sendPerPanel = false;
   toAddress = '';
   message = '';
 
@@ -187,10 +185,11 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   }
 
   private reset(): void {
-    this.rows = [{ key: '' }];
+    this.selectedLab = new Set<number>();
+    this.selectedDoc = new Set<number>();
+    this.pickerOpen = false;
     this.doctorId = this.doctors[0]?.id ?? '';
     this.includeSignature = true;
-    this.sendPerPanel = false;
     this.toAddress = this.patient?.email ?? '';
     this.message = '';
     this.errorMessage = '';
@@ -244,40 +243,74 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
   // The picker
   // ----------------------------------------------------------
 
-  addRow(): void {
-    this.rows = [...this.rows, { key: '' }];
+
+  togglePicker(): void {
+    this.pickerOpen = !this.pickerOpen;
   }
 
-  removeRow(index: number): void {
-    this.rows = this.rows.filter((_, i) => i !== index);
-    if (this.rows.length === 0) this.rows = [{ key: '' }];
-    this.preview = null;
+  /** Released results grouped by the panel they were ordered as, else category. */
+  get labByCategory(): { category: string; results: AvailableResult[] }[] {
+    const order: string[] = [];
+    const map = new Map<string, AvailableResult[]>();
+    for (const r of this.labResults) {
+      const key = (r.panelName || r.categoryName || r.department || 'Other').toUpperCase();
+      if (!map.has(key)) { map.set(key, []); order.push(key); }
+      map.get(key)!.push(r);
+    }
+    return order.map((category) => ({ category, results: map.get(category)! }));
   }
 
-  onRowChange(index: number, key: string): void {
-    this.rows[index].key = key;
-    this.preview = null;
+  toggleLab(id: number): void {
+    if (this.selectedLab.has(id)) this.selectedLab.delete(id);
+    else this.selectedLab.add(id);
   }
 
-  /** Already picked elsewhere, so it should not be offered twice. */
-  isTaken(key: string, index: number): boolean {
-    return this.rows.some((row, i) => i !== index && row.key === key);
+  isLabSelected(id: number): boolean {
+    return this.selectedLab.has(id);
   }
 
-  private keys(): string[] {
-    return this.rows.map((r) => r.key).filter(Boolean);
+  toggleDoc(id: number): void {
+    if (this.selectedDoc.has(id)) this.selectedDoc.delete(id);
+    else this.selectedDoc.add(id);
+  }
+
+  isDocSelected(id: number): boolean {
+    return this.selectedDoc.has(id);
+  }
+
+  /** Select or clear every result in a category at once. */
+  toggleCategory(group: { results: AvailableResult[] }): void {
+    const all = this.categoryAllSelected(group);
+    for (const r of group.results) {
+      if (all) this.selectedLab.delete(r.id);
+      else this.selectedLab.add(r.id);
+    }
+  }
+
+  categoryAllSelected(group: { results: AvailableResult[] }): boolean {
+    return group.results.length > 0 && group.results.every((r) => this.selectedLab.has(r.id));
+  }
+
+  categorySomeSelected(group: { results: AvailableResult[] }): boolean {
+    return group.results.some((r) => this.selectedLab.has(r.id)) && !this.categoryAllSelected(group);
   }
 
   get selectedLabIds(): number[] {
-    return this.keys().filter((k) => k.startsWith('lab:')).map((k) => Number(k.slice(4)));
+    return Array.from(this.selectedLab);
   }
 
   get selectedDocumentIds(): number[] {
-    return this.keys().filter((k) => k.startsWith('doc:')).map((k) => Number(k.slice(4)));
+    return Array.from(this.selectedDoc);
   }
 
   get hasSelection(): boolean {
-    return this.keys().length > 0;
+    return this.selectedLab.size + this.selectedDoc.size > 0;
+  }
+
+  /** Dropdown button text: a count once anything is chosen, else the prompt. */
+  get selectionSummary(): string {
+    const n = this.selectedLab.size + this.selectedDoc.size;
+    return n === 0 ? 'Please select lab results to be sent' : `${n} selected`;
   }
 
   get nothingAvailable(): boolean {
@@ -399,7 +432,6 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
         ...this.packageBody(),
         toAddress: this.toAddress.trim(),
         message: this.message.trim(),
-        perPanel: this.sendPerPanel,
       })
       .subscribe({
         next: (res) => {
@@ -614,7 +646,6 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     return (reference || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   }
 
-  trackRow = (index: number) => index;
   trackSection = (_: number, s: ResultSection) => s.title;
   trackResult = (_: number, r: PackageResult) => r.id;
 }

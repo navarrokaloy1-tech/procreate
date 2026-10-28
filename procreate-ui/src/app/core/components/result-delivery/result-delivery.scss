@@ -533,3 +533,92 @@ $rx-danger: #a71d2a;
   .rx__qr img { width: 20mm; height: 20mm; }
   .rx__sig-img { max-height: 18mm; max-width: 55mm; }
 }
+
+/* ------------------------------------------------------------------
+   Results picker — a dropdown of released results grouped by category,
+   each a checkbox so several can be chosen at once.
+   ------------------------------------------------------------------ */
+.result-picker {
+  position: relative;
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--white);
+    font: inherit;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { border-color: var(--primary); }
+  }
+
+  &--open &__toggle {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(95, 110, 80, 0.15);
+  }
+
+  &__placeholder { color: var(--text-secondary); }
+
+  &__panel {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &__head {
+    padding: 0.55rem 0.75rem;
+    background: var(--light);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__group { padding: 4px 0; }
+  &__group + &__group { border-top: 1px solid var(--border-color); }
+
+  &__cat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 2px;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--text-primary);
+    cursor: pointer;
+
+    &--plain { cursor: default; }
+    input { cursor: pointer; }
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 28px;
+    cursor: pointer;
+
+    &:hover { background: var(--light); }
+    &--selected { background: var(--primary-light); }
+
+    input { cursor: pointer; }
+  }
+
+  &__item-name { flex: 1 1 auto; color: var(--text-primary); }
+  &__item-meta { color: var(--text-secondary); font-size: var(--font-size-sm); white-space: nowrap; }
+}

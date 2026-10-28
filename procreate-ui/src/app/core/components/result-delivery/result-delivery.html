@@ -61,54 +61,58 @@
         </p>
 
         <ng-container *ngIf="!nothingAvailable">
-          <div class="delivery-row" *ngFor="let row of rows; let i = index; trackBy: trackRow">
-            <span class="select-field delivery-row__select">
-              <select
-                [ngModel]="row.key"
-                (ngModelChange)="onRowChange(i, $event)"
-                [name]="'result-' + i"
-                [attr.aria-label]="'Result ' + (i + 1)"
-              >
-                <option value="">Please select lab results to be sent</option>
-
-                <optgroup label="Lab results" *ngIf="labResults.length">
-                  <option
-                    *ngFor="let result of labResults"
-                    [value]="'lab:' + result.id"
-                    [disabled]="isTaken('lab:' + result.id, i)"
-                  >
-                    {{ result.label }} — {{ result.department }} ·
-                    {{ result.releasedAt | date: 'MMM d, y' }}{{ result.isAbnormal ? ' (Abnormal)' : '' }}
-                  </option>
-                </optgroup>
-
-                <optgroup label="Uploaded files" *ngIf="documents.length">
-                  <option
-                    *ngFor="let doc of documents"
-                    [value]="'doc:' + doc.id"
-                    [disabled]="isTaken('doc:' + doc.id, i)"
-                  >
-                    {{ doc.label }} — {{ doc.department }} · {{ fileSize(doc.sizeBytes) }}
-                  </option>
-                </optgroup>
-              </select>
-              <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
-            </span>
-
+          <div class="result-picker" [class.result-picker--open]="pickerOpen">
             <button
               type="button"
-              class="tool-btn"
-              (click)="removeRow(i)"
-              *ngIf="rows.length > 1"
-              aria-label="Remove this result"
+              class="result-picker__toggle"
+              (click)="togglePicker()"
+              [attr.aria-expanded]="pickerOpen"
             >
-              <app-icon name="x" [size]="15"></app-icon>
+              <span [class.result-picker__placeholder]="!hasSelection">{{ selectionSummary }}</span>
+              <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
             </button>
-          </div>
 
-          <button type="button" class="delivery-add" (click)="addRow()" aria-label="Add another result">
-            <app-icon name="plus" [size]="18"></app-icon>
-          </button>
+            <div class="result-picker__panel" *ngIf="pickerOpen">
+              <div class="result-picker__head">Please select lab results to be sent</div>
+
+              <div class="result-picker__group" *ngFor="let group of labByCategory">
+                <label class="result-picker__cat">
+                  <input
+                    type="checkbox"
+                    [checked]="categoryAllSelected(group)"
+                    [indeterminate]="categorySomeSelected(group)"
+                    (change)="toggleCategory(group)"
+                  />
+                  <span>{{ group.category }}</span>
+                </label>
+
+                <label
+                  class="result-picker__item"
+                  *ngFor="let result of group.results"
+                  [class.result-picker__item--selected]="isLabSelected(result.id)"
+                >
+                  <input type="checkbox" [checked]="isLabSelected(result.id)" (change)="toggleLab(result.id)" />
+                  <span class="result-picker__item-name">{{ result.label }}</span>
+                  <small class="result-picker__item-meta">
+                    {{ result.releasedAt | date: 'MMM d, y' }}{{ result.isAbnormal ? ' · Abnormal' : '' }}
+                  </small>
+                </label>
+              </div>
+
+              <div class="result-picker__group" *ngIf="documents.length">
+                <div class="result-picker__cat result-picker__cat--plain">UPLOADED FILES</div>
+                <label
+                  class="result-picker__item"
+                  *ngFor="let doc of documents"
+                  [class.result-picker__item--selected]="isDocSelected(doc.id)"
+                >
+                  <input type="checkbox" [checked]="isDocSelected(doc.id)" (change)="toggleDoc(doc.id)" />
+                  <span class="result-picker__item-name">{{ doc.label }}</span>
+                  <small class="result-picker__item-meta">{{ fileSize(doc.sizeBytes) }}</small>
+                </label>
+              </div>
+            </div>
+          </div>
         </ng-container>
       </div>
 
@@ -173,11 +177,6 @@
         <label class="delivery-sign">
           <input type="checkbox" [(ngModel)]="includeSignature" name="includeSignature" />
           Attach signature
-        </label>
-
-        <label class="delivery-sign" title="Send a separate result sheet for each panel instead of one combined sheet">
-          <input type="checkbox" [(ngModel)]="sendPerPanel" name="sendPerPanel" />
-          One sheet per panel
         </label>
       </div>
 

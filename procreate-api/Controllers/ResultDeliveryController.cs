@@ -66,6 +66,8 @@ public class ResultDeliveryController : ControllerBase
                 o.Id,
                 label = o.LabTest.Name,
                 department = o.LabTest.Category.Department,
+                categoryName = o.LabTest.Category.Name,
+                panelName = o.PanelName,
                 releasedAt = o.ReleasedAt,
                 o.IsAbnormal,
                 resultKind = o.LabTest.Parameters.Count > 0 ? "parameters" : "narrative"
