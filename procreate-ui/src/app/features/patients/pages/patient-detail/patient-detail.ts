@@ -106,6 +106,27 @@ export interface LabHistoryEntry {
   visitCode: string;
 }
 
+/** One coded diagnosis row in the Advanced SOAP editor. */
+export interface SoapDiagnosis {
+  description: string;
+  icd10: string;
+}
+
+export interface SoapNote {
+  id: number;
+  mode: 'Simple' | 'Advanced';
+  clinic: string;
+  noteDate: string;
+  chiefComplaint: string;
+  historyOfPresentIllness: string;
+  objectiveRemarks: string;
+  assessment: string;
+  plan: string;
+  diagnoses: SoapDiagnosis[];
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface PatientChart {
   patient: ChartPatient;
   allergies: Allergy[];
@@ -113,11 +134,12 @@ export interface PatientChart {
   conditions: Condition[];
   vitals: VitalSigns[];
   documents: ResultDocument[];
+  soapNotes: SoapNote[];
   labHistory: LabHistoryEntry[];
 }
 
 /** Which editor sheet is open, if any. */
-type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' | null;
+type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' | 'soap' | null;
 
 @Component({
   selector: 'app-patient-detail',
@@ -152,6 +174,19 @@ export class PatientDetailComponent implements OnInit {
   allergyDraft: Allergy[] = [];
   medicationDraft: Medication[] = [];
   conditionDraft: Condition[] = [];
+
+  /**
+   * Allergies and Current Medications are hidden for now at the client's
+   * request. Flip this back to true to bring both cards back — the editors and
+   * their API remain in place.
+   */
+  readonly showAllergiesAndMeds = false;
+
+  // --- SOAP note editor ---
+  /** The note being edited, or null when composing a new one. */
+  editingSoapId: number | null = null;
+  soapTab: 'Simple' | 'Advanced' = 'Simple';
+  soapDraft = this.blankSoapDraft();
 
   vitalsDraft = {
     systolicBp: null as number | null,
@@ -448,6 +483,146 @@ export class PatientDetailComponent implements OnInit {
       }));
 
     this.saveList(`patients/${this.patientId}/conditions`, { items });
+  }
+
+  // ----------------------------------------------------------
+  // SOAP notes
+  // ----------------------------------------------------------
+
+  private blankSoapDraft() {
+    return {
+      clinic: '',
+      noteDate: new Date().toISOString().slice(0, 10),
+      chiefComplaint: '',
+      historyOfPresentIllness: '',
+      objectiveRemarks: '',
+      assessment: '',
+      plan: '',
+      diagnoses: [] as SoapDiagnosis[],
+    };
+  }
+
+  /** Opens the editor on a blank note, on the Simple tab. */
+  openSoapNote(): void {
+    this.editingSoapId = null;
+    this.soapTab = 'Simple';
+    this.soapDraft = this.blankSoapDraft();
+    this.openEditor('soap');
+  }
+
+  /** Opens the editor on an existing note, on the tab it was written in. */
+  editSoapNote(note: SoapNote): void {
+    this.editingSoapId = note.id;
+    this.soapTab = note.mode === 'Advanced' ? 'Advanced' : 'Simple';
+    this.soapDraft = {
+      clinic: note.clinic ?? '',
+      noteDate: (note.noteDate ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+      chiefComplaint: note.chiefComplaint ?? '',
+      historyOfPresentIllness: note.historyOfPresentIllness ?? '',
+      objectiveRemarks: note.objectiveRemarks ?? '',
+      assessment: note.assessment ?? '',
+      plan: note.plan ?? '',
+      diagnoses: (note.diagnoses ?? []).map((d) => ({ ...d })),
+    };
+    this.openEditor('soap');
+  }
+
+  setSoapTab(tab: 'Simple' | 'Advanced'): void {
+    this.soapTab = tab;
+  }
+
+  addSoapDiagnosis(): void {
+    this.soapDraft.diagnoses.push({ description: '', icd10: '' });
+  }
+
+  removeSoapDiagnosis(index: number): void {
+    this.soapDraft.diagnoses.splice(index, 1);
+  }
+
+  saveSoapNote(): void {
+    const draft = this.soapDraft;
+
+    // A note needs at least one section filled; an empty note is noise on the chart.
+    const diagnoses = draft.diagnoses
+      .map((d) => ({ description: d.description.trim(), icd10: d.icd10.trim() }))
+      .filter((d) => d.description || d.icd10);
+
+    const hasContent =
+      draft.chiefComplaint.trim() ||
+      draft.historyOfPresentIllness.trim() ||
+      draft.objectiveRemarks.trim() ||
+      draft.assessment.trim() ||
+      draft.plan.trim() ||
+      diagnoses.length > 0;
+
+    if (!hasContent) {
+      this.editorError = 'Write at least one section before saving.';
+      return;
+    }
+
+    const body = {
+      mode: this.soapTab,
+      clinic: draft.clinic.trim(),
+      noteDate: draft.noteDate,
+      chiefComplaint: draft.chiefComplaint.trim(),
+      historyOfPresentIllness: draft.historyOfPresentIllness.trim(),
+      objectiveRemarks: draft.objectiveRemarks.trim(),
+      assessment: draft.assessment.trim(),
+      plan: draft.plan.trim(),
+      diagnoses,
+    };
+
+    this.isSaving = true;
+    this.editorError = '';
+
+    const request$ = this.editingSoapId
+      ? this.apiService.put<SoapNote>(`patients/${this.patientId}/soap-notes/${this.editingSoapId}`, body)
+      : this.apiService.post<SoapNote>(`patients/${this.patientId}/soap-notes`, body);
+
+    request$.subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.closeEditor();
+        this.toast.success(this.editingSoapId ? 'SOAP note updated.' : 'SOAP note saved.');
+        this.editingSoapId = null;
+        this.loadChart();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.isSaving = false;
+        this.editorError = err?.error?.message ?? 'Saving failed. Please try again.';
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  async deleteSoapNote(note: SoapNote): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Delete SOAP note',
+      message: `Delete the note from ${new Date(note.noteDate).toLocaleDateString()}?`,
+      detail: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
+
+    this.apiService.delete<void>(`patients/${this.patientId}/soap-notes/${note.id}`).subscribe({
+      next: () => {
+        this.loadChart();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toast.error('Failed to delete the note. Please try again.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** A short one-line summary for the collapsed note row on the chart. */
+  soapSummary(note: SoapNote): string {
+    const parts = [note.chiefComplaint, note.assessment, note.plan]
+      .map((p) => (p ?? '').trim())
+      .filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'No details recorded';
   }
 
   private saveList(path: string, body: unknown): void {

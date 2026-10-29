@@ -284,8 +284,67 @@
       </div>
     </div>
 
-    <!-- Allergies next: they change what is safe to prescribe. -->
-    <div class="info-card" [class.info-card--critical]="chart.allergies.length > 0">
+    <!-- SOAP consultation notes -->
+    <div class="info-card">
+      <div class="info-card__head">
+        <h3 class="info-card__title">
+          <app-icon name="file-text" [size]="17"></app-icon>
+          SOAP Notes
+        </h3>
+        <button type="button" class="btn btn-sm btn-secondary" (click)="openSoapNote()">
+          <app-icon name="plus" [size]="14"></app-icon>
+          New SOAP Note
+        </button>
+      </div>
+      <div class="info-card__body">
+        <div class="record-list" *ngIf="chart.soapNotes.length > 0; else noSoap">
+          <div class="soap-row" *ngFor="let note of chart.soapNotes">
+            <span class="soap-row__body" (click)="editSoapNote(note)">
+              <span class="soap-row__head">
+                <span class="soap-row__date">
+                  <app-icon name="calendar" [size]="12"></app-icon>
+                  {{ note.noteDate | date: 'MMM d, y' }}
+                </span>
+                <span class="pill pill--info">{{ note.mode }}</span>
+                <span class="soap-row__clinic" *ngIf="note.clinic">{{ note.clinic }}</span>
+              </span>
+              <span class="soap-row__summary">{{ soapSummary(note) }}</span>
+              <span class="soap-row__meta" *ngIf="note.createdBy">Recorded by {{ note.createdBy }}</span>
+            </span>
+            <span class="table-actions">
+              <button
+                type="button"
+                class="table-actions__btn"
+                (click)="editSoapNote(note)"
+                title="Edit note"
+                aria-label="Edit note"
+              >
+                <app-icon name="edit" [size]="16"></app-icon>
+              </button>
+              <button
+                type="button"
+                class="table-actions__btn table-actions__btn--danger"
+                (click)="deleteSoapNote(note)"
+                title="Delete note"
+                aria-label="Delete note"
+              >
+                <app-icon name="trash" [size]="16"></app-icon>
+              </button>
+            </span>
+          </div>
+        </div>
+        <ng-template #noSoap>
+          <p class="text-muted">No SOAP notes recorded</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Allergies next: they change what is safe to prescribe. Hidden for now. -->
+    <div
+      class="info-card"
+      *ngIf="showAllergiesAndMeds"
+      [class.info-card--critical]="chart.allergies.length > 0"
+    >
       <div class="info-card__head">
         <h3 class="info-card__title">
           <app-icon name="alert-triangle" [size]="17"></app-icon>
@@ -313,7 +372,7 @@
       </div>
     </div>
 
-    <div class="info-card">
+    <div class="info-card" *ngIf="showAllergiesAndMeds">
       <div class="info-card__head">
         <h3 class="info-card__title">
           <app-icon name="link" [size]="17"></app-icon>
@@ -1013,6 +1072,180 @@
       <button type="button" class="btn btn-primary" (click)="uploadResult()" [disabled]="isSaving">
         <app-icon name="upload" [size]="16"></app-icon>
         {{ isSaving ? (uploadProgress ? 'Uploading ' + uploadProgress + '...' : 'Uploading...') : 'Upload' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SOAP note editor ==================== -->
+<div class="modal-backdrop" *ngIf="editor === 'soap'" (click)="closeEditor()">
+  <div class="modal-sheet soap-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="file-text" [size]="19"></app-icon>
+          SOAP Note
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ editingSoapId ? 'Editing an existing note.' : 'New consultation note for this patient.' }}
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeEditor()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="editorError">{{ editorError }}</div>
+
+      <!-- Clinic + date, then the Simple/Advanced tabs -->
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="soapClinic">Clinic</label>
+          <input
+            id="soapClinic"
+            type="text"
+            class="form-control"
+            placeholder="No Clinic"
+            [(ngModel)]="soapDraft.clinic"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="soapDate">Date</label>
+          <input id="soapDate" type="date" class="form-control" [(ngModel)]="soapDraft.noteDate" />
+        </div>
+      </div>
+
+      <div class="filter-tabs soap-tabs">
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="soapTab === 'Simple'"
+          (click)="setSoapTab('Simple')"
+        >
+          Simple SOAP
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.active]="soapTab === 'Advanced'"
+          (click)="setSoapTab('Advanced')"
+        >
+          Advanced SOAP
+        </button>
+      </div>
+
+      <!-- Subjective -->
+      <p class="soap-section-label">Subjective</p>
+      <div class="form-group">
+        <label class="form-label" for="soapChief">Chief Complaint</label>
+        <textarea
+          id="soapChief"
+          class="form-control"
+          rows="2"
+          placeholder="Why the patient came in..."
+          [(ngModel)]="soapDraft.chiefComplaint"
+        ></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="soapHpi">History of Present Illness</label>
+        <textarea
+          id="soapHpi"
+          class="form-control"
+          rows="3"
+          placeholder="Onset, duration, associated symptoms..."
+          [(ngModel)]="soapDraft.historyOfPresentIllness"
+        ></textarea>
+      </div>
+
+      <!-- Objective (Advanced only) -->
+      <ng-container *ngIf="soapTab === 'Advanced'">
+        <p class="soap-section-label">Objective</p>
+        <div class="form-group">
+          <label class="form-label" for="soapObjective">Remarks</label>
+          <textarea
+            id="soapObjective"
+            class="form-control"
+            rows="3"
+            placeholder="Examination findings, vitals, lab results..."
+            [(ngModel)]="soapDraft.objectiveRemarks"
+          ></textarea>
+        </div>
+      </ng-container>
+
+      <!-- Assessment -->
+      <p class="soap-section-label">Assessment</p>
+      <div class="form-group">
+        <label class="form-label" for="soapAssessment">Diagnosis</label>
+        <textarea
+          id="soapAssessment"
+          class="form-control"
+          rows="2"
+          placeholder="Working diagnosis / impression..."
+          [(ngModel)]="soapDraft.assessment"
+        ></textarea>
+      </div>
+
+      <ng-container *ngIf="soapTab === 'Advanced'">
+        <div class="editor-row editor-row--pair" *ngFor="let dx of soapDraft.diagnoses; let i = index">
+          <div class="form-group">
+            <label class="form-label" [attr.for]="'soapDxDesc' + i">Coded diagnosis</label>
+            <input
+              [id]="'soapDxDesc' + i"
+              type="text"
+              class="form-control"
+              placeholder="Iron deficiency anemia"
+              [(ngModel)]="dx.description"
+            />
+          </div>
+          <div class="form-group editor-row__narrow">
+            <label class="form-label" [attr.for]="'soapDxIcd' + i">ICD-10</label>
+            <input
+              [id]="'soapDxIcd' + i"
+              type="text"
+              class="form-control"
+              placeholder="D50.9"
+              [(ngModel)]="dx.icd10"
+            />
+          </div>
+          <button
+            type="button"
+            class="table-actions__btn table-actions__btn--danger editor-row__remove"
+            (click)="removeSoapDiagnosis(i)"
+            title="Remove row"
+            aria-label="Remove row"
+          >
+            <app-icon name="trash" [size]="16"></app-icon>
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-sm" (click)="addSoapDiagnosis()">
+          <app-icon name="plus" [size]="14"></app-icon>
+          Add diagnosis (+ ICD-10)
+        </button>
+      </ng-container>
+
+      <!-- Plan -->
+      <p class="soap-section-label">Plan</p>
+      <div class="form-group">
+        <label class="form-label" for="soapPlan">Plan</label>
+        <textarea
+          id="soapPlan"
+          class="form-control"
+          rows="3"
+          placeholder="Treatment, medications, follow-up..."
+          [(ngModel)]="soapDraft.plan"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeEditor()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveSoapNote()" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save SOAP Note' }}
       </button>
     </div>
   </div>

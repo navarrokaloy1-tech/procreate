@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ProCreateApi.Data;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -103,6 +104,13 @@ public class PatientChartController : ControllerBase
             .OrderByDescending(o => o.Id)
             .ToListAsync();
 
+        var soapNotes = (await _db.SoapNotes
+            .Where(s => s.PatientId == patientId)
+            .OrderByDescending(s => s.NoteDate).ThenByDescending(s => s.Id)
+            .ToListAsync())
+            .Select(SoapNotePayload)
+            .ToList();
+
         var labHistory = orders.Select(o => new
         {
             o.Id,
@@ -155,8 +163,120 @@ public class PatientChartController : ControllerBase
             conditions,
             vitals,
             documents,
+            soapNotes,
             labHistory
         });
+    }
+
+    // ----------------------------------------------------------
+    // SOAP consultation notes - one row per note, appended/edited
+    // ----------------------------------------------------------
+
+    [HttpGet("soap-notes")]
+    public async Task<IActionResult> GetSoapNotes(int patientId)
+    {
+        if (!await PatientExists(patientId)) return NotFound(new { message = "Patient not found." });
+
+        var notes = (await _db.SoapNotes
+            .Where(s => s.PatientId == patientId)
+            .OrderByDescending(s => s.NoteDate).ThenByDescending(s => s.Id)
+            .ToListAsync())
+            .Select(SoapNotePayload)
+            .ToList();
+
+        return Ok(new { total = notes.Count, data = notes });
+    }
+
+    [HttpPost("soap-notes")]
+    public async Task<IActionResult> CreateSoapNote(int patientId, [FromBody] SoapNoteInput input)
+    {
+        if (!await PatientExists(patientId)) return NotFound(new { message = "Patient not found." });
+
+        var note = new SoapNote { PatientId = patientId };
+        ApplySoapInput(note, input);
+        note.CreatedBy = User.Identity?.Name ?? string.Empty;
+        note.CreatedAt = DateTime.UtcNow;
+        note.UpdatedAt = note.CreatedAt;
+
+        _db.SoapNotes.Add(note);
+        await _db.SaveChangesAsync();
+        return Ok(SoapNotePayload(note));
+    }
+
+    [HttpPut("soap-notes/{noteId:int}")]
+    public async Task<IActionResult> UpdateSoapNote(int patientId, int noteId, [FromBody] SoapNoteInput input)
+    {
+        var note = await _db.SoapNotes
+            .FirstOrDefaultAsync(s => s.Id == noteId && s.PatientId == patientId);
+        if (note is null) return NotFound(new { message = "SOAP note not found." });
+
+        ApplySoapInput(note, input);
+        note.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok(SoapNotePayload(note));
+    }
+
+    [HttpDelete("soap-notes/{noteId:int}")]
+    public async Task<IActionResult> DeleteSoapNote(int patientId, int noteId)
+    {
+        var note = await _db.SoapNotes
+            .FirstOrDefaultAsync(s => s.Id == noteId && s.PatientId == patientId);
+        if (note is null) return NotFound();
+
+        _db.SoapNotes.Remove(note);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Copies a request onto a note, normalising the mode and coded rows.</summary>
+    private static void ApplySoapInput(SoapNote note, SoapNoteInput input)
+    {
+        note.Mode = input.Mode == "Advanced" ? "Advanced" : "Simple";
+        note.Clinic = input.Clinic?.Trim() ?? string.Empty;
+        note.NoteDate = input.NoteDate ?? DateTime.UtcNow;
+        note.ChiefComplaint = input.ChiefComplaint?.Trim() ?? string.Empty;
+        note.HistoryOfPresentIllness = input.HistoryOfPresentIllness?.Trim() ?? string.Empty;
+        note.ObjectiveRemarks = input.ObjectiveRemarks?.Trim() ?? string.Empty;
+        note.Assessment = input.Assessment?.Trim() ?? string.Empty;
+        note.Plan = input.Plan?.Trim() ?? string.Empty;
+
+        // Keep only rows with something in them, so empty add-rows are dropped.
+        var diagnoses = (input.Diagnoses ?? new List<SoapDiagnosisDto>())
+            .Select(d => new SoapDiagnosisDto(
+                (d.Description ?? string.Empty).Trim(), (d.Icd10 ?? string.Empty).Trim()))
+            .Where(d => d.Description.Length > 0 || d.Icd10.Length > 0)
+            .ToList();
+        note.DiagnosesJson = diagnoses.Count == 0 ? string.Empty : JsonSerializer.Serialize(diagnoses);
+    }
+
+    private static object SoapNotePayload(SoapNote s) => new
+    {
+        s.Id,
+        s.Mode,
+        s.Clinic,
+        s.NoteDate,
+        s.ChiefComplaint,
+        s.HistoryOfPresentIllness,
+        s.ObjectiveRemarks,
+        s.Assessment,
+        s.Plan,
+        diagnoses = ParseDiagnoses(s.DiagnosesJson),
+        s.CreatedBy,
+        s.CreatedAt
+    };
+
+    private static List<SoapDiagnosisDto> ParseDiagnoses(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<SoapDiagnosisDto>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<SoapDiagnosisDto>>(json) ?? new List<SoapDiagnosisDto>();
+        }
+        catch (JsonException)
+        {
+            return new List<SoapDiagnosisDto>();
+        }
     }
 
     // ----------------------------------------------------------
@@ -409,6 +529,18 @@ public record MedicationListRequest(List<MedicationInput>? Items);
 
 public record ConditionInput(string Condition, string? DiagnosedOn, string? Notes);
 public record ConditionListRequest(List<ConditionInput>? Items);
+
+public record SoapDiagnosisDto(string Description, string Icd10);
+public record SoapNoteInput(
+    string? Mode,
+    string? Clinic,
+    DateTime? NoteDate,
+    string? ChiefComplaint,
+    string? HistoryOfPresentIllness,
+    string? ObjectiveRemarks,
+    string? Assessment,
+    string? Plan,
+    List<SoapDiagnosisDto>? Diagnoses);
 
 public record VitalsInput(
     DateTime? RecordedAt,

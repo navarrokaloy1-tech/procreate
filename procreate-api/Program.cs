@@ -199,6 +199,29 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_LabTests_ProductId" ON "LabTests" ("ProductId") WHERE "ProductId" IS NOT NULL""");
         // Parameters moved onto LabTest before this table ever held anything.
         db.Database.ExecuteSqlRaw("""DROP TABLE IF EXISTS "ServiceParameters" """);
+
+        // SOAP notes were added after EnsureCreated first ran for many dev DBs,
+        // so create the table by hand when it is missing.
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS "SoapNotes" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_SoapNotes" PRIMARY KEY AUTOINCREMENT,
+                "PatientId" INTEGER NOT NULL,
+                "Mode" TEXT NOT NULL DEFAULT '',
+                "Clinic" TEXT NOT NULL DEFAULT '',
+                "NoteDate" TEXT NOT NULL,
+                "ChiefComplaint" TEXT NOT NULL DEFAULT '',
+                "HistoryOfPresentIllness" TEXT NOT NULL DEFAULT '',
+                "ObjectiveRemarks" TEXT NOT NULL DEFAULT '',
+                "Assessment" TEXT NOT NULL DEFAULT '',
+                "DiagnosesJson" TEXT NOT NULL DEFAULT '',
+                "Plan" TEXT NOT NULL DEFAULT '',
+                "CreatedBy" TEXT NOT NULL DEFAULT '',
+                "CreatedAt" TEXT NOT NULL,
+                "UpdatedAt" TEXT NOT NULL,
+                CONSTRAINT "FK_SoapNotes_Patients_PatientId" FOREIGN KEY ("PatientId") REFERENCES "Patients" ("Id") ON DELETE CASCADE
+            )
+            """);
+        db.Database.ExecuteSqlRaw("""CREATE INDEX IF NOT EXISTS "IX_SoapNotes_PatientId" ON "SoapNotes" ("PatientId")""");
     }
 
     DataSeeder.SeedSampleData(db);

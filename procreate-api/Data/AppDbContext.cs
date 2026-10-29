@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<PatientAllergy> PatientAllergies => Set<PatientAllergy>();
     public DbSet<PatientMedication> PatientMedications => Set<PatientMedication>();
     public DbSet<PatientCondition> PatientConditions => Set<PatientCondition>();
+    public DbSet<SoapNote> SoapNotes => Set<SoapNote>();
     public DbSet<VitalSignRecord> VitalSignRecords => Set<VitalSignRecord>();
     public DbSet<PatientDocument> PatientDocuments => Set<PatientDocument>();
     public DbSet<InventoryCategory> InventoryCategories => Set<InventoryCategory>();

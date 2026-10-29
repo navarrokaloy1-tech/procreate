@@ -742,6 +742,49 @@ public class PatientMedication
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>
+/// A SOAP (Subjective, Objective, Assessment, Plan) consultation note.
+///
+/// "Simple" captures the four narrative sections; "Advanced" adds an objective
+/// remarks field and a list of coded diagnoses. The coded diagnoses are stored
+/// as a JSON array rather than their own table, so a note is one row and the
+/// Advanced extras do not complicate the schema.
+/// </summary>
+public class SoapNote
+{
+    public int Id { get; set; }
+    public int PatientId { get; set; }
+    public Patient Patient { get; set; } = null!;
+
+    /// <summary>Simple | Advanced — which editor the note was written in.</summary>
+    public string Mode { get; set; } = "Simple";
+
+    /// <summary>Clinic label shown on the note; free text, blank reads as "No Clinic".</summary>
+    public string Clinic { get; set; } = string.Empty;
+
+    /// <summary>The consultation date the note is filed under.</summary>
+    public DateTime NoteDate { get; set; } = DateTime.UtcNow;
+
+    // Subjective
+    public string ChiefComplaint { get; set; } = string.Empty;
+    public string HistoryOfPresentIllness { get; set; } = string.Empty;
+
+    // Objective (Advanced)
+    public string ObjectiveRemarks { get; set; } = string.Empty;
+
+    // Assessment — the free-text diagnosis box, plus optional coded rows.
+    public string Assessment { get; set; } = string.Empty;
+    /// <summary>JSON array of { description, icd10 } — the Advanced coded diagnoses.</summary>
+    public string DiagnosesJson { get; set; } = string.Empty;
+
+    // Plan
+    public string Plan { get; set; } = string.Empty;
+
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>One past or ongoing condition in the patient's medical history.</summary>
 public class PatientCondition
 {
