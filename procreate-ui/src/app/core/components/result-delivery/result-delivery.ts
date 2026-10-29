@@ -35,7 +35,8 @@ interface AvailableResult {
   label: string;
   department: string;
   categoryName: string;
-  panelName: string;
+  /** Every panel this test belongs to — a result groups under each of them. */
+  panelNames: string[];
   releasedAt: string;
   isAbnormal: boolean;
   resultKind: string;
@@ -248,16 +249,45 @@ export class ResultDeliveryComponent implements OnInit, OnChanges {
     this.pickerOpen = !this.pickerOpen;
   }
 
-  /** Released results grouped by the panel they were ordered as, else category. */
+  /**
+   * Released results grouped by the panels they belong to — one group (one main
+   * checkbox) per panel, like the Test Panels screen. A test in several panels
+   * shows under each; a result in no panel falls to its lab category. Panel
+   * groups come first (alphabetical), then any category groups.
+   */
   get labByCategory(): { category: string; results: AvailableResult[] }[] {
-    const order: string[] = [];
-    const map = new Map<string, AvailableResult[]>();
+    const panelMap = new Map<string, AvailableResult[]>();
+    const unpanelled: AvailableResult[] = [];
+
+    const push = (map: Map<string, AvailableResult[]>, key: string, r: AvailableResult) => {
+      const k = key.toUpperCase();
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(r);
+    };
+
     for (const r of this.labResults) {
-      const key = (r.panelName || r.categoryName || r.department || 'Other').toUpperCase();
-      if (!map.has(key)) { map.set(key, []); order.push(key); }
-      map.get(key)!.push(r);
+      if (r.panelNames?.length) {
+        for (const panel of r.panelNames) push(panelMap, panel, r);
+      } else {
+        unpanelled.push(r);
+      }
     }
-    return order.map((category) => ({ category, results: map.get(category)! }));
+
+    const groups = [...panelMap.keys()]
+      .sort()
+      .map((category) => ({ category, results: panelMap.get(category)! }));
+
+    // Leftovers that belong to no panel, grouped by their lab category.
+    const catMap = new Map<string, AvailableResult[]>();
+    const catOrder: string[] = [];
+    for (const r of unpanelled) {
+      const key = (r.categoryName || r.department || 'Other').toUpperCase();
+      if (!catMap.has(key)) { catMap.set(key, []); catOrder.push(key); }
+      catMap.get(key)!.push(r);
+    }
+    for (const category of catOrder) groups.push({ category, results: catMap.get(category)! });
+
+    return groups;
   }
 
   toggleLab(id: number): void {

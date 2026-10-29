@@ -59,20 +59,53 @@ public class ResultDeliveryController : ControllerBase
         var patient = await _db.Patients.FindAsync(patientId);
         if (patient is null) return NotFound(new { message = "Patient not found." });
 
-        var orders = await ReleasedOrdersQuery(patientId)
+        // Which panels each test belongs to, so the picker can group released
+        // results under their panels (a test may sit in several). Membership
+        // comes from the panel definitions, not the order's snapshot, so the
+        // grouping holds even for tests that were ordered individually.
+        var panelsByTest = new Dictionary<int, List<string>>();
+        var panels = await _db.TestPanels
+            .Include(p => p.Items)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+        foreach (var panel in panels)
+            foreach (var item in panel.Items)
+            {
+                if (!panelsByTest.TryGetValue(item.LabTestId, out var names))
+                    panelsByTest[item.LabTestId] = names = new List<string>();
+                if (!names.Contains(panel.Name)) names.Add(panel.Name);
+            }
+
+        var released = await ReleasedOrdersQuery(patientId)
             .OrderByDescending(o => o.ReleasedAt)
             .Select(o => new
             {
                 o.Id,
+                o.LabTestId,
                 label = o.LabTest.Name,
                 department = o.LabTest.Category.Department,
                 categoryName = o.LabTest.Category.Name,
-                panelName = o.PanelName,
                 releasedAt = o.ReleasedAt,
                 o.IsAbnormal,
                 resultKind = o.LabTest.Parameters.Count > 0 ? "parameters" : "narrative"
             })
             .ToListAsync();
+
+        var orders = released
+            .Select(o => new
+            {
+                o.Id,
+                o.label,
+                o.department,
+                o.categoryName,
+                panelNames = panelsByTest.TryGetValue(o.LabTestId, out var pn)
+                    ? pn
+                    : new List<string>(),
+                o.releasedAt,
+                o.IsAbnormal,
+                o.resultKind
+            })
+            .ToList();
 
         var documents = await _db.PatientDocuments
             .Where(d => d.PatientId == patientId)
