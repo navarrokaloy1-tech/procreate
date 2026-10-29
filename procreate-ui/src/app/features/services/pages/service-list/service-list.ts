@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
@@ -78,7 +78,12 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   isModalOpen = false;
   isSaving = false;
   modalError = '';
+  /** Which field failed validation, so its input can be marked red. */
+  invalidField: 'name' | 'category' | 'price' | 'parameters' | null = null;
   editingId: number | null = null;
+
+  /** The scrolling modal body, so an error can bring its banner back into view. */
+  @ViewChild('modalBody') modalBody?: ElementRef<HTMLElement>;
 
   form = this.blankForm();
 
@@ -229,6 +234,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     this.parameters = [];
     this.resetInventoryPicker();
     this.modalError = '';
+    this.invalidField = null;
     this.isModalOpen = true;
   }
 
@@ -249,30 +255,52 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     this.parameters = (service.parameters ?? []).map((p) => ({ ...p }));
     this.resetInventoryPicker();
     this.modalError = '';
+    this.invalidField = null;
     this.isModalOpen = true;
   }
 
   closeModal(): void {
     this.isModalOpen = false;
     this.modalError = '';
+    this.invalidField = null;
     this.isSaving = false;
   }
 
+  /**
+   * Shows a validation error: records which field is at fault (so its input goes
+   * red), sets the banner message, and scrolls the sheet back to the top where
+   * the banner sits — otherwise an error fired from the footer button stays off
+   * screen below the fold.
+   */
+  private failValidation(field: 'name' | 'category' | 'price' | 'parameters', message: string): void {
+    this.invalidField = field;
+    this.modalError = message;
+    this.cdr.markForCheck();
+    this.scrollModalToTop();
+  }
+
+  /** Brings the modal body back to the top, where the error banner is shown. */
+  private scrollModalToTop(): void {
+    setTimeout(() => this.modalBody?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
+
   save(): void {
+    this.invalidField = null;
+
     if (!this.form.name.trim()) {
-      this.modalError = 'Enter a service name.';
+      this.failValidation('name', 'Enter a service name.');
       return;
     }
     if (!this.form.category) {
-      this.modalError = 'Choose a category.';
+      this.failValidation('category', 'Choose a category.');
       return;
     }
     if (this.form.price === null || this.form.price < 0) {
-      this.modalError = 'Enter a fee of zero or more.';
+      this.failValidation('price', 'Enter a fee of zero or more.');
       return;
     }
     if (this.parameters.some((p) => !p.name.trim())) {
-      this.modalError = 'Name every parameter, or remove the blank rows.';
+      this.failValidation('parameters', 'Name every parameter, or remove the blank rows.');
       return;
     }
 
@@ -310,6 +338,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.isSaving = false;
         this.modalError = err?.error?.message ?? 'Saving failed. Please try again.';
+        this.scrollModalToTop();
         this.cdr.markForCheck();
       },
     });

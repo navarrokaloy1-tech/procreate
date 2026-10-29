@@ -1,6 +1,17 @@
 // Hero, cards, tables, pills and the modal sheet come from the shared console
 // pattern layer in styles.scss.
 
+// The category picker is a styled <select> wrapper, not a .form-control, so the
+// shared .is-invalid rule does not reach it — colour its border red here when
+// the field fails validation.
+.select-field.is-invalid select {
+  border-color: var(--danger);
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+  }
+}
+
 .data-table-scroll {
   overflow-x: auto;
 }

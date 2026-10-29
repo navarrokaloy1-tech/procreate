@@ -244,7 +244,7 @@
       </button>
     </div>
 
-    <div class="modal-sheet__body">
+    <div class="modal-sheet__body" #modalBody>
       <div class="alert alert-danger" *ngIf="modalError">{{ modalError }}</div>
 
       <div class="form-row cols-2">
@@ -256,8 +256,10 @@
             id="serviceName"
             type="text"
             class="form-control"
+            [class.is-invalid]="invalidField === 'name'"
             placeholder="e.g. General Consultation"
             [(ngModel)]="form.name"
+            (ngModelChange)="invalidField === 'name' && (invalidField = null)"
           />
         </div>
         <div class="form-group">
@@ -274,8 +276,12 @@
           <label class="form-label" for="serviceCategory">
             Category <span class="required-mark">*</span>
           </label>
-          <span class="select-field select-field--block">
-            <select id="serviceCategory" [(ngModel)]="form.category">
+          <span class="select-field select-field--block" [class.is-invalid]="invalidField === 'category'">
+            <select
+              id="serviceCategory"
+              [(ngModel)]="form.category"
+              (ngModelChange)="invalidField === 'category' && (invalidField = null)"
+            >
               <option value="" disabled>Select category</option>
               <option *ngFor="let category of categories" [value]="category.name">{{ category.name }}</option>
             </select>
@@ -301,8 +307,10 @@
             min="0"
             step="0.01"
             class="form-control"
+            [class.is-invalid]="invalidField === 'price'"
             placeholder="0.00"
             [(ngModel)]="form.price"
+            (ngModelChange)="invalidField === 'price' && (invalidField = null)"
           />
         </div>
         <div class="form-group">
@@ -431,6 +439,7 @@
             <input
               type="text"
               class="form-control"
+              [class.is-invalid]="invalidField === 'parameters' && !param.name.trim()"
               placeholder="e.g. Hemoglobin"
               [(ngModel)]="param.name"
               [name]="'paramName' + i"
