@@ -538,9 +538,24 @@ textarea.form-control {
   &__slots {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 6px;
+    gap: 8px;
+    padding: 12px 10px;
     overflow-y: auto;
+
+    // The week columns are tall, so the day-cell count chips are sized up
+    // here (they stay compact in the dense month grid).
+    .day__count {
+      align-self: stretch;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: var(--border-radius);
+      font-size: var(--font-size-base);
+    }
+
+    .day__count .day__count__num {
+      font-size: var(--font-size-lg);
+      font-weight: 700;
+    }
   }
 
   &__empty { margin: auto 0; text-align: center; color: var(--text-muted); }

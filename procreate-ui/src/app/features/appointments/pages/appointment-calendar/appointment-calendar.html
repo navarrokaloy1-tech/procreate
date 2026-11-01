@@ -132,10 +132,10 @@
         </div>
         <div class="week-view__slots">
           <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
-            {{ day.newPatients }} New
+            <span class="day__count__num">{{ day.newPatients }}</span> New
           </span>
           <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
-            {{ day.followUps }} Follow-up
+            <span class="day__count__num">{{ day.followUps }}</span> Follow-up
           </span>
           <p class="week-view__empty" *ngIf="day.appointments.length === 0">—</p>
         </div>
