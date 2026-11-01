@@ -686,7 +686,17 @@ public class AppointmentBatchTemplate
     /// <summary>Wall-clock "HH:mm", as with <see cref="DoctorSchedule"/> — no timezone conversion wanted.</summary>
     public string StartTime { get; set; } = "09:00";
     public string EndTime { get; set; } = "12:00";
+    /// <summary>Legacy seat count — no longer enforced; blocks are capped by their minute budget.</summary>
     public int Capacity { get; set; } = 5;
+    /// <summary>
+    /// Minutes each service consumes, as a JSON object (service name → minutes),
+    /// e.g. {"General Consultation":10}. Services not listed fall back to
+    /// <see cref="DefaultServiceMinutes"/>. Per block, so a procedure session can
+    /// allot more time to the same service than a consultation one.
+    /// </summary>
+    public string ServiceDurationsJson { get; set; } = "{}";
+    /// <summary>Minutes assumed for a service with no explicit mapping.</summary>
+    public int DefaultServiceMinutes { get; set; } = 15;
     public bool IsActive { get; set; } = true;
 }
 
@@ -702,7 +712,16 @@ public class AppointmentBatch
     public DateTime BatchDate { get; set; }
     public string StartTime { get; set; } = "09:00";
     public string EndTime { get; set; } = "12:00";
+    /// <summary>Legacy seat count — no longer enforced; blocks are capped by their minute budget.</summary>
     public int Capacity { get; set; } = 5;
+    /// <summary>
+    /// Minutes each service consumes in this block, as a JSON object
+    /// (service name → minutes). Services not listed fall back to
+    /// <see cref="DefaultServiceMinutes"/>. See <see cref="AppointmentBatchTemplate"/>.
+    /// </summary>
+    public string ServiceDurationsJson { get; set; } = "{}";
+    /// <summary>Minutes assumed for a service with no explicit mapping.</summary>
+    public int DefaultServiceMinutes { get; set; } = 15;
     /// <summary>Closed blocks keep their patients but accept no new bookings.</summary>
     public bool IsClosed { get; set; }
     /// <summary>Which template it came from, or null when added by hand for one day.</summary>

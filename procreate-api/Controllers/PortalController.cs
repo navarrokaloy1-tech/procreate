@@ -184,12 +184,14 @@ public class PortalController : ControllerBase
             var materialised = existing.Where(b => b.BatchDate == day).ToList();
 
             // A day nobody has opened yet still has whatever its weekday
-            // template would give it, and every seat free.
+            // template would give it, with its whole minute budget free.
             var openSeats = materialised.Count > 0
                 ? materialised
                     .Where(b => !b.IsClosed)
-                    .Sum(b => Math.Max(0, b.Capacity - BatchBooking.Occupants(b).Count()))
-                : templates.Where(t => t.DayOfWeek == (int)day.DayOfWeek).Sum(t => t.Capacity);
+                    .Sum(b => Math.Max(0, BatchBooking.TotalMinutes(b) - BatchBooking.UsedMinutes(b)))
+                : templates.Where(t => t.DayOfWeek == (int)day.DayOfWeek)
+                    .Sum(t => Math.Max(0,
+                        (int)(BatchBooking.ParseTime(t.EndTime) - BatchBooking.ParseTime(t.StartTime)).TotalMinutes));
 
             if (openSeats > 0) days.Add(new { date = day, openSeats });
         }
@@ -236,7 +238,7 @@ public class PortalController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 label = BatchBooking.Label(b),
-                remaining = Math.Max(0, b.Capacity - occupants.Count),
+                remaining = Math.Max(0, BatchBooking.TotalMinutes(b) - occupants.Sum(a => BatchBooking.MinutesFor(b, a.Service))),
                 b.IsClosed,
                 // Shown as taken rather than hidden, so it is clear why a block
                 // they can see is not offered.
@@ -276,7 +278,7 @@ public class PortalController : ControllerBase
             return BadRequest(new { message = "Choose a date from tomorrow onwards." });
 
         // The same rules the front desk books under.
-        var refusal = BatchBooking.Check(batch, patientId.Value);
+        var refusal = BatchBooking.Check(batch, patientId.Value, service);
         if (refusal is not null)
         {
             return refusal.IsConflict

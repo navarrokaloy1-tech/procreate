@@ -23,16 +23,20 @@ export interface Batch {
   startTime: string;
   endTime: string;
   label: string;
-  capacity: number;
   booked: number;
-  remaining: number;
+  totalMinutes: number;
+  usedMinutes: number;
+  remainingMinutes: number;
+  defaultServiceMinutes: number;
+  serviceDurations: Record<string, number>;
   isClosed: boolean;
   slots: BatchSlot[];
 }
 
 interface DayResponse {
   date: string;
-  capacity: number;
+  totalMinutes: number;
+  usedMinutes: number;
   booked: number;
   data: Batch[];
 }
@@ -55,13 +59,23 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   batches: Batch[] = [];
   selectedDate = new Date();
 
-  totalCapacity = 0;
+  totalMinutes = 0;
+  usedMinutes = 0;
   totalBooked = 0;
 
   isLoading = false;
   isSaving = false;
   errorMessage = '';
   noticeMessage = '';
+
+  /**
+   * When on, editing a block's end time shifts every later block down the day
+   * to stay contiguous; off, each block is edited on its own. UI state only.
+   */
+  autoAdjust = true;
+
+  /** Service names to map minutes against, from the active catalogue. */
+  serviceCatalogue: string[] = [];
 
   /** Ids of every block, so each list accepts drops from the others. */
   dropListIds: string[] = [];
@@ -70,12 +84,34 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   isModalOpen = false;
   editingBatch: Batch | null = null;
   modalError = '';
-  form = { startTime: '09:00', endTime: '12:00', capacity: 5, isClosed: false };
+  form: {
+    startTime: string;
+    endTime: string;
+    isClosed: boolean;
+    defaultServiceMinutes: number;
+    durations: Record<string, number>;
+  } = { startTime: '09:00', endTime: '12:00', isClosed: false, defaultServiceMinutes: 15, durations: {} };
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    this.loadServices();
     this.load();
+  }
+
+  /** The active services an admin can assign a per-block duration to. */
+  private loadServices(): void {
+    this.api
+      .get<{ data: { name: string }[] }>('services', { status: 'active', pageSize: 200 })
+      .subscribe({
+        next: (res) => {
+          this.serviceCatalogue = (res.data ?? [])
+            .map((s) => s.name)
+            .filter((n) => !!n);
+          this.cdr.markForCheck();
+        },
+        error: () => this.cdr.markForCheck(),
+      });
   }
 
   // ----------------------------------------------------------
@@ -107,7 +143,8 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   private apply(response: DayResponse): void {
     this.batches = response.data ?? [];
-    this.totalCapacity = response.capacity ?? 0;
+    this.totalMinutes = response.totalMinutes ?? 0;
+    this.usedMinutes = response.usedMinutes ?? 0;
     this.totalBooked = response.booked ?? 0;
     this.dropListIds = this.batches.map(b => this.dropListId(b));
   }
@@ -148,8 +185,19 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     const target = this.batches.find(b => this.dropListId(b) === drop.id);
     if (!target) return false;
     if (drag.dropContainer.id === drop.id) return true;
-    return !target.isClosed && target.remaining > 0;
+    if (target.isClosed) return false;
+
+    // Room is time: the dragged patient's service has to fit the minutes left.
+    const slot = drag.data as BatchSlot | undefined;
+    const need = slot && !this.isReleased(slot.status) ? this.minutesFor(target, slot.service) : 0;
+    return target.remainingMinutes >= need;
   };
+
+  /** Minutes a service takes in a block — its mapping, else the block default. */
+  minutesFor(batch: Batch, service: string): number {
+    const mapped = batch.serviceDurations?.[service];
+    return mapped && mapped > 0 ? mapped : Math.max(0, batch.defaultServiceMinutes);
+  }
 
   onDrop(event: CdkDragDrop<BatchSlot[]>): void {
     if (event.previousContainer === event.container && event.previousIndex === event.currentIndex) {
@@ -180,13 +228,21 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   private renumber(): void {
     for (const batch of this.batches) {
       let seen = 0;
+      let used = 0;
       for (const slot of batch.slots) {
-        slot.position = this.isReleased(slot.status) ? 0 : ++seen;
+        if (this.isReleased(slot.status)) {
+          slot.position = 0;
+        } else {
+          slot.position = ++seen;
+          used += this.minutesFor(batch, slot.service);
+        }
       }
       batch.booked = seen;
-      batch.remaining = Math.max(0, batch.capacity - seen);
+      batch.usedMinutes = used;
+      batch.remainingMinutes = Math.max(0, batch.totalMinutes - used);
     }
     this.totalBooked = this.batches.reduce((sum, b) => sum + b.booked, 0);
+    this.usedMinutes = this.batches.reduce((sum, b) => sum + b.usedMinutes, 0);
   }
 
   private saveArrangement(): void {
@@ -228,8 +284,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.form = {
       startTime: batch.startTime,
       endTime: batch.endTime,
-      capacity: batch.capacity,
       isClosed: batch.isClosed,
+      defaultServiceMinutes: batch.defaultServiceMinutes || 15,
+      durations: { ...(batch.serviceDurations ?? {}) },
     };
     this.modalError = '';
     this.isModalOpen = true;
@@ -240,24 +297,102 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.editingBatch = null;
   }
 
+  /** Catalogue services plus any already mapped on this block, de-duplicated. */
+  get editorServices(): string[] {
+    const set = new Set<string>(this.serviceCatalogue);
+    Object.keys(this.form.durations).forEach(s => set.add(s));
+    return [...set];
+  }
+
+  getDuration(service: string): number | null {
+    const v = this.form.durations[service];
+    return v && v > 0 ? v : null;
+  }
+
+  setDuration(service: string, value: number | string): void {
+    const minutes = Number(value);
+    if (minutes && minutes > 0) this.form.durations[service] = minutes;
+    else delete this.form.durations[service];
+  }
+
   saveBatch(): void {
     if (!this.editingBatch) return;
 
     this.isSaving = true;
     this.modalError = '';
 
+    const editedId = this.editingBatch.id;
+    const endChanged = this.form.endTime !== this.editingBatch.endTime;
+
+    const body = {
+      startTime: this.form.startTime,
+      endTime: this.form.endTime,
+      isClosed: this.form.isClosed,
+      serviceDurations: this.cleanDurations(),
+      defaultServiceMinutes: this.form.defaultServiceMinutes || 15,
+    };
+
+    this.api.put<DayResponse>(`appointment-batches/${editedId}`, body).subscribe({
+      next: response => {
+        this.apply(response);
+
+        // Auto-adjust: having moved this block's end, push the later blocks
+        // down so the day stays back-to-back. Second call, run off the saved day.
+        if (this.autoAdjust && endChanged && this.hasLaterBlocks(editedId)) {
+          this.cascadeFrom(editedId);
+          return;
+        }
+
+        this.isSaving = false;
+        this.closeModal();
+        this.cdr.markForCheck();
+      },
+      error: error => {
+        this.modalError = this.messageFrom(error, 'Could not save this block.');
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private hasLaterBlocks(editedId: number): boolean {
+    const ordered = this.orderedByStart();
+    const idx = ordered.findIndex(b => b.id === editedId);
+    return idx >= 0 && idx < ordered.length - 1;
+  }
+
+  /** Shifts every block after the edited one to run straight on from it. */
+  private cascadeFrom(editedId: number): void {
+    const ordered = this.orderedByStart();
+    const idx = ordered.findIndex(b => b.id === editedId);
+
+    const updates = ordered.map(b => ({ id: b.id, startTime: b.startTime, endTime: b.endTime }));
+
+    let cursor = this.parseHHmm(ordered[idx].endTime);
+    for (let i = idx + 1; i < ordered.length; i++) {
+      const duration = Math.max(0, this.parseHHmm(ordered[i].endTime) - this.parseHHmm(ordered[i].startTime));
+      updates[i] = {
+        id: ordered[i].id,
+        startTime: this.toHHmm(cursor),
+        endTime: this.toHHmm(cursor + duration),
+      };
+      cursor += duration;
+    }
+
     this.api
-      .put<DayResponse>(`appointment-batches/${this.editingBatch.id}`, this.form)
+      .put<DayResponse>('appointment-batches/day', { date: this.apiDate, blocks: updates })
       .subscribe({
         next: response => {
           this.apply(response);
           this.isSaving = false;
           this.closeModal();
+          this.flashNotice('Later blocks shifted to match.');
           this.cdr.markForCheck();
         },
         error: error => {
-          this.modalError = this.messageFrom(error, 'Could not save this block.');
+          this.errorMessage = this.messageFrom(error, 'Saved the block, but could not shift the later ones.');
           this.isSaving = false;
+          this.closeModal();
           this.cdr.markForCheck();
         },
       });
@@ -270,8 +405,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     const body = {
       startTime: batch.startTime,
       endTime: batch.endTime,
-      capacity: batch.capacity,
       isClosed: !batch.isClosed,
+      serviceDurations: batch.serviceDurations ?? {},
+      defaultServiceMinutes: batch.defaultServiceMinutes || 15,
     };
 
     this.api.put<DayResponse>(`appointment-batches/${batch.id}`, body).subscribe({
@@ -286,6 +422,33 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private cleanDurations(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [service, value] of Object.entries(this.form.durations)) {
+      const minutes = Number(value);
+      if (service && minutes > 0) out[service] = minutes;
+    }
+    return out;
+  }
+
+  private orderedByStart(): Batch[] {
+    return [...this.batches].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }
+
+  /** "HH:mm" → minutes past midnight. */
+  private parseHHmm(value: string): number {
+    const [h, m] = (value || '0:0').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+
+  /** Minutes past midnight → "HH:mm", clamped to a single day. */
+  private toHHmm(total: number): string {
+    const clamped = Math.max(0, Math.min(23 * 60 + 59, Math.round(total)));
+    const h = Math.floor(clamped / 60);
+    const m = clamped % 60;
+    return `${`${h}`.padStart(2, '0')}:${`${m}`.padStart(2, '0')}`;
   }
 
   // ----------------------------------------------------------

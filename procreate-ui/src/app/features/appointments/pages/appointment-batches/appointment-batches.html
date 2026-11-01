@@ -55,8 +55,12 @@
       <span class="pill pill--primary" *ngIf="isToday">Today</span>
     </p>
     <p class="batch-bar__count" *ngIf="batches.length > 0">
-      {{ totalBooked }} of {{ totalCapacity }} slots booked
+      {{ usedMinutes }} of {{ totalMinutes }} min booked · {{ totalBooked }} patients
     </p>
+    <label class="batch-bar__toggle" *ngIf="batches.length > 0" title="When on, editing a block's end time shifts the later blocks to match.">
+      <input type="checkbox" [(ngModel)]="autoAdjust" name="autoAdjust" />
+      Auto-adjust later blocks
+    </label>
     <span class="batch-bar__saving" *ngIf="isSaving">
       <app-icon name="save" [size]="14"></app-icon>
       Saving...
@@ -96,13 +100,13 @@
       class="batch"
       *ngFor="let batch of batches; trackBy: trackBatch"
       [class.batch--closed]="batch.isClosed"
-      [class.batch--full]="batch.remaining === 0 && !batch.isClosed"
+      [class.batch--full]="batch.remainingMinutes === 0 && !batch.isClosed"
     >
       <header class="batch__head">
         <div class="batch__title">
           <h3>{{ batch.label }}</h3>
           <span class="batch__meta">
-            {{ batch.booked }} / {{ batch.capacity }} patients
+            {{ batch.usedMinutes }} / {{ batch.totalMinutes }} min &middot; {{ batch.booked }} patients
           </span>
         </div>
 
@@ -110,12 +114,12 @@
           <span class="pill pill--neutral" *ngIf="batch.isClosed">Closed</span>
           <span
             class="pill pill--warning"
-            *ngIf="!batch.isClosed && batch.remaining === 0"
+            *ngIf="!batch.isClosed && batch.remainingMinutes === 0"
           >Full</span>
           <span
             class="pill pill--success"
-            *ngIf="!batch.isClosed && batch.remaining > 0"
-          >{{ batch.remaining }} left</span>
+            *ngIf="!batch.isClosed && batch.remainingMinutes > 0"
+          >{{ batch.remainingMinutes }} min left</span>
 
           <button
             type="button"
@@ -131,7 +135,7 @@
             class="tool-btn"
             (click)="openEdit(batch)"
             aria-label="Edit this block"
-            title="Edit times and capacity"
+            title="Edit times and service durations"
           >
             <app-icon name="edit" [size]="15"></app-icon>
           </button>
@@ -242,18 +246,45 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="capacity">Patients per block</label>
+        <label class="form-label" for="defaultMinutes">Default minutes per patient</label>
         <input
-          id="capacity"
+          id="defaultMinutes"
           type="number"
           min="1"
           class="form-control"
-          [(ngModel)]="form.capacity"
-          name="capacity"
+          [(ngModel)]="form.defaultServiceMinutes"
+          name="defaultServiceMinutes"
         />
         <small class="field-hint">
-          Cannot be set below the {{ editingBatch?.booked }} already booked in.
+          Used for any service without its own time below. The block runs
+          {{ editingBatch?.totalMinutes }} min in total.
         </small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Minutes per service</label>
+        <p class="field-hint duration-hint">
+          Set how long each service takes in this block; booking a patient draws
+          that many minutes down from the block.
+        </p>
+        <div class="duration-table">
+          <div class="duration-row" *ngFor="let service of editorServices">
+            <span class="duration-row__name">{{ service }}</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control duration-row__input"
+              [placeholder]="form.defaultServiceMinutes + ' (default)'"
+              [ngModel]="getDuration(service)"
+              (ngModelChange)="setDuration(service, $event)"
+              [name]="'dur-' + service"
+            />
+            <span class="duration-row__unit">min</span>
+          </div>
+          <p class="field-hint" *ngIf="editorServices.length === 0">
+            No active services to map yet.
+          </p>
+        </div>
       </div>
 
       <label class="check-line">

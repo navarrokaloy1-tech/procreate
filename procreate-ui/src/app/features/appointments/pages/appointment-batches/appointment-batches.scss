@@ -68,6 +68,23 @@
     font-size: var(--font-size-sm);
     color: #1a7a48;
   }
+
+  // Sits after the count (which is pushed right with margin-left:auto).
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+  }
 }
 
 .batch-hint {
@@ -323,6 +340,47 @@
     height: 16px;
     accent-color: var(--primary);
     cursor: pointer;
+  }
+}
+
+// Per-service minute mapping in the edit-block sheet.
+.duration-hint {
+  margin-bottom: 8px;
+}
+
+.duration-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.duration-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__input {
+    flex: 0 0 96px;
+    width: 96px;
+  }
+
+  &__unit {
+    flex: 0 0 auto;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
   }
 }
 

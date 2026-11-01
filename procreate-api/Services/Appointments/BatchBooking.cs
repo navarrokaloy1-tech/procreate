@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ProCreateApi.Data;
 using ProCreateApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,44 @@ public class BatchBooking
             .Where(a => a.Id != excludeAppointmentId && !a.IsArchived)
             .Where(a => !ReleasedStatuses.Contains(a.Status));
 
+    // ----------------------------------------------------------
+    // Minute budget — a block's room is its duration, spent per service
+    // ----------------------------------------------------------
+
+    /// <summary>A block's service→minutes map; empty on anything malformed.</summary>
+    public static Dictionary<string, int> Durations(AppointmentBatch batch)
+    {
+        if (string.IsNullOrWhiteSpace(batch.ServiceDurationsJson)) return new();
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, int>>(batch.ServiceDurationsJson) ?? new();
+        }
+        catch (JsonException)
+        {
+            return new();
+        }
+    }
+
+    /// <summary>Minutes a service takes in this block — its mapping, else the block default.</summary>
+    public static int MinutesFor(AppointmentBatch batch, string service)
+    {
+        var map = Durations(batch);
+        return map.TryGetValue(service, out var minutes) && minutes > 0
+            ? minutes
+            : Math.Max(0, batch.DefaultServiceMinutes);
+    }
+
+    /// <summary>The whole minute budget of a block, from its start and end.</summary>
+    public static int TotalMinutes(AppointmentBatch batch)
+    {
+        var span = ParseTime(batch.EndTime) - ParseTime(batch.StartTime);
+        return span > TimeSpan.Zero ? (int)span.TotalMinutes : 0;
+    }
+
+    /// <summary>Minutes already spent by the occupying appointments.</summary>
+    public static int UsedMinutes(AppointmentBatch batch, int? excludeAppointmentId = null) =>
+        Occupants(batch, excludeAppointmentId).Sum(a => MinutesFor(batch, a.Service));
+
     /// <summary>Loads a block with the appointments already in it.</summary>
     public Task<AppointmentBatch?> FindAsync(int batchId) =>
         _db.AppointmentBatches
@@ -56,7 +95,7 @@ public class BatchBooking
     /// with itself.
     /// </summary>
     public static BatchRefusal? Check(
-        AppointmentBatch batch, int patientId, int? excludeAppointmentId = null)
+        AppointmentBatch batch, int patientId, string service, int? excludeAppointmentId = null)
     {
         var label = Label(batch);
 
@@ -65,12 +104,16 @@ public class BatchBooking
 
         var occupants = Occupants(batch, excludeAppointmentId).ToList();
 
-        if (occupants.Count >= batch.Capacity)
-            return new BatchRefusal(
-                $"The {label} block is full — it takes {batch.Capacity} patients.", true);
-
         if (occupants.Any(a => a.PatientId == patientId))
             return new BatchRefusal($"That patient is already booked into the {label} block.", true);
+
+        // Room is time, not seats: the service has to fit the minutes left.
+        var need = MinutesFor(batch, service);
+        var left = Math.Max(0, TotalMinutes(batch) - occupants.Sum(a => MinutesFor(batch, a.Service)));
+
+        if (need > left)
+            return new BatchRefusal(
+                $"The {label} block has {left} min left — {service} needs {need}.", true);
 
         return null;
     }
@@ -104,6 +147,8 @@ public class BatchBooking
             StartTime = t.StartTime,
             EndTime = t.EndTime,
             Capacity = t.Capacity,
+            ServiceDurationsJson = t.ServiceDurationsJson,
+            DefaultServiceMinutes = t.DefaultServiceMinutes,
             TemplateId = t.Id
         }));
 

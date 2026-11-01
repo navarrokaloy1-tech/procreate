@@ -170,6 +170,8 @@ public static class DataSeeder
             StartTime = t.StartTime,
             EndTime = t.EndTime,
             Capacity = t.Capacity,
+            ServiceDurationsJson = t.ServiceDurationsJson,
+            DefaultServiceMinutes = t.DefaultServiceMinutes,
             TemplateId = t.Id
         }).ToList();
 

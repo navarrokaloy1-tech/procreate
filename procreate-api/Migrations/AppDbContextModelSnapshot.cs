@@ -102,12 +102,19 @@ namespace procreate_api.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
+                    b.Property<int>("DefaultServiceMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<string>("EndTime")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<bool>("IsClosed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ServiceDurationsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("StartTime")
                         .IsRequired()
@@ -138,12 +145,19 @@ namespace procreate_api.Migrations
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("integer");
 
+                    b.Property<int>("DefaultServiceMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<string>("EndTime")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ServiceDurationsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("StartTime")
                         .IsRequired()
@@ -162,8 +176,10 @@ namespace procreate_api.Migrations
                             Id = 1,
                             Capacity = 5,
                             DayOfWeek = 0,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = false,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -171,8 +187,10 @@ namespace procreate_api.Migrations
                             Id = 2,
                             Capacity = 5,
                             DayOfWeek = 0,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = false,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -180,8 +198,10 @@ namespace procreate_api.Migrations
                             Id = 3,
                             Capacity = 5,
                             DayOfWeek = 0,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = false,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -189,8 +209,10 @@ namespace procreate_api.Migrations
                             Id = 4,
                             Capacity = 5,
                             DayOfWeek = 1,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -198,8 +220,10 @@ namespace procreate_api.Migrations
                             Id = 5,
                             Capacity = 5,
                             DayOfWeek = 1,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -207,8 +231,10 @@ namespace procreate_api.Migrations
                             Id = 6,
                             Capacity = 5,
                             DayOfWeek = 1,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -216,8 +242,10 @@ namespace procreate_api.Migrations
                             Id = 7,
                             Capacity = 5,
                             DayOfWeek = 2,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -225,8 +253,10 @@ namespace procreate_api.Migrations
                             Id = 8,
                             Capacity = 5,
                             DayOfWeek = 2,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -234,8 +264,10 @@ namespace procreate_api.Migrations
                             Id = 9,
                             Capacity = 5,
                             DayOfWeek = 2,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -243,8 +275,10 @@ namespace procreate_api.Migrations
                             Id = 10,
                             Capacity = 5,
                             DayOfWeek = 3,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -252,8 +286,10 @@ namespace procreate_api.Migrations
                             Id = 11,
                             Capacity = 5,
                             DayOfWeek = 3,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -261,8 +297,10 @@ namespace procreate_api.Migrations
                             Id = 12,
                             Capacity = 5,
                             DayOfWeek = 3,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -270,8 +308,10 @@ namespace procreate_api.Migrations
                             Id = 13,
                             Capacity = 5,
                             DayOfWeek = 4,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -279,8 +319,10 @@ namespace procreate_api.Migrations
                             Id = 14,
                             Capacity = 5,
                             DayOfWeek = 4,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -288,8 +330,10 @@ namespace procreate_api.Migrations
                             Id = 15,
                             Capacity = 5,
                             DayOfWeek = 4,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -297,8 +341,10 @@ namespace procreate_api.Migrations
                             Id = 16,
                             Capacity = 5,
                             DayOfWeek = 5,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -306,8 +352,10 @@ namespace procreate_api.Migrations
                             Id = 17,
                             Capacity = 5,
                             DayOfWeek = 5,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -315,8 +363,10 @@ namespace procreate_api.Migrations
                             Id = 18,
                             Capacity = 5,
                             DayOfWeek = 5,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         },
                         new
@@ -324,8 +374,10 @@ namespace procreate_api.Migrations
                             Id = 19,
                             Capacity = 5,
                             DayOfWeek = 6,
+                            DefaultServiceMinutes = 15,
                             EndTime = "12:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "09:00"
                         },
                         new
@@ -333,8 +385,10 @@ namespace procreate_api.Migrations
                             Id = 20,
                             Capacity = 5,
                             DayOfWeek = 6,
+                            DefaultServiceMinutes = 15,
                             EndTime = "15:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "12:00"
                         },
                         new
@@ -342,8 +396,10 @@ namespace procreate_api.Migrations
                             Id = 21,
                             Capacity = 5,
                             DayOfWeek = 6,
+                            DefaultServiceMinutes = 15,
                             EndTime = "18:00",
                             IsActive = true,
+                            ServiceDurationsJson = "{}",
                             StartTime = "15:00"
                         });
                 });
@@ -552,7 +608,7 @@ namespace procreate_api.Migrations
                             Bio = "",
                             ConsultationFee = 800m,
                             ContactNumber = "09171112222",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 45, DateTimeKind.Utc).AddTicks(5860),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 723, DateTimeKind.Utc).AddTicks(4303),
                             DoctorCode = "DR-0001",
                             Email = "mlopez@procreate.ai",
                             FirstName = "Maria",
@@ -580,7 +636,7 @@ namespace procreate_api.Migrations
                             Bio = "",
                             ConsultationFee = 700m,
                             ContactNumber = "09173334444",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 47, DateTimeKind.Utc).AddTicks(7303),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 727, DateTimeKind.Utc).AddTicks(2331),
                             DoctorCode = "DR-0002",
                             Email = "rbautista@procreate.ai",
                             FirstName = "Ramon",
@@ -789,21 +845,21 @@ namespace procreate_api.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 248, DateTimeKind.Utc).AddTicks(540),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 895, DateTimeKind.Utc).AddTicks(6753),
                             Description = "Gels, probe covers and paper",
                             Name = "Ultrasound Supplies"
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 248, DateTimeKind.Utc).AddTicks(6864),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 896, DateTimeKind.Utc).AddTicks(535),
                             Description = "Blood collection consumables",
                             Name = "Phlebotomy"
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 248, DateTimeKind.Utc).AddTicks(6881),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 896, DateTimeKind.Utc).AddTicks(621),
                             Description = "Dispensed medicines",
                             Name = "Pharmacy"
                         });
@@ -897,7 +953,7 @@ namespace procreate_api.Migrations
                             BrandName = "Aquasonic",
                             CategoryId = 1,
                             CostPrice = 180m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 250, DateTimeKind.Utc).AddTicks(8716),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 898, DateTimeKind.Utc).AddTicks(5314),
                             CurrentStock = 24,
                             Description = "",
                             Dosage = "",
@@ -911,7 +967,7 @@ namespace procreate_api.Migrations
                             SubUnit = "",
                             SupplierId = 1,
                             UnitOfMeasure = "Bottle",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 250, DateTimeKind.Utc).AddTicks(8723)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 898, DateTimeKind.Utc).AddTicks(5317)
                         },
                         new
                         {
@@ -919,7 +975,7 @@ namespace procreate_api.Migrations
                             BrandName = "Fit One",
                             CategoryId = 1,
                             CostPrice = 5m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2849),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9176),
                             CurrentStock = 139,
                             Description = "",
                             Dosage = "",
@@ -933,7 +989,7 @@ namespace procreate_api.Migrations
                             SubUnit = "",
                             SupplierId = 1,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2860)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9179)
                         },
                         new
                         {
@@ -941,7 +997,7 @@ namespace procreate_api.Migrations
                             BrandName = "Indoplas",
                             CategoryId = 2,
                             CostPrice = 25m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2909),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9202),
                             CurrentStock = 99,
                             Description = "",
                             Dosage = "",
@@ -955,7 +1011,7 @@ namespace procreate_api.Migrations
                             SubUnit = "",
                             SupplierId = 1,
                             UnitOfMeasure = "Pack",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2910)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9203)
                         },
                         new
                         {
@@ -964,7 +1020,7 @@ namespace procreate_api.Migrations
                             CategoryId = 2,
                             ConversionFactor = 100,
                             CostPrice = 850m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2926),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9213),
                             CurrentStock = 6,
                             Description = "",
                             Dosage = "",
@@ -978,7 +1034,7 @@ namespace procreate_api.Migrations
                             SubUnit = "Piece",
                             SupplierId = 1,
                             UnitOfMeasure = "Box",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 254, DateTimeKind.Utc).AddTicks(2927)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 899, DateTimeKind.Utc).AddTicks(9214)
                         },
                         new
                         {
@@ -987,7 +1043,7 @@ namespace procreate_api.Migrations
                             CategoryId = 3,
                             ConversionFactor = 100,
                             CostPrice = 150m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(2154),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(2442),
                             CurrentStock = 0,
                             Description = "",
                             Dosage = "500mg",
@@ -1001,7 +1057,7 @@ namespace procreate_api.Migrations
                             SubUnit = "Tablet",
                             SupplierId = 2,
                             UnitOfMeasure = "Box",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(2160)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(2445)
                         },
                         new
                         {
@@ -1010,7 +1066,7 @@ namespace procreate_api.Migrations
                             CategoryId = 3,
                             ConversionFactor = 50,
                             CostPrice = 140m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4181),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3507),
                             CurrentStock = 0,
                             Description = "",
                             Dosage = "500mg",
@@ -1024,7 +1080,7 @@ namespace procreate_api.Migrations
                             SubUnit = "Capsule",
                             SupplierId = 2,
                             UnitOfMeasure = "Box",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4183)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3509)
                         },
                         new
                         {
@@ -1033,7 +1089,7 @@ namespace procreate_api.Migrations
                             CategoryId = 3,
                             ConversionFactor = 30,
                             CostPrice = 150m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4201),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3661),
                             CurrentStock = 40,
                             Description = "",
                             Dosage = "50mg",
@@ -1047,7 +1103,7 @@ namespace procreate_api.Migrations
                             SubUnit = "Tablet",
                             SupplierId = 2,
                             UnitOfMeasure = "Box",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4202)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3662)
                         },
                         new
                         {
@@ -1056,7 +1112,7 @@ namespace procreate_api.Migrations
                             CategoryId = 3,
                             ConversionFactor = 30,
                             CostPrice = 150m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4215),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3673),
                             CurrentStock = 4,
                             Description = "",
                             Dosage = "50mg",
@@ -1070,14 +1126,14 @@ namespace procreate_api.Migrations
                             SubUnit = "Tablet",
                             SupplierId = 2,
                             UnitOfMeasure = "Box",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4216)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3675)
                         },
                         new
                         {
                             Id = 9,
                             BrandName = "Littmann",
                             CostPrice = 5000m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4373),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3685),
                             CurrentStock = 3,
                             Description = "",
                             Dosage = "",
@@ -1091,14 +1147,14 @@ namespace procreate_api.Migrations
                             SubUnit = "",
                             SupplierId = 1,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4374)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3686)
                         },
                         new
                         {
                             Id = 10,
                             BrandName = "Omron",
                             CostPrice = 3200m,
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4385),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3697),
                             CurrentStock = 2,
                             Description = "",
                             Dosage = "",
@@ -1112,7 +1168,7 @@ namespace procreate_api.Migrations
                             SubUnit = "",
                             SupplierId = 1,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 255, DateTimeKind.Utc).AddTicks(4439)
+                            UpdatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 900, DateTimeKind.Utc).AddTicks(3722)
                         });
                 });
 
@@ -2475,45 +2531,45 @@ namespace procreate_api.Migrations
                         {
                             Id = 1,
                             BatchNumber = "GEL-A10",
-                            ExpiryDate = new DateTime(2027, 1, 17, 0, 0, 0, 0, DateTimeKind.Local),
+                            ExpiryDate = new DateTime(2027, 1, 20, 0, 0, 0, 0, DateTimeKind.Local),
                             ExpiryNoticeStage = 0,
                             InventoryItemId = 1,
                             QuantityReceived = 24,
                             QuantityRemaining = 24,
-                            ReceivedAt = new DateTime(2026, 10, 29, 12, 15, 50, 259, DateTimeKind.Utc).AddTicks(2413)
+                            ReceivedAt = new DateTime(2026, 11, 1, 8, 3, 25, 902, DateTimeKind.Utc).AddTicks(188)
                         },
                         new
                         {
                             Id = 2,
                             BatchNumber = "EDTA-2411",
-                            ExpiryDate = new DateTime(2026, 11, 23, 0, 0, 0, 0, DateTimeKind.Local),
+                            ExpiryDate = new DateTime(2026, 11, 26, 0, 0, 0, 0, DateTimeKind.Local),
                             ExpiryNoticeStage = 0,
                             InventoryItemId = 4,
                             QuantityReceived = 6,
                             QuantityRemaining = 6,
-                            ReceivedAt = new DateTime(2026, 10, 29, 12, 15, 50, 268, DateTimeKind.Utc).AddTicks(4783)
+                            ReceivedAt = new DateTime(2026, 11, 1, 8, 3, 25, 927, DateTimeKind.Utc).AddTicks(8617)
                         },
                         new
                         {
                             Id = 3,
                             BatchNumber = "AML-2402",
-                            ExpiryDate = new DateTime(2026, 10, 14, 0, 0, 0, 0, DateTimeKind.Local),
+                            ExpiryDate = new DateTime(2026, 10, 17, 0, 0, 0, 0, DateTimeKind.Local),
                             ExpiryNoticeStage = 0,
                             InventoryItemId = 7,
                             QuantityReceived = 40,
                             QuantityRemaining = 40,
-                            ReceivedAt = new DateTime(2026, 10, 29, 12, 15, 50, 268, DateTimeKind.Utc).AddTicks(5071)
+                            ReceivedAt = new DateTime(2026, 11, 1, 8, 3, 25, 927, DateTimeKind.Utc).AddTicks(8709)
                         },
                         new
                         {
                             Id = 4,
                             BatchNumber = "LOS-2603",
-                            ExpiryDate = new DateTime(2026, 12, 18, 0, 0, 0, 0, DateTimeKind.Local),
+                            ExpiryDate = new DateTime(2026, 12, 21, 0, 0, 0, 0, DateTimeKind.Local),
                             ExpiryNoticeStage = 0,
                             InventoryItemId = 8,
                             QuantityReceived = 4,
                             QuantityRemaining = 4,
-                            ReceivedAt = new DateTime(2026, 10, 29, 12, 15, 50, 268, DateTimeKind.Utc).AddTicks(5085)
+                            ReceivedAt = new DateTime(2026, 11, 1, 8, 3, 25, 927, DateTimeKind.Utc).AddTicks(8720)
                         });
                 });
 
@@ -2612,7 +2668,7 @@ namespace procreate_api.Migrations
                             Address = "",
                             ContactNumber = "09171230000",
                             ContactPerson = "Ana Villanueva",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 249, DateTimeKind.Utc).AddTicks(2309),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 897, DateTimeKind.Utc).AddTicks(395),
                             Email = "sales@medgrocer.example",
                             IsActive = true,
                             Name = "MedGrocer Supply Co."
@@ -2623,7 +2679,7 @@ namespace procreate_api.Migrations
                             Address = "",
                             ContactNumber = "09281234444",
                             ContactPerson = "Mark Tan",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 250, DateTimeKind.Utc).AddTicks(2459),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 897, DateTimeKind.Utc).AddTicks(8766),
                             Email = "orders@zuellig.example",
                             IsActive = true,
                             Name = "Zuellig Pharma"
@@ -2826,7 +2882,7 @@ namespace procreate_api.Migrations
                         {
                             Id = 1,
                             Code = "APE",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 276, DateTimeKind.Utc).AddTicks(57),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 932, DateTimeKind.Utc).AddTicks(7270),
                             Description = "Routine yearly check-up battery",
                             IsActive = true,
                             Name = "Annual Physical Exam"
@@ -2835,7 +2891,7 @@ namespace procreate_api.Migrations
                         {
                             Id = 2,
                             Code = "PREEMP",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 276, DateTimeKind.Utc).AddTicks(7283),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 933, DateTimeKind.Utc).AddTicks(3101),
                             Description = "Standard pre-employment screening",
                             IsActive = true,
                             Name = "Pre-Employment"
@@ -2844,7 +2900,7 @@ namespace procreate_api.Migrations
                         {
                             Id = 3,
                             Code = "CHEM",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 276, DateTimeKind.Utc).AddTicks(7304),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 933, DateTimeKind.Utc).AddTicks(3117),
                             Description = "Fasting blood sugar, creatinine and uric acid",
                             IsActive = true,
                             Name = "Basic Chemistry"
@@ -2853,7 +2909,7 @@ namespace procreate_api.Migrations
                         {
                             Id = 4,
                             Code = "HEMA",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 50, 276, DateTimeKind.Utc).AddTicks(7311),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 25, 933, DateTimeKind.Utc).AddTicks(3121),
                             Description = "Complete blood count",
                             IsActive = true,
                             Name = "Hematology"
@@ -3183,7 +3239,7 @@ namespace procreate_api.Migrations
                             Id = 1,
                             Address = "",
                             ContactNumber = "",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 46, 688, DateTimeKind.Utc).AddTicks(1421),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 22, 749, DateTimeKind.Utc).AddTicks(8167),
                             Email = "admin@procreate.ai",
                             FirstName = "System",
                             FullName = "System Administrator",
@@ -3191,7 +3247,7 @@ namespace procreate_api.Migrations
                             LastName = "Administrator",
                             MiddleName = "",
                             MustChangePassword = false,
-                            PasswordHash = "$2a$11$UY1UIlkZ0uxbd41fy/jGDedWwLKesRbugsVdsUOuUh5gyxinxjPBe",
+                            PasswordHash = "$2a$11$6mAkhqTBDTgL37NKFCs6/O4zJy4QAi0Bl/7w5fjhtOa/vDIR.mKhG",
                             Role = "Admin",
                             Sex = "",
                             Suffix = "",
@@ -3202,7 +3258,7 @@ namespace procreate_api.Migrations
                             Id = 2,
                             Address = "",
                             ContactNumber = "",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 48, 541, DateTimeKind.Utc).AddTicks(9795),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 24, 256, DateTimeKind.Utc).AddTicks(5428),
                             Email = "cashier@procreate.ai",
                             FirstName = "John",
                             FullName = "John Doe",
@@ -3210,7 +3266,7 @@ namespace procreate_api.Migrations
                             LastName = "Doe",
                             MiddleName = "",
                             MustChangePassword = false,
-                            PasswordHash = "$2a$11$tAkRwYnkKQr/VVhb88zzwergjp2W2YyojZ6hXjXVvozlnnbOToKjK",
+                            PasswordHash = "$2a$11$/u3J4AYPccCYffjQx0Fzpevv8biRUSfb2944F3V/qPU/YgN8y865m",
                             Role = "Cashier",
                             Sex = "",
                             Suffix = "",
@@ -3221,7 +3277,7 @@ namespace procreate_api.Migrations
                             Id = 3,
                             Address = "",
                             ContactNumber = "",
-                            CreatedAt = new DateTime(2026, 10, 29, 12, 15, 49, 368, DateTimeKind.Utc).AddTicks(9763),
+                            CreatedAt = new DateTime(2026, 11, 1, 8, 3, 24, 905, DateTimeKind.Utc).AddTicks(1728),
                             Email = "mlopez@procreate.ai",
                             FirstName = "Maria",
                             FullName = "Dr. Maria Lopez",
@@ -3229,7 +3285,7 @@ namespace procreate_api.Migrations
                             LastName = "Lopez",
                             MiddleName = "",
                             MustChangePassword = false,
-                            PasswordHash = "$2a$11$6Rsy5pQfS.Wx8ro7ONikfuNDHmaI.aAFzqkceDIXvpL/BNcsEiN82",
+                            PasswordHash = "$2a$11$x38rcEi7orQ.0OKKFSaB5OYVAAQVjCedyiBKShzvGQ53m2hOCj.4i",
                             Role = "Doctor",
                             Sex = "",
                             Suffix = "",

@@ -374,7 +374,7 @@
         >
           <option value="">Exact time (not in a block)</option>
           <option *ngFor="let batch of availableBatches" [value]="batch.id">
-            {{ batch.label }} — {{ batch.remaining }} of {{ batch.capacity }} left
+            {{ batch.label }} — {{ batch.remainingMinutes }} of {{ batch.totalMinutes }} min left
           </option>
         </select>
         <small class="field-hint" *ngIf="isLoadingBatches">Checking which blocks have room...</small>

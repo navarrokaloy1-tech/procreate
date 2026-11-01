@@ -222,6 +222,20 @@ using (var scope = app.Services.CreateScope())
             )
             """);
         db.Database.ExecuteSqlRaw("""CREATE INDEX IF NOT EXISTS "IX_SoapNotes_PatientId" ON "SoapNotes" ("PatientId")""");
+
+        // Per-block service durations (minute budget) were added after
+        // EnsureCreated first ran for many dev DBs — add the columns by hand.
+        foreach (var table in new[] { "AppointmentBatches", "AppointmentBatchTemplates" })
+        {
+            var columns = db.Database
+                .SqlQueryRaw<string>($"SELECT name AS Value FROM pragma_table_info('{table}')")
+                .ToList();
+
+            if (!columns.Contains("ServiceDurationsJson"))
+                db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table}\" ADD COLUMN \"ServiceDurationsJson\" TEXT NOT NULL DEFAULT '{{}}'");
+            if (!columns.Contains("DefaultServiceMinutes"))
+                db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table}\" ADD COLUMN \"DefaultServiceMinutes\" INTEGER NOT NULL DEFAULT 15");
+        }
     }
 
     DataSeeder.SeedSampleData(db);

@@ -125,7 +125,11 @@ public class AppointmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AppointmentWriteRequest request)
     {
-        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, null);
+        var service = string.IsNullOrWhiteSpace(request.Service)
+            ? "General Consultation"
+            : request.Service.Trim();
+
+        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, service, null);
         if (batchError is not null) return batchError;
 
         var scheduledAt = ScheduledAtFor(request, batch);
@@ -138,9 +142,7 @@ public class AppointmentsController : ControllerBase
             AppointmentCode = await NextCodeAsync(scheduledAt),
             PatientId = request.PatientId,
             DoctorId = request.DoctorId,
-            Service = string.IsNullOrWhiteSpace(request.Service)
-                ? "General Consultation"
-                : request.Service.Trim(),
+            Service = service,
             ScheduledAt = scheduledAt,
             Type = string.IsNullOrWhiteSpace(request.Type) ? "Scheduled" : request.Type,
             Status = string.IsNullOrWhiteSpace(request.Status) ? "Scheduled" : request.Status,
@@ -163,7 +165,11 @@ public class AppointmentsController : ControllerBase
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment is null) return NotFound();
 
-        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, id);
+        var service = string.IsNullOrWhiteSpace(request.Service)
+            ? appointment.Service
+            : request.Service.Trim();
+
+        var (batch, batchError) = await ResolveBatchAsync(request.BatchId, request.PatientId, service, id);
         if (batchError is not null) return batchError;
 
         var scheduledAt = ScheduledAtFor(request, batch);
@@ -181,9 +187,7 @@ public class AppointmentsController : ControllerBase
 
         appointment.PatientId = request.PatientId;
         appointment.DoctorId = request.DoctorId;
-        appointment.Service = string.IsNullOrWhiteSpace(request.Service)
-            ? appointment.Service
-            : request.Service.Trim();
+        appointment.Service = service;
         appointment.ScheduledAt = scheduledAt;
         appointment.Type = request.Type ?? appointment.Type;
         appointment.Status = request.Status ?? appointment.Status;
@@ -237,7 +241,7 @@ public class AppointmentsController : ControllerBase
     /// booking — it simply keeps its exact time and stays off the board.
     /// </summary>
     private async Task<(AppointmentBatch? Batch, IActionResult? Error)> ResolveBatchAsync(
-        int? batchId, int patientId, int? excludeAppointmentId)
+        int? batchId, int patientId, string service, int? excludeAppointmentId)
     {
         if (batchId is null) return (null, null);
 
@@ -248,7 +252,7 @@ public class AppointmentsController : ControllerBase
 
         // The same check the patient portal books under, so the two cannot
         // drift into disagreeing about what a full block is.
-        var refusal = BatchBooking.Check(batch, patientId, excludeAppointmentId);
+        var refusal = BatchBooking.Check(batch, patientId, service, excludeAppointmentId);
 
         if (refusal is not null)
         {

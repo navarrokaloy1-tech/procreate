@@ -115,7 +115,7 @@
                   [class.booking__day--picked]="selectedDate === day.key"
                   [disabled]="day.openSeats === 0"
                   [attr.aria-label]="(day.date | date: 'EEEE d MMMM') +
-                    (day.openSeats > 0 ? ', ' + day.openSeats + ' slots free' : ', unavailable')"
+                    (day.openSeats > 0 ? ', ' + day.openSeats + ' min free' : ', unavailable')"
                   (click)="selectDay(day)"
                 >
                   {{ day.date | date: 'd' }}
@@ -145,7 +145,7 @@
                   <span class="booking__slot-note" *ngIf="slot.alreadyBooked">Already booked</span>
                   <span class="booking__slot-note" *ngIf="!slot.alreadyBooked && slot.isClosed">Closed</span>
                   <span class="booking__slot-note" *ngIf="!slot.alreadyBooked && !slot.isClosed">
-                    {{ slot.remaining === 0 ? 'Full' : slot.remaining + ' left' }}
+                    {{ slot.remaining === 0 ? 'Full' : slot.remaining + ' min left' }}
                   </span>
                 </button>
 

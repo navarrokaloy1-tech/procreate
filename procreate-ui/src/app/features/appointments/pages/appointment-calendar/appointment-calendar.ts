@@ -37,15 +37,18 @@ interface PatientOption {
   lastName: string;
 }
 
-/** A session block on the chosen date that still has room. */
+/** A session block on the chosen date that still has room (minute budget). */
 interface BatchOption {
   id: number;
   startTime: string;
   endTime: string;
   label: string;
-  capacity: number;
   booked: number;
-  remaining: number;
+  totalMinutes: number;
+  usedMinutes: number;
+  remainingMinutes: number;
+  defaultServiceMinutes: number;
+  serviceDurations: Record<string, number>;
 }
 
 /** One cell in the month grid. */
