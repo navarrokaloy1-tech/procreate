@@ -277,14 +277,14 @@
           change the default.
         </p>
         <div class="duration-table">
-          <div class="duration-row" *ngFor="let service of editorServices">
+          <div class="duration-row" *ngFor="let service of editorServices; trackBy: trackEditorService">
             <span class="duration-row__name">{{ service.name }}</span>
             <input
               type="number"
               min="1"
               class="form-control duration-row__input"
               [class.duration-row__input--override]="getDuration(service.name) !== null"
-              [placeholder]="service.defaultMinutes + ' (default)'"
+              [placeholder]="service.defaultMinutes"
               [disabled]="!isEditingDuration(service.name)"
               [ngModel]="getDuration(service.name)"
               (ngModelChange)="setDuration(service.name, $event)"

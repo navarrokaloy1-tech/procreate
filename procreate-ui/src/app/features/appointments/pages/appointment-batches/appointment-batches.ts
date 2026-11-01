@@ -124,6 +124,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
           this.serviceCatalogue = (res.data ?? [])
             .filter((s) => !!s.name)
             .map((s) => ({ name: s.name, defaultMinutes: s.durationMinutes || 15 }));
+          if (this.isModalOpen) this.editorServices = this.buildEditorServices();
           this.cdr.markForCheck();
         },
         error: () => this.cdr.markForCheck(),
@@ -305,6 +306,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       defaultServiceMinutes: batch.defaultServiceMinutes || 15,
       durations: { ...(batch.serviceDurations ?? {}) },
     };
+    this.editorServices = this.buildEditorServices();
     this.modalError = '';
     this.isModalOpen = true;
   }
@@ -314,8 +316,16 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.editingBatch = null;
   }
 
-  /** Catalogue services plus any override already stored on this block, de-duplicated. */
-  get editorServices(): { name: string; defaultMinutes: number }[] {
+  /**
+   * Rows for the edit modal's duration table. A FIELD, rebuilt when the sheet
+   * opens — not a getter: a getter returning a fresh array each call never lets
+   * the *ngFor settle under zoneless change detection, which froze the page.
+   */
+  editorServices: { name: string; defaultMinutes: number }[] = [];
+
+  trackEditorService = (_: number, s: { name: string }) => s.name;
+
+  private buildEditorServices(): { name: string; defaultMinutes: number }[] {
     const rows = this.serviceCatalogue.map((s) => ({ ...s }));
     const known = new Set(rows.map((s) => s.name));
     for (const name of Object.keys(this.form.durations)) {
