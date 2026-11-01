@@ -146,6 +146,39 @@
     min-width: 0;
   }
 
+  // New vs follow-up tallies shown inside a day cell, replacing time chips.
+  &__counts {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 4px;
+    max-width: 100%;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &--new {
+      color: var(--info);
+      background: var(--info-light);
+    }
+
+    &--follow {
+      color: var(--primary-dark);
+      background: var(--primary-light);
+    }
+  }
+
   // Time chips carry the appointment's status colour on the left edge.
   &__slot {
     display: block;

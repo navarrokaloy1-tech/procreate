@@ -102,16 +102,12 @@
           (dblclick)="openModalForDate(day.date)"
         >
           <span class="day__number">{{ day.date | date: 'd' }}</span>
-          <span class="day__slots">
-            <span
-              *ngFor="let appointment of day.appointments.slice(0, 2)"
-              [class]="'day__slot ' + statusClass(appointment.status)"
-              [class.day__slot--void]="isVoided(appointment)"
-            >
-              {{ appointment.scheduledAt | date: 'shortTime' }}
+          <span class="day__counts" *ngIf="day.appointments.length > 0">
+            <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
+              {{ day.newPatients }} New
             </span>
-            <span class="day__more" *ngIf="day.appointments.length > 2">
-              +{{ day.appointments.length - 2 }} more
+            <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
+              {{ day.followUps }} Follow-up
             </span>
           </span>
         </button>
@@ -135,17 +131,12 @@
           </span>
         </div>
         <div class="week-view__slots">
-          <button
-            type="button"
-            *ngFor="let appointment of day.appointments"
-            [class]="'week-slot ' + statusClass(appointment.status)"
-            [class.week-slot--void]="isVoided(appointment)"
-            (click)="selectDate(day.date); $event.stopPropagation()"
-            [title]="appointment.patientName + ' — ' + appointment.service"
-          >
-            <span class="week-slot__time">{{ appointment.scheduledAt | date: 'shortTime' }}</span>
-            <span class="week-slot__name">{{ appointment.patientName }}</span>
-          </button>
+          <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
+            {{ day.newPatients }} New
+          </span>
+          <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
+            {{ day.followUps }} Follow-up
+          </span>
           <p class="week-view__empty" *ngIf="day.appointments.length === 0">—</p>
         </div>
       </div>

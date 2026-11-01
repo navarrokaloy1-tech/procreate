@@ -54,6 +54,9 @@ interface CalendarDay {
   inMonth: boolean;
   isToday: boolean;
   appointments: Appointment[];
+  /** Day-cell tallies, shown in place of individual appointment chips. */
+  newPatients: number;
+  followUps: number;
 }
 
 @Component({
@@ -272,12 +275,7 @@ export class AppointmentCalendarComponent implements OnInit {
       const row: CalendarDay[] = [];
       for (let day = 0; day < 7; day++) {
         const date = new Date(cursor);
-        row.push({
-          date,
-          inMonth: date.getMonth() === month,
-          isToday: date.getTime() === today.getTime(),
-          appointments: this.appointmentsOn(date),
-        });
+        row.push(this.buildDay(date, date.getMonth() === month, date.getTime() === today.getTime()));
         cursor.setDate(cursor.getDate() + 1);
       }
       weeks.push(row);
@@ -298,13 +296,22 @@ export class AppointmentCalendarComponent implements OnInit {
     this.weekDays = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(sunday);
       date.setDate(sunday.getDate() + i);
-      return {
-        date,
-        inMonth: date.getMonth() === month,
-        isToday: date.getTime() === today.getTime(),
-        appointments: this.appointmentsOn(date),
-      };
+      return this.buildDay(date, date.getMonth() === month, date.getTime() === today.getTime());
     });
+  }
+
+  /** One calendar cell with its appointments and new/follow-up tallies. */
+  private buildDay(date: Date, inMonth: boolean, isToday: boolean): CalendarDay {
+    const appointments = this.appointmentsOn(date);
+    const followUps = appointments.filter((a) => a.type === 'Follow-up').length;
+    return {
+      date,
+      inMonth,
+      isToday,
+      appointments,
+      newPatients: appointments.length - followUps,
+      followUps,
+    };
   }
 
   setView(view: 'month' | 'week' | 'day'): void {
