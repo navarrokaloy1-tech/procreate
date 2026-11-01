@@ -33,9 +33,13 @@
 </section>
 
 <div class="hero-tabs">
-  <a class="hero-tabs__tab" routerLink="/app/appointments">
-    <app-icon name="calendar" [size]="16"></app-icon>
-    Calendar
+  <a class="hero-tabs__tab" routerLink="/app/appointments/consultations" routerLinkActive="active">
+    <app-icon name="stethoscope" [size]="16"></app-icon>
+    Consultations
+  </a>
+  <a class="hero-tabs__tab" routerLink="/app/appointments/procedures" routerLinkActive="active">
+    <app-icon name="scan" [size]="16"></app-icon>
+    Procedures
   </a>
   <a class="hero-tabs__tab active" routerLink="/app/appointments/batches">
     <app-icon name="clock" [size]="16"></app-icon>

@@ -3,8 +3,8 @@
     <div class="page-hero__title-group">
       <span class="page-hero__icon"><app-icon name="calendar" [size]="24"></app-icon></span>
       <div class="page-hero__heading">
-        <h1>Appointments</h1>
-        <p class="page-hero__subtitle">Manage and view patient appointments</p>
+        <h1>{{ pageTitle }}</h1>
+        <p class="page-hero__subtitle">{{ pageSubtitle }}</p>
       </div>
     </div>
     <div class="page-hero__actions">
@@ -29,11 +29,15 @@
 </section>
 
 <div class="hero-tabs">
-  <a class="hero-tabs__tab active" routerLink="/app/appointments">
-    <app-icon name="calendar" [size]="16"></app-icon>
-    Calendar
+  <a class="hero-tabs__tab" routerLink="/app/appointments/consultations" routerLinkActive="active">
+    <app-icon name="stethoscope" [size]="16"></app-icon>
+    Consultations
   </a>
-  <a class="hero-tabs__tab" routerLink="/app/appointments/batches">
+  <a class="hero-tabs__tab" routerLink="/app/appointments/procedures" routerLinkActive="active">
+    <app-icon name="scan" [size]="16"></app-icon>
+    Procedures
+  </a>
+  <a class="hero-tabs__tab" routerLink="/app/appointments/batches" routerLinkActive="active">
     <app-icon name="clock" [size]="16"></app-icon>
     Batches
   </a>
@@ -64,6 +68,21 @@
     </div>
 
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <!-- New vs follow-up totals for the visible week/month (day view is unchanged). -->
+    <div class="calendar-totals" *ngIf="showTotals">
+      <span class="calendar-totals__label">
+        {{ calendarView === 'week' ? 'This week' : 'This month' }}
+      </span>
+      <span class="calendar-totals__stat calendar-totals__stat--new">
+        <span class="calendar-totals__count">{{ viewTotals.newPatient }}</span>
+        New Patient
+      </span>
+      <span class="calendar-totals__stat calendar-totals__stat--follow">
+        <span class="calendar-totals__count">{{ viewTotals.followUp }}</span>
+        Follow-up
+      </span>
+    </div>
 
     <!-- Month grid -->
     <div class="calendar" *ngIf="calendarView === 'month'">
@@ -260,7 +279,7 @@
       <div>
         <h3 class="modal-sheet__title">
           <app-icon name="calendar" [size]="19"></app-icon>
-          New Appointment
+          {{ modalTitle }}
         </h3>
       </div>
       <button type="button" class="modal-sheet__close" (click)="closeModal()" aria-label="Close">
@@ -364,7 +383,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="apptType">Type</label>
+        <label class="form-label" for="apptType">Patient Type</label>
         <select id="apptType" class="form-control" [(ngModel)]="form.type">
           <option *ngFor="let type of typeOptions" [value]="type">{{ type }}</option>
         </select>

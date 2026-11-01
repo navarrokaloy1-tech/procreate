@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
@@ -70,12 +71,28 @@ export class AppointmentCalendarComponent implements OnInit {
     'Completed', 'Pending', 'Cancelled', 'NoShow',
   ];
 
-  readonly serviceOptions = [
+  /** Services booked from the Consultations calendar. */
+  readonly consultationServices = [
     'General Consultation', 'Follow-up Consultation', 'Prenatal Check-up',
-    'Fertility Consultation', 'Ultrasound', 'Laboratory Request',
+    'Fertility Consultation', 'Laboratory Request',
   ];
 
-  readonly typeOptions = ['Scheduled', 'Walk-in', 'Follow-up'];
+  /** Services booked from the Procedures calendar. */
+  readonly procedureServices = ['Ultrasound', 'IUI', 'Procedure'];
+
+  /** Fast membership test that tells a procedure booking from a consultation. */
+  private readonly procedureServiceSet = new Set(this.procedureServices);
+
+  /** Which calendar this page is — set from the route. Drives filtering + labels. */
+  mode: 'consultation' | 'procedure' = 'consultation';
+
+  /** Patient category, reusing the appointment Type field (see save()). */
+  readonly typeOptions = ['New Patient', 'Follow-up'];
+
+  /** The service picker offered in the booking sheet, per calendar. */
+  get serviceOptions(): string[] {
+    return this.mode === 'procedure' ? this.procedureServices : this.consultationServices;
+  }
 
   viewMonth = new Date();
   selectedDate = new Date();
@@ -133,10 +150,20 @@ export class AppointmentCalendarComponent implements OnInit {
     private api: ApiService,
     private cdr: ChangeDetectorRef,
     private confirm: ConfirmService,
-    private toast: ToastService
+    private toast: ToastService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // Consultations and Procedures are the same component on two routes; the
+    // route's `mode` decides which appointments show and which services the
+    // booking sheet offers. Subscribe (not a one-off read) so switching between
+    // the two re-filters even if Angular reuses this component instance.
+    this.route.data.subscribe((data) => {
+      this.mode = data['mode'] === 'procedure' ? 'procedure' : 'consultation';
+      this.rebuildForMode();
+    });
+
     this.patientSearch$
       .pipe(debounceTime(250), distinctUntilChanged())
       .subscribe((term) => this.runPatientSearch(term));
@@ -218,7 +245,7 @@ export class AppointmentCalendarComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          this.archivedCount = res.data.filter((a) => a.isArchived).length;
+          this.archivedCount = res.data.filter((a) => a.isArchived && this.inMode(a)).length;
           this.cdr.markForCheck();
         },
         error: () => this.cdr.markForCheck(),
@@ -307,11 +334,67 @@ export class AppointmentCalendarComponent implements OnInit {
     return this.viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   }
 
+  /** Totals bar shows only in week/month; the day view is unchanged. */
+  get showTotals(): boolean {
+    return this.calendarView !== 'day';
+  }
+
+  /**
+   * New-patient vs follow-up counts for the appointments currently in view —
+   * the whole month in month view, the shown week in week view — honouring the
+   * doctor filter (already applied when loading) and this calendar's mode.
+   * Follow-up is Type === 'Follow-up'; everything else counts as a new patient.
+   */
+  get viewTotals(): { newPatient: number; followUp: number } {
+    let appts: Appointment[];
+    if (this.calendarView === 'week') {
+      appts = this.weekDays.flatMap((d) => d.appointments);
+    } else {
+      const prefix = `${this.viewMonth.getFullYear()}-${`${this.viewMonth.getMonth() + 1}`.padStart(2, '0')}`;
+      appts = this.monthAppointments.filter(
+        (a) => this.inMode(a) && a.scheduledAt.substring(0, 7) === prefix,
+      );
+    }
+
+    const followUp = appts.filter((a) => a.type === 'Follow-up').length;
+    return { newPatient: appts.length - followUp, followUp };
+  }
+
+  /** Hero title/subtitle and booking-sheet title follow the active calendar. */
+  get pageTitle(): string {
+    return this.mode === 'procedure' ? 'Procedures' : 'Consultations';
+  }
+
+  get pageSubtitle(): string {
+    return this.mode === 'procedure'
+      ? 'Schedule ultrasound, IUI and other procedures'
+      : 'Manage and view patient consultations';
+  }
+
+  get modalTitle(): string {
+    return this.mode === 'procedure' ? 'New Procedure' : 'New Appointment';
+  }
+
   private appointmentsOn(date: Date): Appointment[] {
     const key = this.toIsoDate(date);
     return this.monthAppointments
-      .filter((a) => a.scheduledAt.substring(0, 10) === key)
+      .filter((a) => this.inMode(a) && a.scheduledAt.substring(0, 10) === key)
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  }
+
+  /** True when an appointment belongs on this calendar (consultation vs procedure). */
+  private inMode(appointment: Appointment): boolean {
+    const isProcedure = this.procedureServiceSet.has(appointment.service);
+    return this.mode === 'procedure' ? isProcedure : !isProcedure;
+  }
+
+  /** Re-filter the grid/week/day for the active calendar; appointments are already loaded. */
+  private rebuildForMode(): void {
+    this.buildGrid();
+    this.buildWeek();
+    this.dayAppointments = this.appointmentsOn(this.selectedDate);
+    this.loadArchivedCount();
+    this.cdr.markForCheck();
   }
 
   selectDate(date: Date, refreshGrid = true): void {
@@ -456,10 +539,10 @@ export class AppointmentCalendarComponent implements OnInit {
     this.form = {
       patientId: 0,
       doctorId: this.doctors[0]?.id ?? 0,
-      service: 'General Consultation',
+      service: this.serviceOptions[0],
       date: this.toIsoDate(this.selectedDate),
       time: '09:00',
-      type: 'Scheduled',
+      type: 'New Patient',
       chiefComplaint: '',
       notes: '',
       batchId: '',

@@ -138,6 +138,39 @@
   }
 }
 
+// A parent row is a <button>, not an <a> — strip the native chrome so it
+// matches the link rows, and let it lay out the label + caret in one line.
+.nav-link--parent {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  span { flex: 1 1 auto; }
+}
+
+.nav-link__caret {
+  flex: 0 0 auto;
+  color: rgba(240, 235, 225, 0.7);
+  transition: color var(--transition);
+}
+
+.nav-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 2px 14px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(240, 235, 225, 0.22);
+}
+
+.nav-link--child {
+  padding: 0.4rem 0.55rem;
+  font-size: var(--font-size-sm);
+}
+
 // ------------------------------------------------------------
 // Pinned external link, sitting between the nav and the footer
 // ------------------------------------------------------------

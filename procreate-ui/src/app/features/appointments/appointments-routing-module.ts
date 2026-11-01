@@ -4,7 +4,9 @@ import { AppointmentCalendarComponent } from './pages/appointment-calendar/appoi
 import { AppointmentBatchesComponent } from './pages/appointment-batches/appointment-batches';
 
 const routes: Routes = [
-  { path: '', component: AppointmentCalendarComponent },
+  { path: '', redirectTo: 'consultations', pathMatch: 'full' },
+  { path: 'consultations', component: AppointmentCalendarComponent, data: { mode: 'consultation' } },
+  { path: 'procedures', component: AppointmentCalendarComponent, data: { mode: 'procedure' } },
   { path: 'batches', component: AppointmentBatchesComponent },
 ];
 

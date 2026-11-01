@@ -10,15 +10,48 @@
   <nav class="sidebar__nav">
     <div class="nav-section" *ngFor="let section of sections">
       <p class="nav-section__label">{{ section.label }}</p>
-      <a
-        *ngFor="let item of section.items"
-        [routerLink]="item.route"
-        class="nav-link"
-        [class.active]="isActive(item.route)"
-      >
-        <app-icon [name]="item.icon" [size]="18"></app-icon>
-        <span>{{ item.label }}</span>
-      </a>
+      <ng-container *ngFor="let item of section.items">
+        <!-- Plain destination -->
+        <a
+          *ngIf="!item.children"
+          [routerLink]="item.route"
+          class="nav-link"
+          [class.active]="isActive(item.route)"
+        >
+          <app-icon [name]="item.icon" [size]="18"></app-icon>
+          <span>{{ item.label }}</span>
+        </a>
+
+        <!-- Expandable group (e.g. Appointments → Consultations / Procedures) -->
+        <ng-container *ngIf="item.children">
+          <button
+            type="button"
+            class="nav-link nav-link--parent"
+            [class.active]="isActive(item.route)"
+            [attr.aria-expanded]="isExpanded(item)"
+            (click)="toggle(item)"
+          >
+            <app-icon [name]="item.icon" [size]="18"></app-icon>
+            <span>{{ item.label }}</span>
+            <app-icon
+              class="nav-link__caret"
+              [name]="isExpanded(item) ? 'chevron-down' : 'chevron-right'"
+              [size]="15"
+            ></app-icon>
+          </button>
+          <div class="nav-subnav" *ngIf="isExpanded(item)">
+            <a
+              *ngFor="let child of item.children"
+              [routerLink]="child.route"
+              class="nav-link nav-link--child"
+              [class.active]="isActive(child.route)"
+            >
+              <app-icon [name]="child.icon" [size]="16"></app-icon>
+              <span>{{ child.label }}</span>
+            </a>
+          </div>
+        </ng-container>
+      </ng-container>
     </div>
   </nav>
 

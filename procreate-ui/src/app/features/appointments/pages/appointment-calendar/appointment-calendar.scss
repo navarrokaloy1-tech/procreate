@@ -43,6 +43,49 @@
   }
 }
 
+// New-patient vs follow-up tallies above the week/month grids.
+.calendar-totals {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--light);
+
+  &__label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: auto;
+  }
+
+  &__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--white);
+    border: 1px solid var(--border-color);
+  }
+
+  &__count {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+  }
+
+  &__stat--new .calendar-totals__count { color: var(--info); }
+  &__stat--follow .calendar-totals__count { color: var(--primary-dark); }
+}
+
 .calendar {
   padding: 12px 16px 16px;
 

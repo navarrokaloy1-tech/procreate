@@ -7,6 +7,8 @@ interface NavLink {
   label: string;
   route: string;
   icon: string;
+  /** Sub-links revealed when the row is expanded (e.g. Appointments → Consultations / Procedures). */
+  children?: NavLink[];
 }
 
 interface NavSection {
@@ -30,7 +32,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
   sections: NavSection[] = [];
   userName = '';
 
+  /** Parent routes whose sub-links are currently revealed. */
+  private expanded = new Set<string>();
+
   private navigationSub?: Subscription;
+
+  /** The two calendars Appointments opens into — shared by every role's nav. */
+  private static readonly APPOINTMENT_CHILDREN: NavLink[] = [
+    { label: 'Consultations', route: '/app/appointments/consultations', icon: 'stethoscope' },
+    { label: 'Procedures', route: '/app/appointments/procedures', icon: 'scan' },
+  ];
 
   constructor(
     private router: Router,
@@ -42,6 +53,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     const user = this.auth.currentUser;
     this.userName = user?.fullName ?? '';
     this.sections = SidebarComponent.navFor(user);
+    this.syncExpanded();
 
     // isActive() is read from the template, so the highlight only moves when
     // change detection runs. The click that starts a navigation runs it too
@@ -50,7 +62,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
     // this the previous item stays highlighted until the next interaction.
     this.navigationSub = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => this.cdr.markForCheck());
+      .subscribe(() => {
+        this.syncExpanded();
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnDestroy(): void {
@@ -63,7 +78,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
    */
   private static readonly FEATURE_CATALOGUE: FeatureNav[] = [
     { key: 'dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid', section: 'Clinic Operations' },
-    { key: 'appointments', label: 'Appointments', route: '/app/appointments', icon: 'calendar', section: 'Clinic Operations' },
+    { key: 'appointments', label: 'Appointments', route: '/app/appointments', icon: 'calendar', section: 'Clinic Operations', children: SidebarComponent.APPOINTMENT_CHILDREN },
     { key: 'reception-queue', label: 'Reception Queue', route: '/app/reception-queue', icon: 'monitor', section: 'Clinic Operations' },
     { key: 'patients', label: 'Patients', route: '/app/patients', icon: 'patients', section: 'Patient Care' },
     { key: 'laboratory', label: 'Laboratory', route: '/app/lab-results', icon: 'flask', section: 'Patient Care' },
@@ -110,7 +125,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
           label: 'Clinic Operations',
           items: [
             { label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid' },
-            { label: 'Appointments', route: '/app/appointments', icon: 'calendar' }
+            { label: 'Appointments', route: '/app/appointments', icon: 'calendar', children: SidebarComponent.APPOINTMENT_CHILDREN }
           ]
         },
         {
@@ -140,7 +155,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'Clinic Operations',
         items: [
           { label: 'Dashboard', route: '/app/dashboard', icon: 'layout-grid' },
-          { label: 'Appointments', route: '/app/appointments', icon: 'calendar' },
+          { label: 'Appointments', route: '/app/appointments', icon: 'calendar', children: SidebarComponent.APPOINTMENT_CHILDREN },
           { label: 'Reception Queue', route: '/app/reception-queue', icon: 'monitor' }
           // Hidden for admin/staff: overlaps with Consultations. The route and
           // the feature are untouched, and the Cashier role still gets it.
@@ -208,7 +223,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: section,
         items: chosen
           .filter((f) => f.section === section)
-          .map((f) => ({ label: f.label, route: f.route, icon: f.icon })),
+          .map((f) => ({ label: f.label, route: f.route, icon: f.icon, children: f.children })),
       }))
       .filter((s) => s.items.length > 0);
   }
@@ -220,5 +235,27 @@ export class SidebarComponent implements OnInit, OnDestroy {
       fragment: 'ignored',
       matrixParams: 'ignored'
     });
+  }
+
+  /** Whether a parent row's sub-links are currently shown. */
+  isExpanded(item: NavLink): boolean {
+    return this.expanded.has(item.route);
+  }
+
+  /** Clicking a parent row reveals or hides its sub-links. */
+  toggle(item: NavLink): void {
+    if (this.expanded.has(item.route)) this.expanded.delete(item.route);
+    else this.expanded.add(item.route);
+  }
+
+  /** Keeps a parent open whenever one of its children is the active route. */
+  private syncExpanded(): void {
+    for (const section of this.sections) {
+      for (const item of section.items) {
+        if (item.children?.some((child) => this.isActive(child.route))) {
+          this.expanded.add(item.route);
+        }
+      }
+    }
   }
 }
