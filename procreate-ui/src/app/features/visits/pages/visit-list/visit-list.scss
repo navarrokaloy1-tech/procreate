@@ -20,14 +20,14 @@
   outline: none;
 
   &.active {
-    background: #C49A6C;
+    background: var(--primary);
     color: white;
-    border-color: #C49A6C;
+    border-color: var(--primary);
   }
 
   &:hover:not(.active) {
     background: #f0f7ff;
-    color: #C49A6C;
+    color: var(--primary);
   }
 }
 
@@ -43,7 +43,7 @@
     width: 36px;
     height: 36px;
     border: 3px solid #e9ecef;
-    border-top-color: #C49A6C;
+    border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-bottom: 12px;
@@ -99,7 +99,7 @@
 .visit-code {
   font-family: monospace;
   font-weight: 600;
-  color: #C49A6C;
+  color: var(--primary);
 }
 
 .text-center {
@@ -128,7 +128,7 @@
 
   &.badge-primary {
     background: #e8f4ff;
-    color: #C49A6C;
+    color: var(--primary);
   }
 
   &.badge-warning {
@@ -210,14 +210,14 @@
 
   &:hover:not(:disabled):not(.active) {
     background: #f0f7ff;
-    color: #C49A6C;
-    border-color: #C49A6C;
+    color: var(--primary);
+    border-color: var(--primary);
   }
 
   &.active {
-    background: #C49A6C;
+    background: var(--primary);
     color: white;
-    border-color: #C49A6C;
+    border-color: var(--primary);
   }
 
   &:disabled {

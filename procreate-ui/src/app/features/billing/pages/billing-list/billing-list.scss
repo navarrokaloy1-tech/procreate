@@ -76,9 +76,9 @@
   }
 
   &.active {
-    background: #C49A6C;
+    background: var(--primary);
     color: white;
-    border-color: #C49A6C;
+    border-color: var(--primary);
   }
 
   &:disabled {

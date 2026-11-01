@@ -75,11 +75,11 @@ $field-bg: #F4ECDE;
   }
   td {
     padding: 12px;
-    border-bottom: 1px solid #f2ebdf;
+    border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
     vertical-align: middle;
   }
-  tr:hover td { background: rgba(196,154,108,.06); }
+  tr:hover td { background: rgba(5,150,105,.06); }
 }
 
 .mono { font-family: ui-monospace, monospace; font-size: 12.5px; }

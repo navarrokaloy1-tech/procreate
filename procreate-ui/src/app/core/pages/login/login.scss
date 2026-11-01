@@ -132,14 +132,14 @@
     // cue — it can sit back without anything being lost. Raise the alpha if
     // it turns out too pale on a bright screen.
     &::placeholder {
-      color: rgba(185, 145, 110, 0.55);
+      color: rgba(30, 58, 95, 0.5);
       font-style: italic;
     }
 
     &:focus {
       outline: none;
       border-color: var(--brand-green);
-      box-shadow: 0 0 0 3px rgba(95, 110, 80, 0.18);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
     }
   }
 

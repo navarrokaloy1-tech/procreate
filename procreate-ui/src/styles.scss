@@ -16,10 +16,11 @@
 
 // CSS Custom Properties
 :root {
-  --primary: #B9916E;
-  --primary-dark: #5F6E50;
-  --primary-light: #F0EBE1;
-  --secondary: #6c757d;
+  // --- Emerald + Deep Navy (trial scheme) --------------------
+  --primary: #10B981;           // Emerald
+  --primary-dark: #059669;      // Darker emerald (hover/accents)
+  --primary-light: #D1FAE5;     // Light emerald tint
+  --secondary: #1E3A5F;         // Deep Navy
   --success: #28a745;
   --success-light: #d4edda;
   --warning: #ffc107;
@@ -28,18 +29,20 @@
   --danger-light: #f8d7da;
   --info: #17a2b8;
   --info-light: #d1ecf1;
-  --light: #F0EBE1;
-  --dark: #1E1E19;
+  --light: #F1F5F9;             // Cool light gray
+  --dark: #0F1E33;              // Deep navy-black
   --white: #ffffff;
-  --body-bg: #F0EBE1;
+  --body-bg: #F1F5F9;           // Cool light gray
   --card-bg: #ffffff;
-  --border-color: #DDD4C7;
-  --text-primary: #1E1E19;
-  --text-secondary: #5F6E50;
-  --text-muted: #78826D;
-  --sidebar-bg: #5F6E50;
-  --sidebar-text: #F0EBE1;
-  --sidebar-active: #E69696;
+  --border-color: #E2E8F0;      // Cool gray border
+  --text-primary: #16233A;      // Dark navy-gray
+  --text-secondary: #1E3A5F;    // Deep Navy
+  --text-muted: #64748B;        // Slate gray
+  --sidebar-bg: #10B981;        // Emerald (fallback)
+  // Vertical gradient: Emerald fading into a deeper emerald at the foot.
+  --sidebar-gradient: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  --sidebar-text: #ECFDF5;      // Near-white
+  --sidebar-active: #1E3A5F;    // Deep Navy marker (shows on the emerald rail)
   --header-bg: #ffffff;
   --success-green: #1FA971;
   --success-green-dark: #178a5c;
@@ -48,13 +51,13 @@
   // Brand palette, from the clinic identity sheet. Used by the two
   // sign-in screens; the console keeps the espresso scheme above.
   // ----------------------------------------------------------
-  --brand-pink: #E69696;        // Ruddy Pink
-  --brand-pink-dark: #d97f7f;
-  --brand-black: #1E1E19;       // Eerie Black
-  --brand-taupe: #B9916E;       // Light Taupe
-  --brand-green: #5F6E50;       // Axolotl
-  --brand-green-dark: #4d5a41;
-  --brand-alabaster: #F0EBE1;   // Alabaster
+  --brand-pink: #10B981;        // accent → Emerald (was Ruddy Pink)
+  --brand-pink-dark: #059669;
+  --brand-black: #16233A;       // Dark navy-gray (was Eerie Black)
+  --brand-taupe: #10B981;       // → Emerald (was Light Taupe)
+  --brand-green: #1E3A5F;       // → Deep Navy (was Axolotl)
+  --brand-green-dark: #0F1E33;
+  --brand-alabaster: #F1F5F9;   // → Cool light gray (was Alabaster)
 
   // Framing for the clinic photograph behind the patient-facing screens
   // (portal sign-in and self-registration). Both read these, so reframing the
@@ -271,7 +274,7 @@ small {
       transition: background-color var(--transition);
 
       &:hover {
-        background-color: rgba(196, 154, 108, 0.06);
+        background-color: rgba(5, 150, 105, 0.06);
       }
 
       &:last-child {
@@ -471,7 +474,7 @@ small {
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
   }
 
   &:disabled,
@@ -757,7 +760,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.25);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
     }
   }
 
@@ -789,9 +792,9 @@ textarea.form-control {
   display: flex;
   gap: 0;
   padding: 0;
-  background-color: #F1EADF;
+  background-color: var(--light);
   border-radius: var(--border-radius);
-  border: 1px solid #E4D8C6;
+  border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
@@ -812,8 +815,8 @@ textarea.form-control {
   }
 
   &.active {
-    color: var(--brand-black);
-    background-color: #C4A585;
+    color: var(--white);
+    background-color: var(--secondary);
     font-weight: 600;
   }
 
@@ -1458,7 +1461,7 @@ textarea.form-control {
 // ============================================================
 
 :root {
-  --hero-bg: linear-gradient(135deg, #B9916E 0%, #CDAF92 100%);
+  --hero-bg: linear-gradient(135deg, #10B981 0%, #1E3A5F 100%);
   --hero-glow: radial-gradient(circle at 88% 15%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 60%);
   --hero-height: 200px;
   --hero-overlap: 96px;
@@ -1655,8 +1658,8 @@ textarea.form-control {
   margin-top: calc(var(--hero-tab-overlap) * -1);
   // Soft taupe trough: warm enough that the rounded active-tab corners blend
   // into it instead of exposing a near-white sliver.
-  background: #F1EADF;
-  border: 1px solid #E4D8C6;
+  background: var(--light);
+  border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
   // Clip the full-height active tab to the strip's rounded corners.
@@ -1683,8 +1686,8 @@ textarea.form-control {
     &:hover { color: var(--text-primary); }
 
     &.active {
-      background: #C4A585;
-      color: var(--brand-black);
+      background: var(--secondary);
+      color: var(--white);
       font-weight: 600;
     }
   }
@@ -1756,7 +1759,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.18);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
     }
   }
 }
@@ -1779,7 +1782,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.18);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
     }
   }
 

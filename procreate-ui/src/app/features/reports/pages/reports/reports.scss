@@ -34,8 +34,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: #C49A6C;
-    box-shadow: 0 0 0 3px rgba(196, 154, 108, 0.2);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
   }
 }
 

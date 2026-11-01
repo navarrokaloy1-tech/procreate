@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(45, 27, 14, 0.45);
+  background: rgba(15, 30, 50, 0.55);
 }
 
 .delivery {
@@ -560,7 +560,7 @@ $rx-danger: #a71d2a;
 
   &--open &__toggle {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(95, 110, 80, 0.15);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
   }
 
   &__placeholder { color: var(--text-secondary); }

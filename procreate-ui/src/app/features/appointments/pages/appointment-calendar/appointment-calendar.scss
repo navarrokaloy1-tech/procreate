@@ -32,7 +32,7 @@
     font-size: var(--font-size-sm);
     font-weight: 600;
     vertical-align: middle;
-    background: rgba(230, 150, 150, 0.18);
+    background: rgba(5, 150, 105, 0.14);
     color: var(--brand-pink-dark);
   }
 
@@ -222,7 +222,7 @@
 
   &--selected {
     border-color: var(--primary-dark);
-    box-shadow: 0 0 0 2px rgba(196, 154, 108, 0.35);
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35);
   }
 }
 
@@ -375,7 +375,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(45, 27, 14, 0.45);
+  background: rgba(15, 30, 50, 0.55);
 }
 
 .form-row {

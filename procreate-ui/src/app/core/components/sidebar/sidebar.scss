@@ -5,6 +5,7 @@
   flex: 0 0 var(--sidebar-width);
   height: 100vh;
   background-color: var(--sidebar-bg);
+  background-image: var(--sidebar-gradient);
   border-right: 1px solid rgba(240, 235, 225, 0.36);
   overflow: hidden;
 
