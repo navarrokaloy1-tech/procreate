@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { InventoryRoutingModule } from './inventory-routing-module';
 import { InventoryComponent } from './pages/inventory/inventory';
 import { IconComponent } from '../../core/components/icon/icon';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [InventoryComponent],
-  imports: [CommonModule, InventoryRoutingModule, FormsModule, IconComponent],
+  imports: [CommonModule, InventoryRoutingModule, FormsModule, IconComponent, ScrollOnErrorDirective],
 })
 export class InventoryModule {}

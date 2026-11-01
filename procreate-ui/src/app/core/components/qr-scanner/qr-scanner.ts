@@ -14,6 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import jsQR from 'jsqr';
 import { IconComponent } from '../icon/icon';
+import { ScrollOnErrorDirective } from '../../directives/scroll-on-error.directive';
 
 /**
  * Camera QR reader.
@@ -30,7 +31,7 @@ import { IconComponent } from '../icon/icon';
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, ScrollOnErrorDirective],
   templateUrl: './qr-scanner.html',
   styleUrls: ['./qr-scanner.scss'],
 })

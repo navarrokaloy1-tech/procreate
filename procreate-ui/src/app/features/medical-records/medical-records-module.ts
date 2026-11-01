@@ -7,6 +7,7 @@ import { CertificateListComponent } from './pages/certificate-list/certificate-l
 import { IconComponent } from '../../core/components/icon/icon';
 import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
 import { CertificateFormComponent } from '../../core/components/certificate-form/certificate-form';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [CertificateListComponent],
@@ -17,6 +18,7 @@ import { CertificateFormComponent } from '../../core/components/certificate-form
     IconComponent,
     ComboSelectComponent,
     CertificateFormComponent,
+    ScrollOnErrorDirective,
   ],
 })
 export class MedicalRecordsModule {}

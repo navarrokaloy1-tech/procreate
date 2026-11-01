@@ -14,6 +14,7 @@ import * as QRCode from 'qrcode';
 import { ApiService } from '../../services/api';
 import { ToastService } from '../../services/toast';
 import { IconComponent } from '../icon/icon';
+import { ScrollOnErrorDirective } from '../../directives/scroll-on-error.directive';
 
 /** Enough of a patient to address the delivery without another lookup. */
 export interface DeliveryPatient {
@@ -135,7 +136,7 @@ export interface DeliveryPackage {
 @Component({
   selector: 'app-result-delivery',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, ScrollOnErrorDirective],
   templateUrl: './result-delivery.html',
   styleUrl: './result-delivery.scss',
 })

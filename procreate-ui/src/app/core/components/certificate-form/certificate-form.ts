@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiService } from '../../services/api';
 import { IconComponent } from '../icon/icon';
+import { ScrollOnErrorDirective } from '../../directives/scroll-on-error.directive';
 import { ComboOption, ComboSelectComponent } from '../combo-select/combo-select';
 
 interface DoctorOption {
@@ -47,7 +48,7 @@ export interface CertificateRecipient {
 @Component({
   selector: 'app-certificate-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, ComboSelectComponent],
+  imports: [CommonModule, FormsModule, IconComponent, ComboSelectComponent, ScrollOnErrorDirective],
   templateUrl: './certificate-form.html',
   styleUrl: './certificate-form.scss',
 })

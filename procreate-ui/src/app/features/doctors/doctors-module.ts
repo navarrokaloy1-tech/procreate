@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { DoctorsRoutingModule } from './doctors-routing-module';
 import { DoctorListComponent } from './pages/doctor-list/doctor-list';
 import { IconComponent } from '../../core/components/icon/icon';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [DoctorListComponent],
-  imports: [CommonModule, DoctorsRoutingModule, FormsModule, IconComponent],
+  imports: [CommonModule, DoctorsRoutingModule, FormsModule, IconComponent, ScrollOnErrorDirective],
 })
 export class DoctorsModule {}

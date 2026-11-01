@@ -11,6 +11,7 @@ import { SsoCallbackComponent } from './pages/sso-callback/sso-callback';
 import { IconComponent } from './components/icon/icon';
 import { ToastComponent } from './components/toast/toast';
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog';
+import { ScrollOnErrorDirective } from './directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dial
     HttpClientModule,
     IconComponent,
     ToastComponent,
-    ConfirmDialogComponent
+    ConfirmDialogComponent,
+    ScrollOnErrorDirective
   ],
   exports: [
     LayoutComponent,

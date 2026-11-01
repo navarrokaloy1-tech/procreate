@@ -6,6 +6,7 @@ import { PatientPortalRoutingModule } from './patient-portal-routing-module';
 import { PortalLoginComponent } from './pages/portal-login/portal-login';
 import { PortalHomeComponent } from './pages/portal-home/portal-home';
 import { IconComponent } from '../../core/components/icon/icon';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [PortalLoginComponent, PortalHomeComponent],
@@ -15,6 +16,7 @@ import { IconComponent } from '../../core/components/icon/icon';
     ReactiveFormsModule,
     FormsModule,
     IconComponent,
+    ScrollOnErrorDirective,
   ],
 })
 export class PatientPortalModule {}

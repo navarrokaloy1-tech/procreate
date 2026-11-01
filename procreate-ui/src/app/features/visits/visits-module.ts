@@ -8,6 +8,7 @@ import { VisitForm } from './pages/visit-form/visit-form';
 import { VisitDetail } from './pages/visit-detail/visit-detail';
 import { IconComponent } from '../../core/components/icon/icon';
 import { QrScannerComponent } from '../../core/components/qr-scanner/qr-scanner';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   // VisitForm is standalone (reused by the Cashier Desk), so it is imported
@@ -21,6 +22,7 @@ import { QrScannerComponent } from '../../core/components/qr-scanner/qr-scanner'
     IconComponent,
     QrScannerComponent,
     VisitForm,
+    ScrollOnErrorDirective,
   ],
 })
 export class VisitsModule {}

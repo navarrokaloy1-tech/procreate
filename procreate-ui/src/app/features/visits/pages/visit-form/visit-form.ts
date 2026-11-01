@@ -7,6 +7,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
 import { ToastService } from '../../../../core/services/toast';
 import { IconComponent } from '../../../../core/components/icon/icon';
+import { ScrollOnErrorDirective } from '../../../../core/directives/scroll-on-error.directive';
 import { QrScannerComponent } from '../../../../core/components/qr-scanner/qr-scanner';
 
 export interface TestItem {
@@ -52,7 +53,7 @@ interface BatchEntry {
 @Component({
   selector: 'app-visit-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, IconComponent, QrScannerComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, IconComponent, QrScannerComponent, ScrollOnErrorDirective],
   templateUrl: './visit-form.html',
   styleUrl: './visit-form.scss',
 })

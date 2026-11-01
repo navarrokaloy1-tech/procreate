@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
 import { IconComponent } from '../icon/icon';
+import { ScrollOnErrorDirective } from '../../directives/scroll-on-error.directive';
 
 interface TestItem {
   id: number;
@@ -40,7 +41,7 @@ interface PanelOption {
 @Component({
   selector: 'app-test-order-sheet',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, ScrollOnErrorDirective],
   templateUrl: './test-order-sheet.html',
   styleUrl: './test-order-sheet.scss',
 })

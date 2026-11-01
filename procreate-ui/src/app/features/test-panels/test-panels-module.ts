@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { TestPanelsRoutingModule } from './test-panels-routing-module';
 import { TestPanelsComponent } from './pages/test-panels/test-panels';
 import { IconComponent } from '../../core/components/icon/icon';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [TestPanelsComponent],
-  imports: [CommonModule, TestPanelsRoutingModule, FormsModule, IconComponent],
+  imports: [CommonModule, TestPanelsRoutingModule, FormsModule, IconComponent, ScrollOnErrorDirective],
 })
 export class TestPanelsModule {}

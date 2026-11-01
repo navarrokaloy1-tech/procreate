@@ -7,6 +7,7 @@ import { PublicRegistrationRoutingModule } from './public-registration-routing-m
 import { PatientSignup } from './pages/patient-signup/patient-signup';
 import { IconComponent } from '../../core/components/icon/icon';
 import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [PatientSignup],
@@ -17,6 +18,7 @@ import { ComboSelectComponent } from '../../core/components/combo-select/combo-s
     PublicRegistrationRoutingModule,
     IconComponent,
     ComboSelectComponent,
+    ScrollOnErrorDirective,
   ],
 })
 export class PublicRegistrationModule {}

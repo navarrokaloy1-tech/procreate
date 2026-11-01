@@ -11,6 +11,7 @@ import { ComboSelectComponent } from '../../core/components/combo-select/combo-s
 import { CertificateFormComponent } from '../../core/components/certificate-form/certificate-form';
 import { ResultDeliveryComponent } from '../../core/components/result-delivery/result-delivery';
 import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/test-order-sheet';
+import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
   declarations: [PatientListComponent, PatientFormComponent, PatientDetailComponent],
@@ -24,6 +25,7 @@ import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/
     CertificateFormComponent,
     ResultDeliveryComponent,
     TestOrderSheetComponent,
+    ScrollOnErrorDirective,
   ],
 })
 export class PatientsModule {}

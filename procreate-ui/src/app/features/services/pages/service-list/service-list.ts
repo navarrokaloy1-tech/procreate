@@ -265,37 +265,13 @@ export class ServiceListComponent implements OnInit, OnDestroy {
 
   /**
    * Shows a validation error: records which field is at fault (so its input goes
-   * red), sets the banner message, and scrolls the sheet back to the top where
-   * the banner sits — otherwise an error fired from the footer button stays off
-   * screen below the fold.
+   * red) and sets the banner message. Scrolling the banner back into view is
+   * handled app-wide by ScrollOnErrorDirective on the .alert-danger element.
    */
   private failValidation(field: 'name' | 'category' | 'price' | 'parameters', message: string): void {
     this.invalidField = field;
     this.modalError = message;
-    // Render synchronously so the banner is in the DOM before we scroll to it —
-    // in zoneless mode a markForCheck()'d pass may not have flushed by the time
-    // the deferred scroll runs.
-    this.cdr.detectChanges();
-    this.scrollModalToTop();
-  }
-
-  /**
-   * Brings the error banner back into view after a failed save.
-   *
-   * Deferred a tick so the banner is in the DOM, then scrolled to directly:
-   * `scrollIntoView` walks up to whichever ancestor actually scrolls, so it
-   * works whether that is the sheet body, the sheet, or the backdrop — a plain
-   * `scrollTo` on a guessed element silently did nothing when the guess (or the
-   * `@ViewChild` reference) was wrong.
-   */
-  private scrollModalToTop(): void {
-    setTimeout(() => {
-      const body = document.querySelector('.modal-sheet__body') as HTMLElement | null;
-      body?.scrollTo({ top: 0, behavior: 'smooth' });
-      document
-        .querySelector('.modal-sheet .alert-danger')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
+    this.cdr.markForCheck();
   }
 
   save(): void {
@@ -352,8 +328,8 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.isSaving = false;
         this.modalError = err?.error?.message ?? 'Saving failed. Please try again.';
-        this.cdr.detectChanges();
-        this.scrollModalToTop();
+        // ScrollOnErrorDirective on the banner brings it back into view.
+        this.cdr.markForCheck();
       },
     });
   }
