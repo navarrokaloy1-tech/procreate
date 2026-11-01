@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
@@ -81,9 +81,6 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   /** Which field failed validation, so its input can be marked red. */
   invalidField: 'name' | 'category' | 'price' | 'parameters' | null = null;
   editingId: number | null = null;
-
-  /** The scrolling modal body, so an error can bring its banner back into view. */
-  @ViewChild('modalBody') modalBody?: ElementRef<HTMLElement>;
 
   form = this.blankForm();
 
@@ -275,13 +272,30 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   private failValidation(field: 'name' | 'category' | 'price' | 'parameters', message: string): void {
     this.invalidField = field;
     this.modalError = message;
-    this.cdr.markForCheck();
+    // Render synchronously so the banner is in the DOM before we scroll to it —
+    // in zoneless mode a markForCheck()'d pass may not have flushed by the time
+    // the deferred scroll runs.
+    this.cdr.detectChanges();
     this.scrollModalToTop();
   }
 
-  /** Brings the modal body back to the top, where the error banner is shown. */
+  /**
+   * Brings the error banner back into view after a failed save.
+   *
+   * Deferred a tick so the banner is in the DOM, then scrolled to directly:
+   * `scrollIntoView` walks up to whichever ancestor actually scrolls, so it
+   * works whether that is the sheet body, the sheet, or the backdrop — a plain
+   * `scrollTo` on a guessed element silently did nothing when the guess (or the
+   * `@ViewChild` reference) was wrong.
+   */
   private scrollModalToTop(): void {
-    setTimeout(() => this.modalBody?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' }));
+    setTimeout(() => {
+      const body = document.querySelector('.modal-sheet__body') as HTMLElement | null;
+      body?.scrollTo({ top: 0, behavior: 'smooth' });
+      document
+        .querySelector('.modal-sheet .alert-danger')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   save(): void {
@@ -338,8 +352,8 @@ export class ServiceListComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.isSaving = false;
         this.modalError = err?.error?.message ?? 'Saving failed. Please try again.';
+        this.cdr.detectChanges();
         this.scrollModalToTop();
-        this.cdr.markForCheck();
       },
     });
   }
