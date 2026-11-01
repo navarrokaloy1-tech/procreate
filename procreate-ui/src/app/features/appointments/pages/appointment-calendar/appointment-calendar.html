@@ -164,8 +164,21 @@
           <span class="day-row__name">{{ appointment.patientName }}</span>
           <span class="day-row__meta">{{ appointment.service }} · {{ appointment.doctorName }}</span>
         </span>
-        <span class="pill" [class]="'pill ' + statusClass(appointment.status)">
+        <span class="pill day-row__pill" [class]="'pill day-row__pill ' + statusClass(appointment.status)">
           {{ statusLabel(appointment.status) }}
+        </span>
+        <span class="select-field select-field--sm day-row__status">
+          <select
+            [ngModel]="appointment.status"
+            (ngModelChange)="changeStatus(appointment, $event)"
+            [name]="'day-status-' + appointment.id"
+            [attr.aria-label]="'Status for ' + appointment.appointmentCode"
+          >
+            <option *ngFor="let status of statuses" [value]="status">
+              {{ statusLabel(status) }}
+            </option>
+          </select>
+          <span class="select-field__caret"><app-icon name="chevron-down" [size]="13"></app-icon></span>
         </span>
       </article>
     </div>

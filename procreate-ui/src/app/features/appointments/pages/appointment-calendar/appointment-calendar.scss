@@ -632,4 +632,13 @@ textarea.form-control {
 
   &__name { font-weight: 600; color: var(--text-primary); }
   &__meta { font-size: var(--font-size-sm); color: var(--text-secondary); }
+
+  &__pill { flex: 0 0 auto; }
+  &__status { flex: 0 0 auto; min-width: 150px; }
+
+  // On tight widths the coloured pill is redundant with the dropdown.
+  @media (max-width: 640px) {
+    &__pill { display: none; }
+    &__status { min-width: 0; }
+  }
 }
