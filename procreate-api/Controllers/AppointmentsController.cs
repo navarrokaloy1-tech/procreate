@@ -252,7 +252,8 @@ public class AppointmentsController : ControllerBase
 
         // The same check the patient portal books under, so the two cannot
         // drift into disagreeing about what a full block is.
-        var refusal = BatchBooking.Check(batch, patientId, service, excludeAppointmentId);
+        var serviceDefaults = await _booking.ServiceDefaultsAsync();
+        var refusal = BatchBooking.Check(batch, patientId, service, serviceDefaults, excludeAppointmentId);
 
         if (refusal is not null)
         {

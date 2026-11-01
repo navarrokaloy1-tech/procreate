@@ -121,6 +121,8 @@ public class AppointmentBatchesController : ControllerBase
             .Where(a => a.BatchId != null && batches.Select(b => b.Id).Contains(a.BatchId!.Value))
             .ToListAsync();
 
+        var serviceDefaults = await ServiceDefaultsAsync();
+
         // Every appointment currently in the day must appear exactly once in
         // the request. A client working from a stale board would otherwise
         // silently drop whoever was booked in the meantime.
@@ -151,7 +153,7 @@ public class AppointmentBatchesController : ControllerBase
             var usedMinutes = group.AppointmentIds
                 .Select(id => appointments.First(a => a.Id == id))
                 .Where(a => !ReleasedStatuses.Contains(a.Status))
-                .Sum(a => BatchBooking.MinutesFor(batch, a.Service));
+                .Sum(a => BatchBooking.MinutesFor(batch, a.Service, serviceDefaults));
 
             var totalMinutes = BatchBooking.TotalMinutes(batch);
 
@@ -214,7 +216,7 @@ public class AppointmentBatchesController : ControllerBase
         ApplyDurations(batch, request);
 
         // A block cannot be shortened below the time its patients already need.
-        var used = BatchBooking.UsedMinutes(batch);
+        var used = BatchBooking.UsedMinutes(batch, await ServiceDefaultsAsync());
         var total = BatchBooking.TotalMinutes(batch);
         if (used > total)
             return Conflict(new
@@ -258,6 +260,8 @@ public class AppointmentBatchesController : ControllerBase
         if (starts.Count != starts.Distinct().Count())
             return BadRequest(new { message = "Two blocks cannot start at the same time." });
 
+        var serviceDefaults = await ServiceDefaultsAsync();
+
         foreach (var row in request.Blocks)
         {
             var batch = batches.FirstOrDefault(b => b.Id == row.Id);
@@ -267,7 +271,7 @@ public class AppointmentBatchesController : ControllerBase
             batch.StartTime = row.StartTime;
             batch.EndTime = row.EndTime;
 
-            if (BatchBooking.UsedMinutes(batch) > BatchBooking.TotalMinutes(batch))
+            if (BatchBooking.UsedMinutes(batch, serviceDefaults) > BatchBooking.TotalMinutes(batch))
                 return Conflict(new
                 {
                     message = $"The {Display(row.StartTime)}–{Display(row.EndTime)} block is too short "
@@ -437,6 +441,8 @@ public class AppointmentBatchesController : ControllerBase
 
     private async Task<List<BatchDto>> LoadDayAsync(DateTime day)
     {
+        var serviceDefaults = await ServiceDefaultsAsync();
+
         var batches = await _db.AppointmentBatches
             .Where(b => b.BatchDate == day)
             .OrderBy(b => b.StartTime)
@@ -479,7 +485,7 @@ public class AppointmentBatchesController : ControllerBase
             var totalMinutes = BatchBooking.TotalMinutes(b);
             var usedMinutes = slots
                 .Where(s => !ReleasedStatuses.Contains(s.Status))
-                .Sum(s => BatchBooking.MinutesFor(b, s.Service));
+                .Sum(s => BatchBooking.MinutesFor(b, s.Service, serviceDefaults));
 
             return new BatchDto(
                 b.Id, b.BatchDate, b.StartTime, b.EndTime,
@@ -487,6 +493,19 @@ public class AppointmentBatchesController : ControllerBase
                 booked, totalMinutes, usedMinutes, Math.Max(0, totalMinutes - usedMinutes),
                 b.DefaultServiceMinutes, BatchBooking.Durations(b), b.IsClosed, slots);
         }).ToList();
+    }
+
+    /// <summary>Clinic-wide default minutes per service name, from the catalogue.</summary>
+    private async Task<Dictionary<string, int>> ServiceDefaultsAsync()
+    {
+        var rows = await _db.Products.AsNoTracking()
+            .Select(p => new { p.Name, p.DurationMinutes })
+            .ToListAsync();
+
+        var map = new Dictionary<string, int>();
+        foreach (var row in rows)
+            if (!string.IsNullOrWhiteSpace(row.Name)) map[row.Name] = row.DurationMinutes;
+        return map;
     }
 
     private BadRequestObjectResult? ValidateWindow(string start, string end)

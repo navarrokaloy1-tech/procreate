@@ -29,21 +29,35 @@
 </section>
 
 <div class="hero-tabs">
-  <a class="hero-tabs__tab" routerLink="/app/appointments/consultations" routerLinkActive="active">
+  <!-- Only this calendar's own tab plus its Batches — Consultations and
+       Procedures are reached from the sidebar, not from each other. -->
+  <a
+    *ngIf="mode === 'consultation'"
+    class="hero-tabs__tab active"
+    routerLink="/app/appointments/consultations"
+  >
     <app-icon name="stethoscope" [size]="16"></app-icon>
     Consultations
   </a>
-  <a class="hero-tabs__tab" routerLink="/app/appointments/procedures" routerLinkActive="active">
+  <a
+    *ngIf="mode === 'procedure'"
+    class="hero-tabs__tab active"
+    routerLink="/app/appointments/procedures"
+  >
     <app-icon name="scan" [size]="16"></app-icon>
     Procedures
   </a>
-  <a class="hero-tabs__tab" routerLink="/app/appointments/batches" routerLinkActive="active">
+  <a
+    class="hero-tabs__tab"
+    routerLink="/app/appointments/batches"
+    [queryParams]="{ mode: mode }"
+  >
     <app-icon name="clock" [size]="16"></app-icon>
     Batches
   </a>
 </div>
 
-<div class="appointments-grid">
+<div class="appointments-grid" [class.appointments-grid--single]="calendarView !== 'day'">
   <!-- Month calendar -->
   <div class="card">
     <div class="card-header calendar-head">
@@ -184,8 +198,9 @@
     </div>
   </div>
 
-  <!-- Selected day panel -->
-  <div class="card day-panel">
+  <!-- Selected day panel — only in Day view for now. Hidden in Month/Week at
+       the client's request (2026-11-01); may be brought back later. -->
+  <div class="card day-panel" *ngIf="calendarView === 'day'">
     <div class="card-header">
       <h3 class="info-card__title">
         <app-icon name="clock" [size]="17"></app-icon>
@@ -240,6 +255,12 @@
           {{ appointment.chiefComplaint }}
         </p>
 
+        <!--
+          Hidden for now at the client's request (2026-11-01): the status
+          dropdown + archive button on each day-panel card. The status is still
+          shown as a pill in the card header, and status can be changed from the
+          Day-view list. Uncomment to bring these controls back.
+
         <footer class="slot-card__foot">
           <span class="select-field select-field--sm">
             <select
@@ -264,6 +285,7 @@
             <app-icon name="trash" [size]="15"></app-icon>
           </button>
         </footer>
+        -->
       </article>
     </div>
 

@@ -375,6 +375,12 @@ public class Product
     public decimal Price { get; set; }
     /// <summary>Amount rebated to the referring party for this service.</summary>
     public decimal RebateAmount { get; set; }
+    /// <summary>
+    /// Default minutes this service takes in an appointment block. A block can
+    /// override it for its own day (<see cref="AppointmentBatch.ServiceDurationsJson"/>);
+    /// this is the clinic-wide default set on the Services screen.
+    /// </summary>
+    public int DurationMinutes { get; set; } = 15;
     public bool IsActive { get; set; } = true;
 
     public string Description { get; set; } = string.Empty;

@@ -63,13 +63,18 @@ public class BatchBooking
         }
     }
 
-    /// <summary>Minutes a service takes in this block — its mapping, else the block default.</summary>
-    public static int MinutesFor(AppointmentBatch batch, string service)
+    /// <summary>
+    /// Minutes a service takes in this block: the block's own override if set,
+    /// then the clinic-wide service default (from the Services catalogue), then
+    /// the block's catch-all default.
+    /// </summary>
+    public static int MinutesFor(
+        AppointmentBatch batch, string service, IReadOnlyDictionary<string, int>? serviceDefaults = null)
     {
-        var map = Durations(batch);
-        return map.TryGetValue(service, out var minutes) && minutes > 0
-            ? minutes
-            : Math.Max(0, batch.DefaultServiceMinutes);
+        var overrides = Durations(batch);
+        if (overrides.TryGetValue(service, out var o) && o > 0) return o;
+        if (serviceDefaults is not null && serviceDefaults.TryGetValue(service, out var d) && d > 0) return d;
+        return Math.Max(0, batch.DefaultServiceMinutes);
     }
 
     /// <summary>The whole minute budget of a block, from its start and end.</summary>
@@ -80,8 +85,24 @@ public class BatchBooking
     }
 
     /// <summary>Minutes already spent by the occupying appointments.</summary>
-    public static int UsedMinutes(AppointmentBatch batch, int? excludeAppointmentId = null) =>
-        Occupants(batch, excludeAppointmentId).Sum(a => MinutesFor(batch, a.Service));
+    public static int UsedMinutes(
+        AppointmentBatch batch,
+        IReadOnlyDictionary<string, int>? serviceDefaults = null,
+        int? excludeAppointmentId = null) =>
+        Occupants(batch, excludeAppointmentId).Sum(a => MinutesFor(batch, a.Service, serviceDefaults));
+
+    /// <summary>Clinic-wide default minutes per service name, from the catalogue.</summary>
+    public async Task<Dictionary<string, int>> ServiceDefaultsAsync()
+    {
+        var rows = await _db.Products.AsNoTracking()
+            .Select(p => new { p.Name, p.DurationMinutes })
+            .ToListAsync();
+
+        var map = new Dictionary<string, int>();
+        foreach (var row in rows)
+            if (!string.IsNullOrWhiteSpace(row.Name)) map[row.Name] = row.DurationMinutes;
+        return map;
+    }
 
     /// <summary>Loads a block with the appointments already in it.</summary>
     public Task<AppointmentBatch?> FindAsync(int batchId) =>
@@ -95,7 +116,8 @@ public class BatchBooking
     /// with itself.
     /// </summary>
     public static BatchRefusal? Check(
-        AppointmentBatch batch, int patientId, string service, int? excludeAppointmentId = null)
+        AppointmentBatch batch, int patientId, string service,
+        IReadOnlyDictionary<string, int>? serviceDefaults = null, int? excludeAppointmentId = null)
     {
         var label = Label(batch);
 
@@ -108,8 +130,8 @@ public class BatchBooking
             return new BatchRefusal($"That patient is already booked into the {label} block.", true);
 
         // Room is time, not seats: the service has to fit the minutes left.
-        var need = MinutesFor(batch, service);
-        var left = Math.Max(0, TotalMinutes(batch) - occupants.Sum(a => MinutesFor(batch, a.Service)));
+        var need = MinutesFor(batch, service, serviceDefaults);
+        var left = Math.Max(0, TotalMinutes(batch) - occupants.Sum(a => MinutesFor(batch, a.Service, serviceDefaults)));
 
         if (need > left)
             return new BatchRefusal(

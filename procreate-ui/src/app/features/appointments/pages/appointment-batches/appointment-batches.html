@@ -33,15 +33,23 @@
 </section>
 
 <div class="hero-tabs">
-  <a class="hero-tabs__tab" routerLink="/app/appointments/consultations" routerLinkActive="active">
-    <app-icon name="stethoscope" [size]="16"></app-icon>
-    Consultations
-  </a>
-  <a class="hero-tabs__tab" routerLink="/app/appointments/procedures" routerLinkActive="active">
+  <a
+    *ngIf="calendarMode === 'procedure'"
+    class="hero-tabs__tab"
+    routerLink="/app/appointments/procedures"
+  >
     <app-icon name="scan" [size]="16"></app-icon>
     Procedures
   </a>
-  <a class="hero-tabs__tab active" routerLink="/app/appointments/batches">
+  <a
+    *ngIf="calendarMode !== 'procedure'"
+    class="hero-tabs__tab"
+    routerLink="/app/appointments/consultations"
+  >
+    <app-icon name="stethoscope" [size]="16"></app-icon>
+    Consultations
+  </a>
+  <a class="hero-tabs__tab active" routerLink="/app/appointments/batches" [queryParams]="{ mode: calendarMode }">
     <app-icon name="clock" [size]="16"></app-icon>
     Batches
     <span class="hero-tabs__count" *ngIf="totalBooked > 0">{{ totalBooked }}</span>
@@ -264,22 +272,35 @@
       <div class="form-group">
         <label class="form-label">Minutes per service</label>
         <p class="field-hint duration-hint">
-          Set how long each service takes in this block; booking a patient draws
-          that many minutes down from the block.
+          Each service shows its default from the Services screen. Tap the pencil
+          to override a service <strong>for this schedule only</strong> — it won't
+          change the default.
         </p>
         <div class="duration-table">
           <div class="duration-row" *ngFor="let service of editorServices">
-            <span class="duration-row__name">{{ service }}</span>
+            <span class="duration-row__name">{{ service.name }}</span>
             <input
               type="number"
-              min="0"
+              min="1"
               class="form-control duration-row__input"
-              [placeholder]="form.defaultServiceMinutes + ' (default)'"
-              [ngModel]="getDuration(service)"
-              (ngModelChange)="setDuration(service, $event)"
-              [name]="'dur-' + service"
+              [class.duration-row__input--override]="getDuration(service.name) !== null"
+              [placeholder]="service.defaultMinutes + ' (default)'"
+              [disabled]="!isEditingDuration(service.name)"
+              [ngModel]="getDuration(service.name)"
+              (ngModelChange)="setDuration(service.name, $event)"
+              [name]="'dur-' + service.name"
             />
             <span class="duration-row__unit">min</span>
+            <button
+              type="button"
+              class="tool-btn duration-row__edit"
+              [class.duration-row__edit--active]="isEditingDuration(service.name)"
+              (click)="toggleDurationEdit(service.name)"
+              [title]="isEditingDuration(service.name) ? 'Done' : 'Override for this schedule only'"
+              [attr.aria-label]="'Override ' + service.name + ' for this schedule'"
+            >
+              <app-icon [name]="isEditingDuration(service.name) ? 'check' : 'edit'" [size]="14"></app-icon>
+            </button>
           </div>
           <p class="field-hint" *ngIf="editorServices.length === 0">
             No active services to map yet.

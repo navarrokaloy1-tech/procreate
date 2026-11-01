@@ -375,12 +375,35 @@
   &__input {
     flex: 0 0 96px;
     width: 96px;
+
+    &:disabled {
+      background: var(--light);
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    // An overridden service stands out from the ones on their default.
+    &--override:not(:disabled),
+    &--override:disabled {
+      border-color: var(--primary);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
   }
 
   &__unit {
     flex: 0 0 auto;
     font-size: var(--font-size-sm);
     color: var(--text-muted);
+  }
+
+  &__edit {
+    flex: 0 0 auto;
+
+    &--active {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
   }
 }
 

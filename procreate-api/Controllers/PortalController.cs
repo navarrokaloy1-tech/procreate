@@ -175,6 +175,7 @@ public class PortalController : ControllerBase
             .Where(b => b.BatchDate >= first && b.BatchDate <= last)
             .ToListAsync();
 
+        var serviceDefaults = await _booking.ServiceDefaultsAsync();
         var days = new List<object>();
 
         for (var day = first; day <= last; day = day.AddDays(1))
@@ -188,7 +189,7 @@ public class PortalController : ControllerBase
             var openSeats = materialised.Count > 0
                 ? materialised
                     .Where(b => !b.IsClosed)
-                    .Sum(b => Math.Max(0, BatchBooking.TotalMinutes(b) - BatchBooking.UsedMinutes(b)))
+                    .Sum(b => Math.Max(0, BatchBooking.TotalMinutes(b) - BatchBooking.UsedMinutes(b, serviceDefaults)))
                 : templates.Where(t => t.DayOfWeek == (int)day.DayOfWeek)
                     .Sum(t => Math.Max(0,
                         (int)(BatchBooking.ParseTime(t.EndTime) - BatchBooking.ParseTime(t.StartTime)).TotalMinutes));
@@ -229,6 +230,7 @@ public class PortalController : ControllerBase
             .OrderBy(b => b.StartTime)
             .ToListAsync();
 
+        var serviceDefaults = await _booking.ServiceDefaultsAsync();
         var slots = batches.Select(b =>
         {
             var occupants = BatchBooking.Occupants(b).ToList();
@@ -238,7 +240,7 @@ public class PortalController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 label = BatchBooking.Label(b),
-                remaining = Math.Max(0, BatchBooking.TotalMinutes(b) - occupants.Sum(a => BatchBooking.MinutesFor(b, a.Service))),
+                remaining = Math.Max(0, BatchBooking.TotalMinutes(b) - occupants.Sum(a => BatchBooking.MinutesFor(b, a.Service, serviceDefaults))),
                 b.IsClosed,
                 // Shown as taken rather than hidden, so it is clear why a block
                 // they can see is not offered.
@@ -278,7 +280,8 @@ public class PortalController : ControllerBase
             return BadRequest(new { message = "Choose a date from tomorrow onwards." });
 
         // The same rules the front desk books under.
-        var refusal = BatchBooking.Check(batch, patientId.Value, service);
+        var serviceDefaults = await _booking.ServiceDefaultsAsync();
+        var refusal = BatchBooking.Check(batch, patientId.Value, service, serviceDefaults);
         if (refusal is not null)
         {
             return refusal.IsConflict

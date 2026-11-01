@@ -236,6 +236,13 @@ using (var scope = app.Services.CreateScope())
             if (!columns.Contains("DefaultServiceMinutes"))
                 db.Database.ExecuteSqlRaw($"ALTER TABLE \"{table}\" ADD COLUMN \"DefaultServiceMinutes\" INTEGER NOT NULL DEFAULT 15");
         }
+
+        // Per-service default duration, set on the Services screen.
+        var productColumns = db.Database
+            .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('Products')")
+            .ToList();
+        if (!productColumns.Contains("DurationMinutes"))
+            db.Database.ExecuteSqlRaw("""ALTER TABLE "Products" ADD COLUMN "DurationMinutes" INTEGER NOT NULL DEFAULT 15""");
     }
 
     DataSeeder.SeedSampleData(db);

@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../../../core/services/api';
 
@@ -59,6 +60,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   batches: Batch[] = [];
   selectedDate = new Date();
 
+  /** Which calendar the user came from, so the tab strip pairs Batches with it. */
+  calendarMode: 'consultation' | 'procedure' = 'consultation';
+
   totalMinutes = 0;
   usedMinutes = 0;
   totalBooked = 0;
@@ -74,8 +78,11 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
    */
   autoAdjust = true;
 
-  /** Service names to map minutes against, from the active catalogue. */
-  serviceCatalogue: string[] = [];
+  /** Active services with their clinic-wide default minutes (from the Services screen). */
+  serviceCatalogue: { name: string; defaultMinutes: number }[] = [];
+
+  /** Rows the admin has unlocked to override for this one block. */
+  editingDurations = new Set<string>();
 
   /** Ids of every block, so each list accepts drops from the others. */
   dropListIds: string[] = [];
@@ -92,22 +99,31 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     durations: Record<string, number>;
   } = { startTime: '09:00', endTime: '12:00', isClosed: false, defaultServiceMinutes: 15, durations: {} };
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private api: ApiService,
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      this.calendarMode = params.get('mode') === 'procedure' ? 'procedure' : 'consultation';
+      this.cdr.markForCheck();
+    });
+
     this.loadServices();
     this.load();
   }
 
-  /** The active services an admin can assign a per-block duration to. */
+  /** The active services, with the default minutes set for each on the Services screen. */
   private loadServices(): void {
     this.api
-      .get<{ data: { name: string }[] }>('services', { status: 'active', pageSize: 200 })
+      .get<{ data: { name: string; durationMinutes: number }[] }>('services', { status: 'active', pageSize: 200 })
       .subscribe({
         next: (res) => {
           this.serviceCatalogue = (res.data ?? [])
-            .map((s) => s.name)
-            .filter((n) => !!n);
+            .filter((s) => !!s.name)
+            .map((s) => ({ name: s.name, defaultMinutes: s.durationMinutes || 15 }));
           this.cdr.markForCheck();
         },
         error: () => this.cdr.markForCheck(),
@@ -281,6 +297,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   openEdit(batch: Batch): void {
     this.editingBatch = batch;
+    this.editingDurations.clear();
     this.form = {
       startTime: batch.startTime,
       endTime: batch.endTime,
@@ -297,13 +314,23 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.editingBatch = null;
   }
 
-  /** Catalogue services plus any already mapped on this block, de-duplicated. */
-  get editorServices(): string[] {
-    const set = new Set<string>(this.serviceCatalogue);
-    Object.keys(this.form.durations).forEach(s => set.add(s));
-    return [...set];
+  /** Catalogue services plus any override already stored on this block, de-duplicated. */
+  get editorServices(): { name: string; defaultMinutes: number }[] {
+    const rows = this.serviceCatalogue.map((s) => ({ ...s }));
+    const known = new Set(rows.map((s) => s.name));
+    for (const name of Object.keys(this.form.durations)) {
+      if (!known.has(name)) rows.push({ name, defaultMinutes: this.form.defaultServiceMinutes || 15 });
+    }
+    return rows;
   }
 
+  /** The service's clinic-wide default, falling back to the block's catch-all. */
+  defaultFor(service: string): number {
+    const found = this.serviceCatalogue.find((s) => s.name === service);
+    return found ? found.defaultMinutes : (this.form.defaultServiceMinutes || 15);
+  }
+
+  /** This block's override for a service, or null when it uses the default. */
   getDuration(service: string): number | null {
     const v = this.form.durations[service];
     return v && v > 0 ? v : null;
@@ -313,6 +340,16 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     const minutes = Number(value);
     if (minutes && minutes > 0) this.form.durations[service] = minutes;
     else delete this.form.durations[service];
+  }
+
+  isEditingDuration(service: string): boolean {
+    return this.editingDurations.has(service);
+  }
+
+  /** Pencil toggle: unlock a row to override it for this block, or lock it back. */
+  toggleDurationEdit(service: string): void {
+    if (this.editingDurations.has(service)) this.editingDurations.delete(service);
+    else this.editingDurations.add(service);
   }
 
   saveBatch(): void {
