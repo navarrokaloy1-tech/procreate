@@ -65,10 +65,6 @@
     <p class="batch-bar__count" *ngIf="batches.length > 0">
       {{ usedMinutes }} of {{ totalMinutes }} min booked · {{ totalBooked }} patients
     </p>
-    <label class="batch-bar__toggle" *ngIf="batches.length > 0" title="When on, editing a block's end time shifts the later blocks to match.">
-      <input type="checkbox" [(ngModel)]="autoAdjust" name="autoAdjust" />
-      Auto-adjust later blocks
-    </label>
     <span class="batch-bar__saving" *ngIf="isSaving">
       <app-icon name="save" [size]="14"></app-icon>
       Saving...
@@ -119,6 +115,11 @@
         </div>
 
         <div class="batch__tools">
+          <!-- Live session status: Active while the clock is inside this block today. -->
+          <span
+            class="pill"
+            [class]="isActiveNow(batch) ? 'pill pill--success' : 'pill pill--neutral'"
+          >{{ isActiveNow(batch) ? 'Active' : 'Inactive' }}</span>
           <span class="pill pill--neutral" *ngIf="batch.isClosed">Closed</span>
           <span
             class="pill pill--warning"
@@ -252,6 +253,11 @@
           />
         </div>
       </div>
+
+      <label class="check-line">
+        <input type="checkbox" [(ngModel)]="form.autoAdjust" name="autoAdjust" />
+        Auto-adjust later blocks when I change this block's end time
+      </label>
 
       <div class="form-group">
         <label class="form-label" for="defaultMinutes">Default minutes per patient</label>

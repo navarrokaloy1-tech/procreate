@@ -72,12 +72,6 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   errorMessage = '';
   noticeMessage = '';
 
-  /**
-   * When on, editing a block's end time shifts every later block down the day
-   * to stay contiguous; off, each block is edited on its own. UI state only.
-   */
-  autoAdjust = true;
-
   /** Active services with their clinic-wide default minutes (from the Services screen). */
   serviceCatalogue: { name: string; defaultMinutes: number }[] = [];
 
@@ -95,9 +89,10 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     startTime: string;
     endTime: string;
     isClosed: boolean;
+    autoAdjust: boolean;
     defaultServiceMinutes: number;
     durations: Record<string, number>;
-  } = { startTime: '09:00', endTime: '12:00', isClosed: false, defaultServiceMinutes: 15, durations: {} };
+  } = { startTime: '09:00', endTime: '12:00', isClosed: false, autoAdjust: true, defaultServiceMinutes: 15, durations: {} };
 
   constructor(
     private api: ApiService,
@@ -113,6 +108,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
     this.loadServices();
     this.load();
+
+    // Keep the Active/Inactive pills honest as the clock moves, without a reload.
+    this.clockTimer = setInterval(() => this.cdr.markForCheck(), 60_000);
   }
 
   /** The active services, with the default minutes set for each on the Services screen. */
@@ -303,6 +301,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       startTime: batch.startTime,
       endTime: batch.endTime,
       isClosed: batch.isClosed,
+      autoAdjust: true,
       defaultServiceMinutes: batch.defaultServiceMinutes || 15,
       durations: { ...(batch.serviceDurations ?? {}) },
     };
@@ -385,7 +384,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
         // Auto-adjust: having moved this block's end, push the later blocks
         // down so the day stays back-to-back. Second call, run off the saved day.
-        if (this.autoAdjust && endChanged && this.hasLaterBlocks(editedId)) {
+        if (this.form.autoAdjust && endChanged && this.hasLaterBlocks(editedId)) {
           this.cascadeFrom(editedId);
           return;
         }
@@ -523,6 +522,18 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     return status === 'Cancelled' || status === 'NoShow';
   }
 
+  /**
+   * A block is Active when the wall-clock time falls inside its window on
+   * today's date — i.e. it is the session running right now. Every other block
+   * (earlier today, later today, or any other day) is Inactive.
+   */
+  isActiveNow(batch: Batch): boolean {
+    if (!this.isToday) return false;
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    return minutes >= this.parseHHmm(batch.startTime) && minutes < this.parseHHmm(batch.endTime);
+  }
+
   statusClass(status: string): string {
     const map: Record<string, string> = {
       Scheduled: 'pill pill--info',
@@ -557,6 +568,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
    * confirmation clears itself rather than lingering over the next drag.
    */
   private noticeTimer?: ReturnType<typeof setTimeout>;
+  private clockTimer?: ReturnType<typeof setInterval>;
 
   private flashNotice(message: string): void {
     this.noticeMessage = message;
@@ -571,5 +583,6 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.noticeTimer);
+    clearInterval(this.clockTimer);
   }
 }
