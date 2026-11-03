@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../../../core/services/api';
+import { PROCEDURE_SERVICES } from '../../appointment-services';
 
 export interface BatchSlot {
   appointmentId: number;
@@ -72,8 +73,8 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   errorMessage = '';
   noticeMessage = '';
 
-  /** Active services with their clinic-wide default minutes (from the Services screen). */
-  serviceCatalogue: { name: string; defaultMinutes: number }[] = [];
+  /** Active services with their category + clinic-wide default minutes (from the Services screen). */
+  serviceCatalogue: { name: string; defaultMinutes: number; category: string }[] = [];
 
   /** Rows the admin has unlocked to override for this one block. */
   editingDurations = new Set<string>();
@@ -116,12 +117,12 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   /** The active services, with the default minutes set for each on the Services screen. */
   private loadServices(): void {
     this.api
-      .get<{ data: { name: string; durationMinutes: number }[] }>('services', { status: 'active', pageSize: 200 })
+      .get<{ data: { name: string; durationMinutes: number; category: string }[] }>('services', { status: 'active', pageSize: 200 })
       .subscribe({
         next: (res) => {
           this.serviceCatalogue = (res.data ?? [])
             .filter((s) => !!s.name)
-            .map((s) => ({ name: s.name, defaultMinutes: s.durationMinutes || 15 }));
+            .map((s) => ({ name: s.name, defaultMinutes: s.durationMinutes || 15, category: s.category ?? '' }));
           if (this.isModalOpen) this.editorServices = this.buildEditorServices();
           this.cdr.markForCheck();
         },
@@ -325,12 +326,19 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   trackEditorService = (_: number, s: { name: string }) => s.name;
 
   private buildEditorServices(): { name: string; defaultMinutes: number }[] {
-    const rows = this.serviceCatalogue.map((s) => ({ ...s }));
-    const known = new Set(rows.map((s) => s.name));
-    for (const name of Object.keys(this.form.durations)) {
-      if (!known.has(name)) rows.push({ name, defaultMinutes: this.form.defaultServiceMinutes || 15 });
+    // The Procedures calendar only books Ultrasound / IUI / Procedure, so its
+    // blocks map only those.
+    if (this.calendarMode === 'procedure') {
+      return PROCEDURE_SERVICES.map((name) => ({
+        name,
+        defaultMinutes: this.serviceCatalogue.find((s) => s.name === name)?.defaultMinutes ?? 15,
+      }));
     }
-    return rows;
+
+    // Consultations: only services filed under the "Consultation" category.
+    return this.serviceCatalogue
+      .filter((s) => s.category === 'Consultation')
+      .map((s) => ({ name: s.name, defaultMinutes: s.defaultMinutes }));
   }
 
   /** The service's clinic-wide default, falling back to the block's catch-all. */

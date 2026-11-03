@@ -4,6 +4,7 @@ import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap 
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
 import { ToastService } from '../../../../core/services/toast';
+import { CONSULTATION_SERVICES, PROCEDURE_SERVICES } from '../../appointment-services';
 
 export interface Appointment {
   id: number;
@@ -78,13 +79,10 @@ export class AppointmentCalendarComponent implements OnInit {
   ];
 
   /** Services booked from the Consultations calendar. */
-  readonly consultationServices = [
-    'General Consultation', 'Follow-up Consultation', 'Prenatal Check-up',
-    'Fertility Consultation', 'Laboratory Request',
-  ];
+  readonly consultationServices = CONSULTATION_SERVICES;
 
   /** Services booked from the Procedures calendar. */
-  readonly procedureServices = ['Ultrasound', 'IUI', 'Procedure'];
+  readonly procedureServices = PROCEDURE_SERVICES;
 
   /** Fast membership test that tells a procedure booking from a consultation. */
   private readonly procedureServiceSet = new Set(this.procedureServices);
