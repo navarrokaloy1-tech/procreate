@@ -61,6 +61,8 @@ interface CalendarDay {
   /** Day-cell tallies, shown in place of individual appointment chips. */
   newPatients: number;
   followUps: number;
+  /** Per-service counts for that day, for the Procedures calendar. */
+  serviceCounts: { service: string; count: number }[];
 }
 
 @Component({
@@ -301,7 +303,7 @@ export class AppointmentCalendarComponent implements OnInit {
     });
   }
 
-  /** One calendar cell with its appointments and new/follow-up tallies. */
+  /** One calendar cell with its appointments and tallies. */
   private buildDay(date: Date, inMonth: boolean, isToday: boolean): CalendarDay {
     const appointments = this.appointmentsOn(date);
     const followUps = appointments.filter((a) => a.type === 'Follow-up').length;
@@ -312,8 +314,20 @@ export class AppointmentCalendarComponent implements OnInit {
       appointments,
       newPatients: appointments.length - followUps,
       followUps,
+      serviceCounts: this.countByService(appointments),
     };
   }
+
+  /** Counts of a day's appointments grouped by service, busiest first. */
+  private countByService(appts: Appointment[]): { service: string; count: number }[] {
+    const map = new Map<string, number>();
+    for (const a of appts) map.set(a.service, (map.get(a.service) ?? 0) + 1);
+    return [...map.entries()]
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count || a.service.localeCompare(b.service));
+  }
+
+  trackServiceCount = (_: number, sc: { service: string }) => sc.service;
 
   setView(view: 'month' | 'week' | 'day'): void {
     this.calendarView = view;

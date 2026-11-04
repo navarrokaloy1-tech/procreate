@@ -128,8 +128,9 @@
           <span class="day__number">{{ day.date | date: 'd' }}</span>
           <span class="day__counts" *ngIf="day.appointments.length > 0">
             <ng-container *ngIf="mode === 'procedure'; else dayNewFollow">
-              <span class="day__count day__count--proc">
-                {{ day.appointments.length }} {{ day.appointments.length === 1 ? 'Procedure' : 'Procedures' }}
+              <span class="day__count day__count--proc"
+                *ngFor="let sc of day.serviceCounts; trackBy: trackServiceCount">
+                {{ sc.count }} {{ sc.service }}
               </span>
             </ng-container>
             <ng-template #dayNewFollow>
@@ -163,9 +164,9 @@
         </div>
         <div class="week-view__slots">
           <ng-container *ngIf="mode === 'procedure'; else weekNewFollow">
-            <span class="day__count day__count--proc" *ngIf="day.appointments.length > 0">
-              <span class="day__count__num">{{ day.appointments.length }}</span>
-              {{ day.appointments.length === 1 ? 'Procedure' : 'Procedures' }}
+            <span class="day__count day__count--proc"
+              *ngFor="let sc of day.serviceCounts; trackBy: trackServiceCount">
+              <span class="day__count__num">{{ sc.count }}</span> {{ sc.service }}
             </span>
           </ng-container>
           <ng-template #weekNewFollow>
