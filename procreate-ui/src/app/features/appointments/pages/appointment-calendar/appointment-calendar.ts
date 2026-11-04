@@ -594,12 +594,28 @@ export class AppointmentCalendarComponent implements OnInit {
     this.loadAvailableBatches();
   }
 
-  /** Picking a block fixes the time, so the time field steps aside. */
-  onBatchChange(value: number | ''): void {
-    this.form.batchId = value === '' ? '' : Number(value);
+  /** Minutes past midnight for an "HH:mm" value. */
+  private minutesOf(time: string): number {
+    const [h, m] = (time || '0:0').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
 
-    const batch = this.availableBatches.find((b) => b.id === this.form.batchId);
-    if (batch) this.form.time = batch.startTime;
+  /** The available block whose window contains the given time, or null. */
+  private blockForTime(time: string): BatchOption | null {
+    if (!time) return null;
+    const mins = this.minutesOf(time);
+    return this.availableBatches.find(
+      (b) => this.minutesOf(b.startTime) <= mins && mins < this.minutesOf(b.endTime),
+    ) ?? null;
+  }
+
+  /** Tells the user which block the chosen time will land the booking in. */
+  get timeBlockHint(): string {
+    if (!this.form.time) return '';
+    const block = this.blockForTime(this.form.time);
+    return block
+      ? `Goes into the ${block.label} block on the Batches board.`
+      : 'No block covers this time — it books at this exact time.';
   }
 
   closeModal(): void {
@@ -652,8 +668,8 @@ export class AppointmentCalendarComponent implements OnInit {
       this.failModal('Please set a date.');
       return;
     }
-    if (!this.form.batchId && !this.form.time) {
-      this.failModal('Please choose a time block, or set an exact time.');
+    if (!this.form.time) {
+      this.failModal('Please set a time.');
       return;
     }
 
@@ -666,13 +682,14 @@ export class AppointmentCalendarComponent implements OnInit {
         doctorId: this.form.doctorId,
         service: this.form.service,
         // Send local wall-clock time; the API compares it against clinic hours.
-        // With a block chosen the API overrides this with the block's start.
+        // Matched to a block, the API overrides this with the block's start.
         scheduledAt: `${this.form.date}T${this.form.time || '09:00'}:00`,
         type: this.form.type,
         status: 'Scheduled',
         chiefComplaint: this.form.chiefComplaint,
         notes: this.form.notes,
-        batchId: this.form.batchId === '' ? null : this.form.batchId,
+        // The time picks the block automatically — whichever window contains it.
+        batchId: this.blockForTime(this.form.time)?.id ?? null,
       })
       .subscribe({
         next: (created) => {
