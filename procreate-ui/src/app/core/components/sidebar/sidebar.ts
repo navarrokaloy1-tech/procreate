@@ -237,6 +237,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * A sub-link is active for its own route, and also when the shared Batches
+   * page was opened from it — Batches carries a `mode` query param saying which
+   * calendar (Consultations / Procedures) it belongs to.
+   */
+  isChildActive(route: string): boolean {
+    if (this.isActive(route)) return true;
+
+    const url = this.router.url;
+    if (url.startsWith('/app/appointments/batches')) {
+      const mode = url.includes('mode=procedure') ? 'procedure' : 'consultation';
+      if (route.endsWith('/procedures')) return mode === 'procedure';
+      if (route.endsWith('/consultations')) return mode === 'consultation';
+    }
+    return false;
+  }
+
   /** Whether a parent row's sub-links are currently shown. */
   isExpanded(item: NavLink): boolean {
     return this.expanded.has(item.route);
@@ -248,11 +265,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     else this.expanded.add(item.route);
   }
 
-  /** Keeps a parent open whenever one of its children is the active route. */
+  /** Keeps a parent open whenever it, or one of its children, is active. */
   private syncExpanded(): void {
     for (const section of this.sections) {
       for (const item of section.items) {
-        if (item.children?.some((child) => this.isActive(child.route))) {
+        if (!item.children) continue;
+        if (this.isActive(item.route) || item.children.some((child) => this.isChildActive(child.route))) {
           this.expanded.add(item.route);
         }
       }

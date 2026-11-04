@@ -43,6 +43,21 @@ interface DayResponse {
   data: Batch[];
 }
 
+/** An appointment booked at an exact time, i.e. not placed in any block. */
+export interface UnscheduledAppt {
+  id: number;
+  appointmentCode: string;
+  patientName: string;
+  patientCode: string;
+  doctorName: string;
+  service: string;
+  status: string;
+  type: string;
+  scheduledAt: string;
+  batchId: number | null;
+  isArchived: boolean;
+}
+
 /**
  * The day's session blocks and the order patients are seen in each.
  *
@@ -59,6 +74,8 @@ interface DayResponse {
 })
 export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   batches: Batch[] = [];
+  /** Exact-time bookings for the day that sit in no block — shown on their own. */
+  unscheduled: UnscheduledAppt[] = [];
   selectedDate = new Date();
 
   /** Which calendar the user came from, so the tab strip pairs Batches with it. */
@@ -154,6 +171,24 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cdr.markForCheck();
       },
+    });
+
+    this.loadUnscheduled();
+  }
+
+  /**
+   * Appointments booked for this day at an exact time — those sit in no block,
+   * so the block board would otherwise never show them. Listed separately.
+   */
+  private loadUnscheduled(): void {
+    this.api.get<{ data: UnscheduledAppt[] }>('appointments', { date: this.apiDate }).subscribe({
+      next: res => {
+        this.unscheduled = (res.data ?? [])
+          .filter(a => a.batchId == null && !a.isArchived)
+          .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck(),
     });
   }
 

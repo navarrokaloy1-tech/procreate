@@ -90,6 +90,7 @@
 
   &__stat--new .calendar-totals__count { color: var(--info); }
   &__stat--follow .calendar-totals__count { color: var(--primary-dark); }
+  &__stat--proc .calendar-totals__count { color: var(--primary); }
 }
 
 .calendar {
@@ -181,6 +182,11 @@
 
     &--follow {
       color: var(--primary-dark);
+      background: var(--primary-light);
+    }
+
+    &--proc {
+      color: var(--primary);
       background: var(--primary-light);
     }
   }

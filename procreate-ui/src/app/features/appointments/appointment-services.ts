@@ -12,4 +12,4 @@ export const CONSULTATION_SERVICES = [
   'Laboratory Request',
 ];
 
-export const PROCEDURE_SERVICES = ['Ultrasound', 'IUI', 'Procedure'];
+export const PROCEDURE_SERVICES = ['Ultrasound', 'IUI', 'Semen Analysis'];

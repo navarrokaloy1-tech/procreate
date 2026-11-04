@@ -343,6 +343,69 @@
   }
 }
 
+// Exact-time bookings that belong to no block, listed under the board.
+.unscheduled {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--light);
+
+  &__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--white);
+
+    & + & { margin-top: 6px; }
+  }
+
+  &__time {
+    flex: 0 0 72px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__code {
+    margin-left: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  &__meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+}
+
 // Per-service minute mapping in the edit-block sheet.
 .duration-hint {
   margin-bottom: 8px;

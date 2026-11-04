@@ -353,7 +353,7 @@ export class AppointmentCalendarComponent implements OnInit {
    * doctor filter (already applied when loading) and this calendar's mode.
    * Follow-up is Type === 'Follow-up'; everything else counts as a new patient.
    */
-  get viewTotals(): { newPatient: number; followUp: number } {
+  get viewTotals(): { newPatient: number; followUp: number; total: number } {
     let appts: Appointment[];
     if (this.calendarView === 'week') {
       appts = this.weekDays.flatMap((d) => d.appointments);
@@ -365,7 +365,7 @@ export class AppointmentCalendarComponent implements OnInit {
     }
 
     const followUp = appts.filter((a) => a.type === 'Follow-up').length;
-    return { newPatient: appts.length - followUp, followUp };
+    return { newPatient: appts.length - followUp, followUp, total: appts.length };
   }
 
   /** Hero title/subtitle and booking-sheet title follow the active calendar. */

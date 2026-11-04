@@ -83,19 +83,29 @@
 
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-    <!-- New vs follow-up totals for the visible week/month (day view is unchanged). -->
+    <!-- Totals for the visible week/month (day view is unchanged). Procedures
+         show a single count; consultations split New vs Follow-up. -->
     <div class="calendar-totals" *ngIf="showTotals">
       <span class="calendar-totals__label">
         {{ calendarView === 'week' ? 'This week' : 'This month' }}
       </span>
-      <span class="calendar-totals__stat calendar-totals__stat--new">
-        <span class="calendar-totals__count">{{ viewTotals.newPatient }}</span>
-        New Patient
-      </span>
-      <span class="calendar-totals__stat calendar-totals__stat--follow">
-        <span class="calendar-totals__count">{{ viewTotals.followUp }}</span>
-        Follow-up
-      </span>
+
+      <ng-container *ngIf="mode === 'procedure'; else newFollowTotals">
+        <span class="calendar-totals__stat calendar-totals__stat--proc">
+          <span class="calendar-totals__count">{{ viewTotals.total }}</span>
+          {{ viewTotals.total === 1 ? 'Procedure' : 'Procedures' }}
+        </span>
+      </ng-container>
+      <ng-template #newFollowTotals>
+        <span class="calendar-totals__stat calendar-totals__stat--new">
+          <span class="calendar-totals__count">{{ viewTotals.newPatient }}</span>
+          New Patient
+        </span>
+        <span class="calendar-totals__stat calendar-totals__stat--follow">
+          <span class="calendar-totals__count">{{ viewTotals.followUp }}</span>
+          Follow-up
+        </span>
+      </ng-template>
     </div>
 
     <!-- Month grid -->
@@ -117,12 +127,19 @@
         >
           <span class="day__number">{{ day.date | date: 'd' }}</span>
           <span class="day__counts" *ngIf="day.appointments.length > 0">
-            <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
-              {{ day.newPatients }} New
-            </span>
-            <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
-              {{ day.followUps }} Follow-up
-            </span>
+            <ng-container *ngIf="mode === 'procedure'; else dayNewFollow">
+              <span class="day__count day__count--proc">
+                {{ day.appointments.length }} {{ day.appointments.length === 1 ? 'Procedure' : 'Procedures' }}
+              </span>
+            </ng-container>
+            <ng-template #dayNewFollow>
+              <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
+                {{ day.newPatients }} New
+              </span>
+              <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
+                {{ day.followUps }} Follow-up
+              </span>
+            </ng-template>
           </span>
         </button>
       </div>
@@ -145,12 +162,20 @@
           </span>
         </div>
         <div class="week-view__slots">
-          <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
-            <span class="day__count__num">{{ day.newPatients }}</span> New
-          </span>
-          <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
-            <span class="day__count__num">{{ day.followUps }}</span> Follow-up
-          </span>
+          <ng-container *ngIf="mode === 'procedure'; else weekNewFollow">
+            <span class="day__count day__count--proc" *ngIf="day.appointments.length > 0">
+              <span class="day__count__num">{{ day.appointments.length }}</span>
+              {{ day.appointments.length === 1 ? 'Procedure' : 'Procedures' }}
+            </span>
+          </ng-container>
+          <ng-template #weekNewFollow>
+            <span class="day__count day__count--new" *ngIf="day.newPatients > 0">
+              <span class="day__count__num">{{ day.newPatients }}</span> New
+            </span>
+            <span class="day__count day__count--follow" *ngIf="day.followUps > 0">
+              <span class="day__count__num">{{ day.followUps }}</span> Follow-up
+            </span>
+          </ng-template>
           <p class="week-view__empty" *ngIf="day.appointments.length === 0">—</p>
         </div>
       </div>
@@ -408,14 +433,15 @@
         </small>
       </div>
 
-      <div class="form-group">
+      <!-- Patient Type and Chief Complaint are consultation-only; procedures skip them. -->
+      <div class="form-group" *ngIf="mode !== 'procedure'">
         <label class="form-label" for="apptType">Patient Type</label>
         <select id="apptType" class="form-control" [(ngModel)]="form.type">
           <option *ngFor="let type of typeOptions" [value]="type">{{ type }}</option>
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" *ngIf="mode !== 'procedure'">
         <label class="form-label" for="chiefComplaint">Chief Complaint</label>
         <textarea
           id="chiefComplaint"

@@ -44,7 +44,7 @@
               *ngFor="let child of item.children"
               [routerLink]="child.route"
               class="nav-link nav-link--child"
-              [class.active]="isActive(child.route)"
+              [class.active]="isChildActive(child.route)"
             >
               <app-icon [name]="child.icon" [size]="16"></app-icon>
               <span>{{ child.label }}</span>

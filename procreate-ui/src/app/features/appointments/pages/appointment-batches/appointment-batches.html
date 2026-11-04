@@ -207,6 +207,25 @@
       </div>
     </section>
   </div>
+
+  <!-- Exact-time bookings for the day that sit in no block; still shown here. -->
+  <div class="unscheduled" *ngIf="!isLoading && unscheduled.length > 0">
+    <div class="unscheduled__head">
+      <app-icon name="clock" [size]="15"></app-icon>
+      Exact-time bookings (not in a block)
+    </div>
+    <article class="unscheduled__row" *ngFor="let appt of unscheduled">
+      <span class="unscheduled__time">{{ appt.scheduledAt | date: 'shortTime' }}</span>
+      <span class="unscheduled__body">
+        <span class="unscheduled__name">
+          {{ appt.patientName }}
+          <span class="unscheduled__code">{{ appt.patientCode }}</span>
+        </span>
+        <span class="unscheduled__meta">{{ appt.service }} &middot; {{ appt.doctorName }}</span>
+      </span>
+      <span [class]="statusClass(appt.status)">{{ statusLabel(appt.status) }}</span>
+    </article>
+  </div>
 </div>
 
 <!-- Edit block -->
