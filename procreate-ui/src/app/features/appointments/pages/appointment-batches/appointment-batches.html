@@ -62,8 +62,11 @@
       {{ selectedDate | date: 'EEEE, MMMM d, y' }}
       <span class="pill pill--primary" *ngIf="isToday">Today</span>
     </p>
-    <p class="batch-bar__count" *ngIf="batches.length > 0">
+    <p class="batch-bar__count" *ngIf="batches.length > 0 && !isProcedureMode">
       {{ usedMinutes }} of {{ totalMinutes }} min booked · {{ totalBooked }} patients
+    </p>
+    <p class="batch-bar__count" *ngIf="batches.length > 0 && isProcedureMode">
+      {{ totalBooked }} {{ totalBooked === 1 ? 'patient' : 'patients' }} booked
     </p>
     <span class="batch-bar__saving" *ngIf="isSaving">
       <app-icon name="save" [size]="14"></app-icon>
@@ -77,10 +80,15 @@
 
   <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-  <p class="batch-hint">
+  <p class="batch-hint" *ngIf="!isProcedureMode">
     <app-icon name="info" [size]="14"></app-icon>
     Patients are listed first come, first served. Drag anyone who has not
     arrived further down, or into a later block, and the new order saves itself.
+  </p>
+  <p class="batch-hint" *ngIf="isProcedureMode">
+    <app-icon name="info" [size]="14"></app-icon>
+    One card per procedure. Each patient shows the procedure's default minutes —
+    tap the pencil to set a different length for that patient only.
   </p>
 
   <div class="batch-loading" *ngIf="isLoading">
@@ -99,7 +107,7 @@
     </p>
   </div>
 
-  <div class="batch-grid" *ngIf="!isLoading && batches.length > 0" cdkDropListGroup>
+  <div class="batch-grid" *ngIf="!isLoading && !isProcedureMode && batches.length > 0" cdkDropListGroup>
     <section
       class="batch"
       *ngFor="let batch of batches; trackBy: trackBatch"
@@ -203,6 +211,116 @@
 
         <p class="batch__empty" *ngIf="batch.slots.length === 0">
           Nobody booked into this block yet.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Procedures board: one card per procedure, patients grouped by their procedure. -->
+  <div class="batch-grid" *ngIf="!isLoading && isProcedureMode && batches.length > 0">
+    <section
+      class="batch"
+      *ngFor="let group of procedureGroups; trackBy: trackProcedureGroup"
+    >
+      <header class="batch__head">
+        <div class="batch__title">
+          <h3>{{ group.procedure }}</h3>
+          <span class="batch__meta">
+            {{ group.booked }} {{ group.booked === 1 ? 'patient' : 'patients' }}
+          </span>
+        </div>
+      </header>
+
+      <div class="batch__list">
+        <article
+          class="slot"
+          *ngFor="let row of group.rows; trackBy: trackProcedureRow"
+          [class.slot--released]="isReleased(row.slot.status)"
+          [class.slot--arrived]="row.slot.hasArrived"
+        >
+          <div class="slot__body">
+            <p class="slot__name">
+              {{ row.slot.patientName }}
+              <span class="slot__code">{{ row.slot.patientCode }}</span>
+
+              <!-- Minutes set aside for this patient: the procedure default, or their own. -->
+              <span
+                class="slot__minutes"
+                *ngIf="!isEditingSlotMinutes(row.slot)"
+                [class.slot__minutes--custom]="row.slot.durationMinutes"
+                [title]="
+                  row.slot.durationMinutes
+                    ? 'Set for this patient only'
+                    : 'Default for ' + row.slot.service
+                "
+              >{{ slotCost(row.batch, row.slot) }} min</span>
+
+              <input
+                *ngIf="isEditingSlotMinutes(row.slot)"
+                type="number"
+                min="1"
+                max="480"
+                class="form-control slot__minutes-input"
+                [(ngModel)]="slotMinutesDraft[row.slot.appointmentId]"
+                [name]="'slot-min-' + row.slot.appointmentId"
+                (keyup.enter)="saveSlotMinutes(row.batch, row.slot)"
+                (keyup.escape)="cancelSlotEdit(row.slot)"
+                [attr.aria-label]="'Minutes for ' + row.slot.patientName"
+              />
+
+              <button
+                type="button"
+                class="tool-btn slot__minutes-edit"
+                *ngIf="!isEditingSlotMinutes(row.slot)"
+                (click)="startSlotEdit(row.batch, row.slot)"
+                [attr.aria-label]="'Edit minutes for ' + row.slot.patientName"
+                title="Change the minutes for this patient only"
+              >
+                <app-icon name="edit" [size]="13"></app-icon>
+              </button>
+
+              <ng-container *ngIf="isEditingSlotMinutes(row.slot)">
+                <button
+                  type="button"
+                  class="tool-btn slot__minutes-edit slot__minutes-edit--active"
+                  (click)="saveSlotMinutes(row.batch, row.slot)"
+                  [disabled]="isSaving"
+                  [attr.aria-label]="'Save minutes for ' + row.slot.patientName"
+                  title="Save"
+                >
+                  <app-icon name="check" [size]="13"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  class="tool-btn slot__minutes-edit"
+                  (click)="cancelSlotEdit(row.slot)"
+                  [attr.aria-label]="'Cancel editing minutes for ' + row.slot.patientName"
+                  title="Cancel"
+                >
+                  <app-icon name="x" [size]="13"></app-icon>
+                </button>
+              </ng-container>
+            </p>
+            <p class="slot__meta">
+              {{ row.slot.doctorName }}
+            </p>
+          </div>
+
+          <div class="slot__flags">
+            <span
+              class="pill pill--success slot__arrived"
+              *ngIf="row.slot.hasArrived"
+              title="Patient is here"
+            >
+              <app-icon name="check" [size]="12"></app-icon>
+              Present
+            </span>
+            <span [class]="statusClass(row.slot.status)">{{ statusLabel(row.slot.status) }}</span>
+          </div>
+        </article>
+
+        <p class="batch__empty" *ngIf="group.rows.length === 0">
+          No {{ group.procedure }} patients booked yet.
         </p>
       </div>
     </section>

@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../../../core/services/api';
-import { PROCEDURE_SERVICES } from '../../appointment-services';
+import { PROCEDURE_BATCH_CARDS, PROCEDURE_SERVICES } from '../../appointment-services';
 
 export interface BatchSlot {
   appointmentId: number;
@@ -17,6 +17,10 @@ export interface BatchSlot {
   type: string;
   hasArrived: boolean;
   bookedAt: string;
+  /** Minutes set aside for this patient, as the server works them out. */
+  minutes: number;
+  /** Set only when this one patient has been given their own minutes. */
+  durationMinutes: number | null;
 }
 
 export interface Batch {
@@ -41,6 +45,21 @@ interface DayResponse {
   usedMinutes: number;
   booked: number;
   data: Batch[];
+}
+
+/** One patient on the Procedures board, kept with the block they really sit in. */
+export interface ProcedureRow {
+  /** The block the appointment physically belongs to — needed to save minutes. */
+  batch: Batch;
+  slot: BatchSlot;
+}
+
+/** A Procedures card: every patient booked for one procedure, across all blocks. */
+export interface ProcedureGroup {
+  procedure: string;
+  rows: ProcedureRow[];
+  /** Heads that still count — cancellations and no-shows are left out. */
+  booked: number;
 }
 
 /** An appointment booked at an exact time, i.e. not placed in any block. */
@@ -74,6 +93,8 @@ export interface UnscheduledAppt {
 })
 export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   batches: Batch[] = [];
+  /** The day's patients grouped one card per procedure — the Procedures board. */
+  procedureGroups: ProcedureGroup[] = [];
   /** Exact-time bookings for the day that sit in no block — shown on their own. */
   unscheduled: UnscheduledAppt[] = [];
   selectedDate = new Date();
@@ -95,6 +116,12 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   /** Rows the admin has unlocked to override for this one block. */
   editingDurations = new Set<string>();
+
+  /** Appointment ids whose minutes are currently unlocked on the board. */
+  editingSlotMinutes = new Set<number>();
+
+  /** The minutes being typed, per appointment, while a row is unlocked. */
+  slotMinutesDraft: Record<number, number> = {};
 
   /** Ids of every block, so each list accepts drops from the others. */
   dropListIds: string[] = [];
@@ -198,7 +225,38 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.usedMinutes = response.usedMinutes ?? 0;
     this.totalBooked = response.booked ?? 0;
     this.dropListIds = this.batches.map(b => this.dropListId(b));
+    this.procedureGroups = this.buildProcedureGroups();
   }
+
+  // ----------------------------------------------------------
+  // Procedure cards
+  // ----------------------------------------------------------
+
+  get isProcedureMode(): boolean {
+    return this.calendarMode === 'procedure';
+  }
+
+  /**
+   * One card per procedure on the Procedures board, each gathering the day's
+   * patients booked for that procedure out of whichever block they sit in.
+   * Rebuilt field — not a getter: a fresh array each change-detection pass
+   * never lets the *ngFor settle under zoneless CD and freezes the page.
+   */
+  private buildProcedureGroups(): ProcedureGroup[] {
+    return PROCEDURE_BATCH_CARDS.map(procedure => {
+      const rows: ProcedureRow[] = [];
+      for (const batch of this.batches) {
+        for (const slot of batch.slots) {
+          if (slot.service === procedure) rows.push({ batch, slot });
+        }
+      }
+      const booked = rows.filter(r => !this.isReleased(r.slot.status)).length;
+      return { procedure, rows, booked };
+    });
+  }
+
+  trackProcedureGroup = (_: number, group: ProcedureGroup) => group.procedure;
+  trackProcedureRow = (_: number, row: ProcedureRow) => row.slot.appointmentId;
 
   shiftDay(days: number): void {
     const next = new Date(this.selectedDate);
@@ -240,14 +298,30 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
     // Room is time: the dragged patient's service has to fit the minutes left.
     const slot = drag.data as BatchSlot | undefined;
-    const need = slot && !this.isReleased(slot.status) ? this.minutesFor(target, slot.service) : 0;
+    const need = slot && !this.isReleased(slot.status) ? this.slotCost(target, slot) : 0;
     return target.remainingMinutes >= need;
   };
 
-  /** Minutes a service takes in a block — its mapping, else the block default. */
+  /**
+   * Minutes a service takes in a block: the block's own override, then the
+   * clinic-wide default from the Services screen, then the block's catch-all.
+   * Mirrors the server so the board's arithmetic agrees with what it will save.
+   */
   minutesFor(batch: Batch, service: string): number {
     const mapped = batch.serviceDurations?.[service];
-    return mapped && mapped > 0 ? mapped : Math.max(0, batch.defaultServiceMinutes);
+    if (mapped && mapped > 0) return mapped;
+
+    const catalogue = this.serviceCatalogue.find(s => s.name === service)?.defaultMinutes;
+    if (catalogue && catalogue > 0) return catalogue;
+
+    return Math.max(0, batch.defaultServiceMinutes);
+  }
+
+  /** Minutes a booked patient takes: their own, else their service's. */
+  slotCost(batch: Batch, slot: BatchSlot): number {
+    return slot.durationMinutes && slot.durationMinutes > 0
+      ? slot.durationMinutes
+      : this.minutesFor(batch, slot.service);
   }
 
   onDrop(event: CdkDragDrop<BatchSlot[]>): void {
@@ -285,7 +359,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
           slot.position = 0;
         } else {
           slot.position = ++seen;
-          used += this.minutesFor(batch, slot.service);
+          used += this.slotCost(batch, slot);
         }
       }
       batch.booked = seen;
@@ -538,6 +612,62 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     const h = Math.floor(clamped / 60);
     const m = clamped % 60;
     return `${`${h}`.padStart(2, '0')}:${`${m}`.padStart(2, '0')}`;
+  }
+
+  // ----------------------------------------------------------
+  // One patient's minutes
+  // ----------------------------------------------------------
+
+  isEditingSlotMinutes(slot: BatchSlot): boolean {
+    return this.editingSlotMinutes.has(slot.appointmentId);
+  }
+
+  /** Pencil: unlock this patient's minutes, starting from what they have now. */
+  startSlotEdit(batch: Batch, slot: BatchSlot): void {
+    this.slotMinutesDraft[slot.appointmentId] = this.slotCost(batch, slot);
+    this.editingSlotMinutes.add(slot.appointmentId);
+  }
+
+  cancelSlotEdit(slot: BatchSlot): void {
+    this.editingSlotMinutes.delete(slot.appointmentId);
+    delete this.slotMinutesDraft[slot.appointmentId];
+  }
+
+  /**
+   * Saves minutes for this one patient. The procedure's default is left alone
+   * — typing the default back in simply hands the patient back to it.
+   */
+  saveSlotMinutes(batch: Batch, slot: BatchSlot): void {
+    const minutes = Number(this.slotMinutesDraft[slot.appointmentId]);
+
+    if (!Number.isFinite(minutes) || minutes < 1) {
+      this.errorMessage = 'Minutes have to be a whole number of at least 1.';
+      return;
+    }
+
+    const rounded = Math.round(minutes);
+    const body = { minutes: rounded === this.minutesFor(batch, slot.service) ? null : rounded };
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.noticeMessage = '';
+
+    this.api
+      .put<DayResponse>(`appointment-batches/slots/${slot.appointmentId}/duration`, body)
+      .subscribe({
+        next: response => {
+          this.apply(response);
+          this.cancelSlotEdit(slot);
+          this.isSaving = false;
+          this.flashNotice('Minutes saved.');
+          this.cdr.markForCheck();
+        },
+        error: error => {
+          this.errorMessage = this.messageFrom(error, 'Could not save those minutes.');
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   // ----------------------------------------------------------

@@ -77,6 +77,17 @@ public class BatchBooking
         return Math.Max(0, batch.DefaultServiceMinutes);
     }
 
+    /// <summary>
+    /// Minutes one booked patient takes: their own override when the desk has
+    /// set one, otherwise whatever the service normally runs in this block.
+    /// </summary>
+    public static int MinutesFor(
+        AppointmentBatch batch, Appointment appointment,
+        IReadOnlyDictionary<string, int>? serviceDefaults = null) =>
+        appointment.DurationMinutes is > 0
+            ? appointment.DurationMinutes.Value
+            : MinutesFor(batch, appointment.Service, serviceDefaults);
+
     /// <summary>The whole minute budget of a block, from its start and end.</summary>
     public static int TotalMinutes(AppointmentBatch batch)
     {
@@ -89,7 +100,7 @@ public class BatchBooking
         AppointmentBatch batch,
         IReadOnlyDictionary<string, int>? serviceDefaults = null,
         int? excludeAppointmentId = null) =>
-        Occupants(batch, excludeAppointmentId).Sum(a => MinutesFor(batch, a.Service, serviceDefaults));
+        Occupants(batch, excludeAppointmentId).Sum(a => MinutesFor(batch, a, serviceDefaults));
 
     /// <summary>Clinic-wide default minutes per service name, from the catalogue.</summary>
     public async Task<Dictionary<string, int>> ServiceDefaultsAsync()
@@ -131,7 +142,7 @@ public class BatchBooking
 
         // Room is time, not seats: the service has to fit the minutes left.
         var need = MinutesFor(batch, service, serviceDefaults);
-        var left = Math.Max(0, TotalMinutes(batch) - occupants.Sum(a => MinutesFor(batch, a.Service, serviceDefaults)));
+        var left = Math.Max(0, TotalMinutes(batch) - occupants.Sum(a => MinutesFor(batch, a, serviceDefaults)));
 
         if (need > left)
             return new BatchRefusal(

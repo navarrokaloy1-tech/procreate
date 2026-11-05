@@ -252,6 +252,44 @@
     color: var(--text-muted);
   }
 
+  // Minutes set aside for this patient, read-only until the pencil is pressed.
+  &__minutes {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--light);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+
+    // An overridden patient has to look different from one on the default,
+    // or the desk cannot tell which times it has already touched.
+    &--custom {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+  }
+
+  &__minutes-input {
+    display: inline-block;
+    width: 68px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    height: auto;
+    font-size: var(--font-size-sm);
+    vertical-align: middle;
+  }
+
+  &__minutes-edit {
+    margin-left: 4px;
+    padding: 2px;
+    vertical-align: middle;
+
+    &--active { color: var(--success); }
+  }
+
   &__meta {
     margin: 2px 0 0;
     font-size: var(--font-size-sm);

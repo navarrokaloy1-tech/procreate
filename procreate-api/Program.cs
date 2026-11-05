@@ -243,6 +243,13 @@ using (var scope = app.Services.CreateScope())
             .ToList();
         if (!productColumns.Contains("DurationMinutes"))
             db.Database.ExecuteSqlRaw("""ALTER TABLE "Products" ADD COLUMN "DurationMinutes" INTEGER NOT NULL DEFAULT 15""");
+
+        // Per-patient duration override on a booked appointment (nullable).
+        var appointmentColumns = db.Database
+            .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('Appointments')")
+            .ToList();
+        if (!appointmentColumns.Contains("DurationMinutes"))
+            db.Database.ExecuteSqlRaw("""ALTER TABLE "Appointments" ADD COLUMN "DurationMinutes" INTEGER NULL""");
     }
 
     DataSeeder.SeedSampleData(db);

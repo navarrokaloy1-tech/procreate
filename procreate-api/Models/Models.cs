@@ -608,6 +608,13 @@ public class Appointment
     /// served; the front desk overrides it by dragging when someone is late.
     /// </summary>
     public int QueuePosition { get; set; }
+
+    /// <summary>
+    /// Minutes this one patient is given, overriding what the service normally
+    /// takes. Null means they take the service's usual time. Set when a case is
+    /// known to run long or short, and it must not move the service default.
+    /// </summary>
+    public int? DurationMinutes { get; set; }
 }
 
 /// <summary>

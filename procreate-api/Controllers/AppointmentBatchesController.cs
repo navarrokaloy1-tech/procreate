@@ -27,7 +27,8 @@ public class AppointmentBatchesController : ControllerBase
         int AppointmentId, string AppointmentCode, int Position,
         int PatientId, string PatientName, string PatientCode,
         string DoctorName, string Service, string Status, string Type,
-        bool HasArrived, DateTime BookedAt);
+        bool HasArrived, DateTime BookedAt,
+        int Minutes, int? DurationMinutes);
 
     public record BatchDto(
         int Id, DateTime BatchDate, string StartTime, string EndTime, string Label,
@@ -44,6 +45,9 @@ public class AppointmentBatchesController : ControllerBase
 
     public record ArrangeGroup(int BatchId, List<int> AppointmentIds);
     public record ArrangeRequest(DateTime Date, List<ArrangeGroup> Batches);
+
+    /// <summary>One patient's own minutes; null hands them back to the service default.</summary>
+    public record SlotDurationRequest(int? Minutes);
 
     /// <summary>One block's new window, for the cascade save.</summary>
     public record BlockTimeUpdate(int Id, string StartTime, string EndTime);
@@ -153,7 +157,7 @@ public class AppointmentBatchesController : ControllerBase
             var usedMinutes = group.AppointmentIds
                 .Select(id => appointments.First(a => a.Id == id))
                 .Where(a => !ReleasedStatuses.Contains(a.Status))
-                .Sum(a => BatchBooking.MinutesFor(batch, a.Service, serviceDefaults));
+                .Sum(a => BatchBooking.MinutesFor(batch, a, serviceDefaults));
 
             var totalMinutes = BatchBooking.TotalMinutes(batch);
 
@@ -183,6 +187,59 @@ public class AppointmentBatchesController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { date = day, data = await LoadDayAsync(day) });
+    }
+
+    // ----------------------------------------------------------
+    // Editing one patient's minutes
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Gives one booked patient their own minutes, for a case known to run long
+    /// or short. The service keeps its default — only this appointment moves,
+    /// and only if the extra time still fits the block it sits in.
+    /// </summary>
+    [HttpPut("slots/{appointmentId:int}/duration")]
+    public async Task<IActionResult> SetSlotDuration(
+        int appointmentId, [FromBody] SlotDurationRequest request)
+    {
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == appointmentId && !a.IsArchived);
+
+        if (appointment is null) return NotFound();
+        if (appointment.BatchId is null)
+            return BadRequest(new { message = "That appointment is not in a session block." });
+
+        if (request.Minutes is { } given && (given < 1 || given > 480))
+            return BadRequest(new { message = "Minutes have to be between 1 and 480." });
+
+        var batch = await _db.AppointmentBatches
+            .Include(b => b.Appointments)
+            .FirstOrDefaultAsync(b => b.Id == appointment.BatchId.Value);
+
+        if (batch is null) return NotFound();
+
+        var serviceDefaults = await ServiceDefaultsAsync();
+        var minutes = request.Minutes is > 0 ? request.Minutes : null;
+
+        // The block's budget is unchanged, so lengthening one patient is only
+        // allowed while everyone in the block still fits its window.
+        var total = BatchBooking.TotalMinutes(batch);
+        var othersUse = BatchBooking.UsedMinutes(batch, serviceDefaults, appointment.Id);
+        var need = BatchBooking.ReleasedStatuses.Contains(appointment.Status)
+            ? 0
+            : minutes ?? BatchBooking.MinutesFor(batch, appointment.Service, serviceDefaults);
+
+        if (othersUse + need > total)
+            return Conflict(new
+            {
+                message = $"The {Display(batch.StartTime)}–{Display(batch.EndTime)} block runs {total} min; "
+                        + $"that would need {othersUse + need}."
+            });
+
+        appointment.DurationMinutes = minutes;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { date = batch.BatchDate, data = await LoadDayAsync(batch.BatchDate) });
     }
 
     // ----------------------------------------------------------
@@ -477,7 +534,9 @@ public class AppointmentBatchesController : ControllerBase
                     ("Dr. " + a.Doctor.FirstName + " " + a.Doctor.LastName).Trim(),
                     a.Service, a.Status, a.Type,
                     a.Status is "CheckedIn" or "InProgress" or "Completed",
-                    a.CreatedAt))
+                    a.CreatedAt,
+                    BatchBooking.MinutesFor(b, a, serviceDefaults),
+                    a.DurationMinutes))
                 .ToList();
 
             var booked = slots.Count(s => !ReleasedStatuses.Contains(s.Status));
@@ -485,7 +544,7 @@ public class AppointmentBatchesController : ControllerBase
             var totalMinutes = BatchBooking.TotalMinutes(b);
             var usedMinutes = slots
                 .Where(s => !ReleasedStatuses.Contains(s.Status))
-                .Sum(s => BatchBooking.MinutesFor(b, s.Service, serviceDefaults));
+                .Sum(s => s.Minutes);
 
             return new BatchDto(
                 b.Id, b.BatchDate, b.StartTime, b.EndTime,
