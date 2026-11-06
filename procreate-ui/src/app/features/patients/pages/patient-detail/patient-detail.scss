@@ -459,3 +459,50 @@
     }
   }
 }
+
+// Per-card pager: appears under a history list once it passes 5 records.
+.list-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border-color);
+
+  // Vitals' table sits edge to edge, so its pager needs the body's own inset.
+  &--padded {
+    padding: 12px 20px 4px;
+  }
+
+  &__status {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    min-width: 92px;
+    text-align: center;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}

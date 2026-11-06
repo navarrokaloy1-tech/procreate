@@ -215,6 +215,25 @@ export class PatientDetailComponent implements OnInit {
   /** Department filter on the lab history list. */
   labFilter = 'All';
 
+  // --- Card pagination (5 records per page, then paged) ---------------------
+  readonly pageSize = 5;
+  labPage = 0;
+  soapPage = 0;
+  historyPage = 0;
+  vitalsPage = 0;
+  docsPage = 0;
+
+  /**
+   * The visible slice of each history card. Held as fields and rebuilt on data
+   * or page changes — a getter that sliced on every change-detection pass would
+   * hand *ngFor a fresh array each time and, under zoneless CD, never settle.
+   */
+  pagedLabHistory: LabHistoryEntry[] = [];
+  pagedSoapNotes: SoapNote[] = [];
+  pagedConditions: Condition[] = [];
+  pagedOlderVitals: VitalSigns[] = [];
+  pagedDocuments: ResultDocument[] = [];
+
   constructor(
     private apiService: ApiService,
     private auth: AuthService,
@@ -235,6 +254,7 @@ export class PatientDetailComponent implements OnInit {
     this.apiService.get<PatientChart>(`patients/${this.patientId}/chart`).subscribe({
       next: (chart) => {
         this.chart = chart;
+        this.rebuildPages();
         this.isLoading = false;
         this.cdr.markForCheck();
       },
@@ -829,6 +849,73 @@ export class PatientDetailComponent implements OnInit {
 
   onLabFilter(filter: string): void {
     this.labFilter = filter;
+    // A narrower filter has fewer pages; jump back to the first and reslice.
+    this.labPage = 0;
+    this.rebuildPages();
+  }
+
+  // ----------------------------------------------------------
+  // Card pagination
+  // ----------------------------------------------------------
+
+  /** Pages needed to show `total` records, 5 at a time (at least 1). */
+  pageCount(total: number): number {
+    return Math.max(1, Math.ceil(total / this.pageSize));
+  }
+
+  /** Step a card's page by ±1, clamped, and reslice. */
+  pageNav(card: 'lab' | 'soap' | 'history' | 'vitals' | 'docs', delta: number): void {
+    switch (card) {
+      case 'lab':
+        this.labPage = this.clampPage(this.labPage + delta, this.labHistory.length);
+        break;
+      case 'soap':
+        this.soapPage = this.clampPage(this.soapPage + delta, this.chart?.soapNotes.length ?? 0);
+        break;
+      case 'history':
+        this.historyPage = this.clampPage(this.historyPage + delta, this.chart?.conditions.length ?? 0);
+        break;
+      case 'vitals':
+        this.vitalsPage = this.clampPage(this.vitalsPage + delta, this.olderVitals.length);
+        break;
+      case 'docs':
+        this.docsPage = this.clampPage(this.docsPage + delta, this.chart?.documents.length ?? 0);
+        break;
+    }
+    this.rebuildPages();
+    this.cdr.markForCheck();
+  }
+
+  private clampPage(page: number, total: number): number {
+    return Math.min(this.pageCount(total) - 1, Math.max(0, page));
+  }
+
+  private sliceFor<T>(list: T[], page: number): T[] {
+    const start = page * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  }
+
+  /** Recompute every card's visible slice, clamping pages to the current data. */
+  private rebuildPages(): void {
+    const lab = this.labHistory;
+    this.labPage = this.clampPage(this.labPage, lab.length);
+    this.pagedLabHistory = this.sliceFor(lab, this.labPage);
+
+    const soap = this.chart?.soapNotes ?? [];
+    this.soapPage = this.clampPage(this.soapPage, soap.length);
+    this.pagedSoapNotes = this.sliceFor(soap, this.soapPage);
+
+    const conditions = this.chart?.conditions ?? [];
+    this.historyPage = this.clampPage(this.historyPage, conditions.length);
+    this.pagedConditions = this.sliceFor(conditions, this.historyPage);
+
+    const older = this.olderVitals;
+    this.vitalsPage = this.clampPage(this.vitalsPage, older.length);
+    this.pagedOlderVitals = this.sliceFor(older, this.vitalsPage);
+
+    const docs = this.chart?.documents ?? [];
+    this.docsPage = this.clampPage(this.docsPage, docs.length);
+    this.pagedDocuments = this.sliceFor(docs, this.docsPage);
   }
 
   /** The most recent vitals, shown expanded above the rest. */

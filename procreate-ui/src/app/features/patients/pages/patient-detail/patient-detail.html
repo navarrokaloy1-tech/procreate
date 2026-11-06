@@ -224,7 +224,7 @@
       </div>
 
       <div class="info-card__body" *ngIf="labHistory.length > 0; else noLabs">
-        <div class="lab-row" *ngFor="let entry of labHistory" (click)="openOrder(entry)">
+        <div class="lab-row" *ngFor="let entry of pagedLabHistory" (click)="openOrder(entry)">
           <span class="icon-square icon-square--sm">
             <app-icon [name]="departmentIcon(entry.department)" [size]="16"></app-icon>
           </span>
@@ -257,6 +257,16 @@
               <app-icon name="chevron-right" [size]="17"></app-icon>
             </button>
           </span>
+        </div>
+
+        <div class="list-pager" *ngIf="pageCount(labHistory.length) > 1">
+          <button type="button" class="list-pager__btn" (click)="pageNav('lab', -1)" [disabled]="labPage === 0" aria-label="Previous page">
+            <app-icon name="chevron-left" [size]="15"></app-icon>
+          </button>
+          <span class="list-pager__status">Page {{ labPage + 1 }} of {{ pageCount(labHistory.length) }}</span>
+          <button type="button" class="list-pager__btn" (click)="pageNav('lab', 1)" [disabled]="labPage >= pageCount(labHistory.length) - 1" aria-label="Next page">
+            <app-icon name="chevron-right" [size]="15"></app-icon>
+          </button>
         </div>
       </div>
       <ng-template #noLabs>
@@ -298,7 +308,7 @@
       </div>
       <div class="info-card__body">
         <div class="record-list" *ngIf="chart.soapNotes.length > 0; else noSoap">
-          <div class="soap-row" *ngFor="let note of chart.soapNotes">
+          <div class="soap-row" *ngFor="let note of pagedSoapNotes">
             <span class="soap-row__body" (click)="editSoapNote(note)">
               <span class="soap-row__head">
                 <span class="soap-row__date">
@@ -332,6 +342,16 @@
               </button>
             </span>
           </div>
+        </div>
+
+        <div class="list-pager" *ngIf="pageCount(chart.soapNotes.length) > 1">
+          <button type="button" class="list-pager__btn" (click)="pageNav('soap', -1)" [disabled]="soapPage === 0" aria-label="Previous page">
+            <app-icon name="chevron-left" [size]="15"></app-icon>
+          </button>
+          <span class="list-pager__status">Page {{ soapPage + 1 }} of {{ pageCount(chart.soapNotes.length) }}</span>
+          <button type="button" class="list-pager__btn" (click)="pageNav('soap', 1)" [disabled]="soapPage >= pageCount(chart.soapNotes.length) - 1" aria-label="Next page">
+            <app-icon name="chevron-right" [size]="15"></app-icon>
+          </button>
         </div>
         <ng-template #noSoap>
           <p class="text-muted">No SOAP notes recorded</p>
@@ -412,13 +432,23 @@
       </div>
       <div class="info-card__body">
         <div class="record-list" *ngIf="chart.conditions.length > 0; else noHistory">
-          <div class="record-list__item" *ngFor="let condition of chart.conditions">
+          <div class="record-list__item" *ngFor="let condition of pagedConditions">
             <span class="record-list__name">{{ condition.condition }}</span>
             <span class="record-list__meta" *ngIf="condition.diagnosedOn">
               Diagnosed {{ condition.diagnosedOn }}
             </span>
             <span class="record-list__note" *ngIf="condition.notes">{{ condition.notes }}</span>
           </div>
+        </div>
+
+        <div class="list-pager" *ngIf="pageCount(chart.conditions.length) > 1">
+          <button type="button" class="list-pager__btn" (click)="pageNav('history', -1)" [disabled]="historyPage === 0" aria-label="Previous page">
+            <app-icon name="chevron-left" [size]="15"></app-icon>
+          </button>
+          <span class="list-pager__status">Page {{ historyPage + 1 }} of {{ pageCount(chart.conditions.length) }}</span>
+          <button type="button" class="list-pager__btn" (click)="pageNav('history', 1)" [disabled]="historyPage >= pageCount(chart.conditions.length) - 1" aria-label="Next page">
+            <app-icon name="chevron-right" [size]="15"></app-icon>
+          </button>
         </div>
         <ng-template #noHistory>
           <p class="text-muted">No medical history recorded</p>
@@ -511,7 +541,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let record of olderVitals">
+            <tr *ngFor="let record of pagedOlderVitals">
               <td>
                 <span class="cell-stack">
                   <span class="cell-stack__value">{{ record.recordedAt | date: 'MMM d, y' }}</span>
@@ -540,6 +570,16 @@
         </table>
       </div>
 
+      <div class="list-pager list-pager--padded" *ngIf="pageCount(olderVitals.length) > 1">
+        <button type="button" class="list-pager__btn" (click)="pageNav('vitals', -1)" [disabled]="vitalsPage === 0" aria-label="Previous page">
+          <app-icon name="chevron-left" [size]="15"></app-icon>
+        </button>
+        <span class="list-pager__status">Page {{ vitalsPage + 1 }} of {{ pageCount(olderVitals.length) }}</span>
+        <button type="button" class="list-pager__btn" (click)="pageNav('vitals', 1)" [disabled]="vitalsPage >= pageCount(olderVitals.length) - 1" aria-label="Next page">
+          <app-icon name="chevron-right" [size]="15"></app-icon>
+        </button>
+      </div>
+
       <div class="info-card__body" *ngIf="chart.vitals.length === 0">
         <p class="text-muted">No vital signs recorded</p>
       </div>
@@ -558,7 +598,7 @@
       </div>
       <div class="info-card__body">
         <ng-container *ngIf="chart.documents.length > 0; else noDocs">
-          <div class="file-row" *ngFor="let document of chart.documents">
+          <div class="file-row" *ngFor="let document of pagedDocuments">
             <span class="file-row__thumb">{{ fileExtension(document.fileName) }}</span>
             <span class="file-row__body">
               <span class="file-row__tags">
@@ -597,6 +637,16 @@
                 <app-icon name="trash" [size]="16"></app-icon>
               </button>
             </span>
+          </div>
+
+          <div class="list-pager" *ngIf="pageCount(chart.documents.length) > 1">
+            <button type="button" class="list-pager__btn" (click)="pageNav('docs', -1)" [disabled]="docsPage === 0" aria-label="Previous page">
+              <app-icon name="chevron-left" [size]="15"></app-icon>
+            </button>
+            <span class="list-pager__status">Page {{ docsPage + 1 }} of {{ pageCount(chart.documents.length) }}</span>
+            <button type="button" class="list-pager__btn" (click)="pageNav('docs', 1)" [disabled]="docsPage >= pageCount(chart.documents.length) - 1" aria-label="Next page">
+              <app-icon name="chevron-right" [size]="15"></app-icon>
+            </button>
           </div>
         </ng-container>
         <ng-template #noDocs>

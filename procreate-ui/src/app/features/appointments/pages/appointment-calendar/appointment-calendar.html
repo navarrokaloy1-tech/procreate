@@ -8,7 +8,8 @@
       </div>
     </div>
     <div class="page-hero__actions">
-      <span class="select-field">
+      <!-- Doctor filter is consultation-only; the Procedures board shows every doctor. -->
+      <span class="select-field" *ngIf="mode !== 'procedure'">
         <select
           [ngModel]="doctorFilter"
           (ngModelChange)="onDoctorFilterChange($event)"
@@ -63,7 +64,7 @@
     <div class="card-header calendar-head">
       <h3 class="calendar-head__month">
         {{ calendarHeading }}
-        <span class="pill calendar-head__filter">{{ doctorFilterLabel }}</span>
+        <span class="pill calendar-head__filter" *ngIf="mode !== 'procedure'">{{ doctorFilterLabel }}</span>
       </h3>
       <div class="calendar-head__nav">
         <div class="view-switch">
@@ -413,7 +414,7 @@
       <!-- The chosen time lands in whichever block's window contains it. -->
       <p class="field-hint" *ngIf="form.time && !isLoadingBatches">{{ timeBlockHint }}</p>
 
-      <!-- Patient Type and Chief Complaint are consultation-only; procedures skip them. -->
+      <!-- Patient Type is consultation-only; procedures skip it. -->
       <div class="form-group" *ngIf="mode !== 'procedure'">
         <label class="form-label" for="apptType">Patient Type</label>
         <select id="apptType" class="form-control" [(ngModel)]="form.type">
@@ -421,13 +422,25 @@
         </select>
       </div>
 
-      <div class="form-group" *ngIf="mode !== 'procedure'">
-        <label class="form-label" for="chiefComplaint">Chief Complaint</label>
+      <!--
+        Free-text notes. For consultations it's the Chief Complaint; for
+        procedures it's Chief Notes — the specific procedure and any special
+        instructions (e.g. which ultrasound), so the assigned staff know what to
+        prepare. Both save to the same chiefComplaint field.
+      -->
+      <div class="form-group">
+        <label class="form-label" for="chiefComplaint">
+          {{ mode === 'procedure' ? 'Chief Notes' : 'Chief Complaint' }}
+        </label>
         <textarea
           id="chiefComplaint"
           class="form-control"
           rows="2"
-          placeholder="Reason for the visit..."
+          [placeholder]="
+            mode === 'procedure'
+              ? 'Specific procedure & special instructions (e.g. Breast Ultrasound)...'
+              : 'Reason for the visit...'
+          "
           [(ngModel)]="form.chiefComplaint"
         ></textarea>
       </div>
