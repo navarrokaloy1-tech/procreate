@@ -44,7 +44,7 @@ public class AppointmentBatchesController : ControllerBase
         int PatientId, string PatientName, string PatientCode,
         string DoctorName, string Service, string Status, string Type,
         bool HasArrived, DateTime BookedAt,
-        int Minutes, int? DurationMinutes);
+        int Minutes, int? DurationMinutes, string ChiefComplaint);
 
     public record BatchDto(
         int Id, DateTime BatchDate, string StartTime, string EndTime, string Label,
@@ -558,7 +558,8 @@ public class AppointmentBatchesController : ControllerBase
                     a.Status is "CheckedIn" or "InProgress" or "Completed",
                     a.CreatedAt,
                     BatchBooking.MinutesFor(b, a, serviceDefaults),
-                    a.DurationMinutes))
+                    a.DurationMinutes,
+                    a.ChiefComplaint))
                 .ToList();
 
             var booked = slots.Count(s => !ReleasedStatuses.Contains(s.Status));

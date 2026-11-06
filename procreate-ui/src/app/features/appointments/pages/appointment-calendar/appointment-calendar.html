@@ -203,7 +203,13 @@
         <span class="day-row__time">{{ appointment.scheduledAt | date: 'shortTime' }}</span>
         <span class="day-row__body" [class.day-row__body--void]="isVoided(appointment)">
           <span class="day-row__name">{{ appointment.patientName }}</span>
-          <span class="day-row__meta">{{ appointment.service }} · {{ appointment.doctorName }}</span>
+          <span class="day-row__meta" *ngIf="mode !== 'procedure'">
+            {{ appointment.service }} · {{ appointment.doctorName }}
+          </span>
+          <span class="day-row__meta" *ngIf="mode === 'procedure'">
+            {{ appointment.service }}<ng-container *ngIf="appointment.chiefComplaint">
+              · {{ appointment.chiefComplaint }}</ng-container>
+          </span>
         </span>
         <span class="pill day-row__pill" [class]="'pill day-row__pill ' + statusClass(appointment.status)">
           {{ statusLabel(appointment.status) }}
@@ -273,7 +279,7 @@
           <app-icon name="file-text" [size]="14"></app-icon>
           {{ appointment.service }}
         </p>
-        <p class="slot-card__row">
+        <p class="slot-card__row" *ngIf="mode !== 'procedure'">
           <app-icon name="stethoscope" [size]="14"></app-icon>
           {{ appointment.doctorName }}
         </p>

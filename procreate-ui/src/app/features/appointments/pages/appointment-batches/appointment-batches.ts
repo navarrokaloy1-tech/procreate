@@ -21,6 +21,8 @@ export interface BatchSlot {
   minutes: number;
   /** Set only when this one patient has been given their own minutes. */
   durationMinutes: number | null;
+  /** The booking's Chief Notes — shown in place of the doctor on Procedures. */
+  chiefComplaint: string;
 }
 
 export interface Batch {
