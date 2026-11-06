@@ -255,9 +255,11 @@
                 <tbody>
                   <tr *ngFor="let p of result.parameters">
                     <td>{{ p.parameter }}</td>
-                    <td>
-                      {{ p.value }} <small>{{ p.unit }}</small>
-                      <span [class]="flagClass(p.flag)">{{ p.flag }}</span>
+                    <td class="portal-table__result">
+                      <span class="portal-table__value">
+                        {{ p.value }} <small>{{ p.unit }}</small>
+                      </span>
+                      <span [class]="flagClass(p.flag)" *ngIf="p.flag">{{ p.flag }}</span>
                     </td>
                     <td>{{ p.reference || '—' }}</td>
                   </tr>

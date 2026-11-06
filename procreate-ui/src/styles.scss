@@ -20,7 +20,7 @@
   --primary: #10B981;           // Emerald
   --primary-dark: #059669;      // Darker emerald (hover/accents)
   --primary-light: #D1FAE5;     // Light emerald tint
-  --secondary: #1E3A5F;         // Deep Navy
+  --secondary: #399df7;         // Bright azure (was Deep Navy)
   --success: #28a745;
   --success-light: #d4edda;
   --warning: #ffc107;
@@ -42,7 +42,7 @@
   // Vertical gradient: Emerald fading into a deeper emerald at the foot.
   --sidebar-gradient: linear-gradient(180deg, #10B981 0%, #059669 100%);
   --sidebar-text: #ECFDF5;      // Near-white
-  --sidebar-active: #1E3A5F;    // Deep Navy marker (shows on the emerald rail)
+  --sidebar-active: #399df7;    // Bright azure marker (shows on the emerald rail)
   --header-bg: #ffffff;
   --success-green: #1FA971;
   --success-green-dark: #178a5c;
@@ -55,8 +55,8 @@
   --brand-pink-dark: #059669;
   --brand-black: #16233A;       // Dark navy-gray (was Eerie Black)
   --brand-taupe: #10B981;       // → Emerald (was Light Taupe)
-  --brand-green: #1E3A5F;       // → Deep Navy (was Axolotl)
-  --brand-green-dark: #0F1E33;
+  --brand-green: #399df7;       // → Bright azure (was Deep Navy)
+  --brand-green-dark: #1C7FD4;  // darker azure for hovers/pressed
   --brand-alabaster: #F1F5F9;   // → Cool light gray (was Alabaster)
 
   // Framing for the clinic photograph behind the patient-facing screens
@@ -1461,7 +1461,7 @@ textarea.form-control {
 // ============================================================
 
 :root {
-  --hero-bg: linear-gradient(135deg, #10B981 0%, #1E3A5F 100%);
+  --hero-bg: linear-gradient(135deg, #10B981 0%, #399df7 100%);
   --hero-glow: radial-gradient(circle at 88% 15%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 60%);
   --hero-height: 200px;
   --hero-overlap: 96px;

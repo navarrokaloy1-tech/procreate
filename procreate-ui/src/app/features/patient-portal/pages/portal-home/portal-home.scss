@@ -293,6 +293,21 @@
   td small { color: var(--brand-taupe); }
 
   tr:last-child td { border-bottom: none; }
+
+  // Value + unit sit in a fixed-width group so the flag pills line up in a
+  // single column instead of hugging units of different widths.
+  &__result {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  &__value {
+    flex: 0 0 auto;
+    min-width: 96px;
+    white-space: nowrap;
+  }
 }
 
 .portal-file {
