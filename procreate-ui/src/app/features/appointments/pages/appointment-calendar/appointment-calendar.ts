@@ -674,6 +674,11 @@ export class AppointmentCalendarComponent implements OnInit {
       this.failModal('Please choose a patient.');
       return;
     }
+    // Procedures don't pick a doctor in the sheet; fall back to the first on
+    // file so the booking still has one. Consultations must choose.
+    if (this.mode === 'procedure' && !this.form.doctorId) {
+      this.form.doctorId = this.doctors[0]?.id ?? 0;
+    }
     if (!this.form.doctorId) {
       this.failModal('Please choose a doctor.');
       return;

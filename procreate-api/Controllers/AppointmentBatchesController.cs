@@ -23,6 +23,22 @@ public class AppointmentBatchesController : ControllerBase
     /// <summary>Statuses that no longer occupy a seat in the block.</summary>
     internal static readonly string[] ReleasedStatuses = { "Cancelled", "NoShow" };
 
+    /// <summary>
+    /// Services booked from the Procedures calendar; every other service counts
+    /// as a consultation. The Batches board is split along this line so each
+    /// board shows strictly its own kind. Mirrors PROCEDURE_SERVICES on the UI.
+    /// </summary>
+    internal static readonly HashSet<string> ProcedureServices =
+        new(StringComparer.OrdinalIgnoreCase) { "Ultrasound", "IUI", "Semen Analysis" };
+
+    /// <summary>Whether a service belongs on the board for the given mode (null = both).</summary>
+    private static bool InScope(string? mode, string service) => mode switch
+    {
+        "procedure" => ProcedureServices.Contains(service),
+        "consultation" => !ProcedureServices.Contains(service),
+        _ => true,
+    };
+
     public record BatchSlotDto(
         int AppointmentId, string AppointmentCode, int Position,
         int PatientId, string PatientName, string PatientCode,
@@ -44,7 +60,7 @@ public class AppointmentBatchesController : ControllerBase
         Dictionary<string, int>? ServiceDurations, int? DefaultServiceMinutes);
 
     public record ArrangeGroup(int BatchId, List<int> AppointmentIds);
-    public record ArrangeRequest(DateTime Date, List<ArrangeGroup> Batches);
+    public record ArrangeRequest(DateTime Date, List<ArrangeGroup> Batches, string? Mode = null);
 
     /// <summary>One patient's own minutes; null hands them back to the service default.</summary>
     public record SlotDurationRequest(int? Minutes);
@@ -125,11 +141,17 @@ public class AppointmentBatchesController : ControllerBase
             .Where(a => a.BatchId != null && batches.Select(b => b.Id).Contains(a.BatchId!.Value))
             .ToListAsync();
 
+        // Each board arranges only its own category. The other category's
+        // bookings share these blocks but are left exactly where they are, and
+        // must not count toward the "all appointments present" check below.
+        if (request.Mode is "procedure" or "consultation")
+            appointments = appointments.Where(a => InScope(request.Mode, a.Service)).ToList();
+
         var serviceDefaults = await ServiceDefaultsAsync();
 
-        // Every appointment currently in the day must appear exactly once in
-        // the request. A client working from a stale board would otherwise
-        // silently drop whoever was booked in the meantime.
+        // Every appointment currently in the day (of this category) must appear
+        // exactly once in the request. A client working from a stale board would
+        // otherwise silently drop whoever was booked in the meantime.
         var submitted = request.Batches.SelectMany(g => g.AppointmentIds).ToList();
 
         if (submitted.Count != submitted.Distinct().Count())

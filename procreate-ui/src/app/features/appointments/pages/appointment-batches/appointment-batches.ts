@@ -219,11 +219,50 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Services that belong to the Procedures board; everything else is a consultation. */
+  private readonly procedureServiceSet = new Set(PROCEDURE_SERVICES);
+
+  /** Whether a booked service belongs on this board (procedure vs consultation). */
+  private inMode(service: string): boolean {
+    const isProcedure = this.procedureServiceSet.has(service);
+    return this.isProcedureMode ? isProcedure : !isProcedure;
+  }
+
+  /**
+   * Keeps only the slots that belong on this board and re-tallies each block
+   * from them, so the Consultations board never shows procedures and vice
+   * versa. The server still holds the full block; this is the view onto it.
+   */
+  private scopeToMode(batches: Batch[]): Batch[] {
+    return batches.map(batch => {
+      const slots = batch.slots.filter(slot => this.inMode(slot.service));
+      let seen = 0;
+      let used = 0;
+      for (const slot of slots) {
+        if (this.isReleased(slot.status)) {
+          slot.position = 0;
+        } else {
+          slot.position = ++seen;
+          used += slot.minutes;
+        }
+      }
+      return {
+        ...batch,
+        slots,
+        booked: seen,
+        usedMinutes: used,
+        remainingMinutes: Math.max(0, batch.totalMinutes - used),
+      };
+    });
+  }
+
   private apply(response: DayResponse): void {
-    this.batches = response.data ?? [];
+    this.batches = this.scopeToMode(response.data ?? []);
+    // Block windows are unchanged; only the usage and head count are this
+    // board's own, summed from the slots that belong to it.
     this.totalMinutes = response.totalMinutes ?? 0;
-    this.usedMinutes = response.usedMinutes ?? 0;
-    this.totalBooked = response.booked ?? 0;
+    this.usedMinutes = this.batches.reduce((sum, b) => sum + b.usedMinutes, 0);
+    this.totalBooked = this.batches.reduce((sum, b) => sum + b.booked, 0);
     this.dropListIds = this.batches.map(b => this.dropListId(b));
     this.procedureGroups = this.buildProcedureGroups();
   }
@@ -377,6 +416,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
     const payload = {
       date: this.apiDate,
+      // Scope the save to this board so the other category's bookings in these
+      // blocks are left untouched by a drag here.
+      mode: this.calendarMode,
       batches: this.batches.map(batch => ({
         batchId: batch.id,
         appointmentIds: batch.slots.map(slot => slot.appointmentId),
