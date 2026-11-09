@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 30, 50, 0.55);
+  background: rgba(7, 47, 66, 0.55);
 }
 
 .scanner {
@@ -33,7 +33,7 @@
     transform: translate(-50%, -50%);
     border: 2px solid rgba(255, 255, 255, 0.85);
     border-radius: var(--border-radius);
-    box-shadow: 0 0 0 100vmax rgba(15, 30, 50, 0.45);
+    box-shadow: 0 0 0 100vmax rgba(7, 47, 66, 0.45);
     pointer-events: none;
   }
 

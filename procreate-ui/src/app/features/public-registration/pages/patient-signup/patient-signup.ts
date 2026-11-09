@@ -431,7 +431,7 @@ export class PatientSignup implements OnInit, OnDestroy {
         errorCorrectionLevel: 'M',
         margin: 1,
         width: 320,
-        color: { dark: '#2D1B0E', light: '#FFFFFF' },
+        color: { dark: '#0B4F6C', light: '#FFFFFF' },
       });
     } catch {
       // Registration itself succeeded; the code is a convenience, so a failure

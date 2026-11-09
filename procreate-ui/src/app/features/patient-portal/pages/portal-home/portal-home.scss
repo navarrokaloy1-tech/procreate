@@ -16,7 +16,7 @@
     gap: 16px;
     padding: 14px 24px;
     background: var(--white);
-    border-bottom: 1px solid rgba(30, 30, 25, 0.1);
+    border-bottom: 1px solid rgba(18, 48, 63, 0.1);
   }
 
   &__logo {
@@ -207,7 +207,7 @@
     padding: 10px 0;
     flex-wrap: wrap;
 
-    & + li { border-top: 1px solid rgba(30, 30, 25, 0.08); }
+    & + li { border-top: 1px solid rgba(18, 48, 63, 0.08); }
 
     strong { color: var(--brand-black); }
 
@@ -220,7 +220,7 @@
 }
 
 .portal-result {
-  border: 1px solid rgba(30, 30, 25, 0.1);
+  border: 1px solid rgba(18, 48, 63, 0.1);
   border-radius: var(--border-radius);
 
   & + & { margin-top: 10px; }
@@ -279,7 +279,7 @@
     padding: 9px 8px;
     text-align: left;
     font-size: var(--font-size-base);
-    border-bottom: 1px solid rgba(30, 30, 25, 0.08);
+    border-bottom: 1px solid rgba(18, 48, 63, 0.08);
   }
 
   th {
@@ -317,7 +317,7 @@
   padding: 11px 0;
 
   &:first-of-type { padding-top: 0; }
-  & + & { border-top: 1px solid rgba(30, 30, 25, 0.08); }
+  & + & { border-top: 1px solid rgba(18, 48, 63, 0.08); }
 
   &__body { flex: 1 1 auto; min-width: 0; }
 
@@ -376,7 +376,7 @@
 .spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid rgba(5, 150, 105, 0.3);
+  border: 3px solid rgba(11, 79, 108, 0.3);
   border-top-color: var(--brand-green);
   border-radius: 50%;
   animation: portal-spin 0.7s linear infinite;
@@ -627,7 +627,7 @@
       &:focus {
         outline: none;
         border-color: var(--brand-green);
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+        box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.2);
       }
     }
 

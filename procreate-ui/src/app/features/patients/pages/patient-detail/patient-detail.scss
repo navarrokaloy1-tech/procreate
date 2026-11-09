@@ -435,7 +435,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 30, 50, 0.55);
+  background: rgba(7, 47, 66, 0.55);
 }
 
 // The Lab Results History footer carries the send/print actions and reads as
@@ -497,7 +497,7 @@
 
     &:hover:not(:disabled) {
       border-color: var(--secondary);
-      color: var(--secondary);
+      color: var(--secondary-dark);
     }
 
     &:disabled {

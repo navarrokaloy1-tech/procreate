@@ -58,7 +58,7 @@
     padding: 36px;
     border-radius: var(--border-radius-lg);
     // Deep navy at partial opacity, so the frontage reads through it.
-    background: rgba(30, 58, 95, 0.8);
+    background: rgba(11, 79, 108, 0.8);
     box-shadow: var(--shadow-lg);
 
     @media (max-width: 600px) {
@@ -161,7 +161,7 @@
     &:focus {
       outline: none;
       border-color: var(--brand-green);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3);
+      box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.3);
     }
   }
 

@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 30, 50, 0.55);
+  background: rgba(7, 47, 66, 0.55);
 }
 
 .delivery {
@@ -248,7 +248,7 @@ input.form-control:disabled {
     max-height: 60vh;
     overflow: auto;
     padding: 14px;
-    background: #e9e6e1;
+    background: #E8EDF1;
   }
 }
 
@@ -261,9 +261,9 @@ input.form-control:disabled {
 // black-and-red document colours rather than the console espresso palette,
 // because this is a document a patient keeps, not a screen.
 
-$rx-ink: #1b1b16;
-$rx-muted: #6b6b60;
-$rx-rule: #1b3a5c;
+$rx-ink: #12303F;
+$rx-muted: #64748B;
+$rx-rule: #0B4F6C;
 $rx-danger: #a71d2a;
 
 .rx {
@@ -560,7 +560,7 @@ $rx-danger: #a71d2a;
 
   &--open &__toggle {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+    box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.15);
   }
 
   &__placeholder { color: var(--text-secondary); }

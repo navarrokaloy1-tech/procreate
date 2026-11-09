@@ -16,11 +16,19 @@
 
 // CSS Custom Properties
 :root {
-  // --- Emerald + Deep Navy (trial scheme) --------------------
-  --primary: #10B981;           // Emerald
-  --primary-dark: #059669;      // Darker emerald (hover/accents)
-  --primary-light: #D1FAE5;     // Light emerald tint
-  --secondary: #399df7;         // Bright azure (was Deep Navy)
+  // --- Harbour Teal + Sky ------------------------------------
+  // Primary #0B4F6C and secondary #3FA7D6 are the clinic's two brand
+  // colours; every other value below is derived from them.
+  //
+  // --secondary is the bright accent: markers, rules, borders, tints.
+  // It is too light to carry white text (2.7:1), so any surface that
+  // does takes --secondary-dark instead, which clears AA at 4.5:1.
+  --primary: #0B4F6C;           // Harbour teal
+  --primary-dark: #083A50;      // Deeper teal (hover/pressed)
+  --primary-light: #DCEDF5;     // Pale teal tint
+  --secondary: #3FA7D6;         // Sky blue accent
+  --secondary-dark: #1A7296;    // Sky, dark enough for text and white-on-it
+  --secondary-light: #E4F3FB;   // Pale sky tint
   --success: #28a745;
   --success-light: #d4edda;
   --warning: #ffc107;
@@ -30,34 +38,35 @@
   --info: #17a2b8;
   --info-light: #d1ecf1;
   --light: #F1F5F9;             // Cool light gray
-  --dark: #0F1E33;              // Deep navy-black
+  --dark: #072F42;              // Near-black teal
   --white: #ffffff;
   --body-bg: #F1F5F9;           // Cool light gray
   --card-bg: #ffffff;
   --border-color: #E2E8F0;      // Cool gray border
-  --text-primary: #16233A;      // Dark navy-gray
-  --text-secondary: #1E3A5F;    // Deep Navy
+  --text-primary: #12303F;      // Teal-tinted ink
+  --text-secondary: #0B4F6C;    // Harbour teal
   --text-muted: #64748B;        // Slate gray
-  --sidebar-bg: #10B981;        // Emerald (fallback)
-  // Vertical gradient: Emerald fading into a deeper emerald at the foot.
-  --sidebar-gradient: linear-gradient(180deg, #10B981 0%, #059669 100%);
-  --sidebar-text: #ECFDF5;      // Near-white
-  --sidebar-active: #399df7;    // Bright azure marker (shows on the emerald rail)
+  --sidebar-bg: #0B4F6C;        // Harbour teal (fallback)
+  // Vertical gradient: harbour teal sinking to near-black at the foot.
+  --sidebar-gradient: linear-gradient(180deg, #0B4F6C 0%, #06374A 100%);
+  --sidebar-text: #DCEDF5;      // Near-white, teal-tinted
+  --sidebar-active: #3FA7D6;    // Sky marker (shows on the teal rail)
   --header-bg: #ffffff;
   --success-green: #1FA971;
   --success-green-dark: #178a5c;
 
   // ----------------------------------------------------------
-  // Brand palette, from the clinic identity sheet. Used by the two
-  // sign-in screens; the console keeps the espresso scheme above.
+  // Aliases kept for the sign-in, portal and registration screens,
+  // which were written against the old identity-sheet names. They
+  // now resolve onto the two brand colours above.
   // ----------------------------------------------------------
-  --brand-pink: #10B981;        // accent → Emerald (was Ruddy Pink)
-  --brand-pink-dark: #059669;
-  --brand-black: #16233A;       // Dark navy-gray (was Eerie Black)
-  --brand-taupe: #10B981;       // → Emerald (was Light Taupe)
-  --brand-green: #399df7;       // → Bright azure (was Deep Navy)
-  --brand-green-dark: #1C7FD4;  // darker azure for hovers/pressed
-  --brand-alabaster: #F1F5F9;   // → Cool light gray (was Alabaster)
+  --brand-pink: #1A7296;        // accent action → deep sky (takes white text)
+  --brand-pink-dark: #145B78;
+  --brand-black: #12303F;       // ink
+  --brand-taupe: #0B4F6C;       // labels and muted copy → harbour teal
+  --brand-green: #0B4F6C;       // primary action → harbour teal
+  --brand-green-dark: #083A50;
+  --brand-alabaster: #F1F5F9;   // cool light gray
 
   // Framing for the clinic photograph behind the patient-facing screens
   // (portal sign-in and self-registration). Both read these, so reframing the
@@ -274,7 +283,7 @@ small {
       transition: background-color var(--transition);
 
       &:hover {
-        background-color: rgba(5, 150, 105, 0.06);
+        background-color: rgba(11, 79, 108, 0.06);
       }
 
       &:last-child {
@@ -474,7 +483,7 @@ small {
   &:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+    box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.25);
   }
 
   &:disabled,
@@ -600,8 +609,8 @@ textarea.form-control {
   }
 
   &-secondary {
-    background-color: #e9ecef;
-    color: var(--secondary);
+    background-color: var(--secondary-light);
+    color: var(--secondary-dark);
   }
 
   &-primary {
@@ -760,7 +769,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+      box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.25);
     }
   }
 
@@ -816,7 +825,8 @@ textarea.form-control {
 
   &.active {
     color: var(--white);
-    background-color: var(--secondary);
+    // The deep sky, not the bright one: white on #3FA7D6 is only 2.7:1.
+    background-color: var(--secondary-dark);
     font-weight: 600;
   }
 
@@ -1457,11 +1467,11 @@ textarea.form-control {
 // Every value below resolves to a token declared in :root, so the
 // palette is unchanged. --hero-bg is the single knob for the banner:
 // swap it for `linear-gradient(135deg, var(--primary-dark), var(--primary))`
-// to get a tan banner instead of the espresso one.
+// to get a flat teal banner instead of the teal-to-sky one.
 // ============================================================
 
 :root {
-  --hero-bg: linear-gradient(135deg, #10B981 0%, #399df7 100%);
+  --hero-bg: linear-gradient(135deg, #0B4F6C 0%, #3FA7D6 100%);
   --hero-glow: radial-gradient(circle at 88% 15%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 60%);
   --hero-height: 200px;
   --hero-overlap: 96px;
@@ -1686,7 +1696,7 @@ textarea.form-control {
     &:hover { color: var(--text-primary); }
 
     &.active {
-      background: var(--secondary);
+      background: var(--secondary-dark);
       color: var(--white);
       font-weight: 600;
     }
@@ -1708,7 +1718,7 @@ textarea.form-control {
   }
 
   &__tab.active &__count {
-    background: rgba(30, 30, 25, 0.35);
+    background: rgba(18, 48, 63, 0.35);
     color: var(--white);
   }
 }
@@ -1759,7 +1769,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+      box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.18);
     }
   }
 }
@@ -1782,7 +1792,7 @@ textarea.form-control {
     &:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+      box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.18);
     }
   }
 

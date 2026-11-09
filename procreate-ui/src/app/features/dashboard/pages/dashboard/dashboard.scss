@@ -38,20 +38,23 @@
   border: 1px solid var(--border-color);
   border-left: 4px solid transparent;
 
+  // The four stripes walk the palette from deepest teal to brightest
+  // sky, so the tiles stay distinguishable now that the whole scheme is
+  // one hue family. The class names are historical.
   &--blue {
-    border-left-color: var(--brand-taupe);
+    border-left-color: var(--primary-dark);
   }
 
   &--green {
-    border-left-color: var(--brand-green);
+    border-left-color: var(--primary);
   }
 
   &--orange {
-    border-left-color: var(--brand-pink);
+    border-left-color: var(--secondary-dark);
   }
 
   &--teal {
-    border-left-color: var(--brand-black);
+    border-left-color: var(--secondary);
   }
 
   &__content {

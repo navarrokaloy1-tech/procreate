@@ -30,7 +30,7 @@
     transition: background-color var(--transition), color var(--transition);
 
     &:hover {
-      background-color: rgba(5, 150, 105, 0.14);
+      background-color: rgba(11, 79, 108, 0.14);
       color: var(--primary-dark);
     }
   }
@@ -59,7 +59,7 @@
     &:hover,
     &:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3);
+      box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.3);
     }
   }
 
