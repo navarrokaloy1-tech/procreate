@@ -51,8 +51,12 @@ interface DayResponse {
 
 /** One patient on the Procedures board, kept with the block they really sit in. */
 export interface ProcedureRow {
-  /** The block the appointment physically belongs to — needed to save minutes. */
-  batch: Batch;
+  /**
+   * The block the appointment physically belongs to — needed to save minutes.
+   * Null when it was booked at an exact time and sits in no block; a procedure
+   * is still run that day, so it belongs on the card either way.
+   */
+  batch: Batch | null;
   slot: BatchSlot;
 }
 
@@ -75,6 +79,7 @@ export interface UnscheduledAppt {
   status: string;
   type: string;
   scheduledAt: string;
+  chiefComplaint: string;
   batchId: number | null;
   isArchived: boolean;
 }
@@ -99,6 +104,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   procedureGroups: ProcedureGroup[] = [];
   /** Exact-time bookings for the day that sit in no block — shown on their own. */
   unscheduled: UnscheduledAppt[] = [];
+
+  /** Every exact-time booking for the day, before either board claims its own. */
+  private allUnscheduled: UnscheduledAppt[] = [];
   selectedDate = new Date();
 
   /** Which calendar the user came from, so the tab strip pairs Batches with it. */
@@ -207,18 +215,56 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   /**
    * Appointments booked for this day at an exact time — those sit in no block,
-   * so the block board would otherwise never show them. Listed separately.
+   * so the block board would otherwise never show them.
    */
   private loadUnscheduled(): void {
     this.api.get<{ data: UnscheduledAppt[] }>('appointments', { date: this.apiDate }).subscribe({
       next: res => {
-        this.unscheduled = (res.data ?? [])
+        this.allUnscheduled = (res.data ?? [])
           .filter(a => a.batchId == null && !a.isArchived)
           .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+        this.applyUnscheduled();
         this.cdr.markForCheck();
       },
       error: () => this.cdr.markForCheck(),
     });
+  }
+
+  /**
+   * Hands each exact-time booking to the board its service belongs to.
+   *
+   * On Consultations they stay a list of their own — a consultation really is
+   * booked for a time of day. A procedure is not: it is run whenever the day's
+   * list reaches it, so on Procedures these are folded into the card for their
+   * procedure instead of being stranded in a separate "exact-time" strip.
+   */
+  private applyUnscheduled(): void {
+    this.unscheduled = this.isProcedureMode
+      ? []
+      : this.allUnscheduled.filter(a => this.inMode(a.service));
+    this.procedureGroups = this.buildProcedureGroups();
+    this.recount();
+  }
+
+  /** An exact-time booking dressed as a board row, so one card draws both kinds. */
+  private slotFrom(appt: UnscheduledAppt): BatchSlot {
+    return {
+      appointmentId: appt.id,
+      appointmentCode: appt.appointmentCode,
+      position: 0,
+      patientId: 0,
+      patientName: appt.patientName,
+      patientCode: appt.patientCode,
+      doctorName: appt.doctorName,
+      service: appt.service,
+      status: appt.status,
+      type: appt.type,
+      hasArrived: false,
+      bookedAt: appt.scheduledAt,
+      minutes: 0,
+      durationMinutes: null,
+      chiefComplaint: appt.chiefComplaint ?? '',
+    };
   }
 
   /** Services that belong to the Procedures board; everything else is a consultation. */
@@ -264,9 +310,19 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     // board's own, summed from the slots that belong to it.
     this.totalMinutes = response.totalMinutes ?? 0;
     this.usedMinutes = this.batches.reduce((sum, b) => sum + b.usedMinutes, 0);
-    this.totalBooked = this.batches.reduce((sum, b) => sum + b.booked, 0);
     this.dropListIds = this.batches.map(b => this.dropListId(b));
     this.procedureGroups = this.buildProcedureGroups();
+    this.recount();
+  }
+
+  /**
+   * The day's head count for this board. On Procedures it is summed from the
+   * cards, which take in exact-time bookings the blocks know nothing about.
+   */
+  private recount(): void {
+    this.totalBooked = this.isProcedureMode
+      ? this.procedureGroups.reduce((sum, g) => sum + g.booked, 0)
+      : this.batches.reduce((sum, b) => sum + b.booked, 0);
   }
 
   // ----------------------------------------------------------
@@ -290,6 +346,10 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
         for (const slot of batch.slots) {
           if (slot.service === procedure) rows.push({ batch, slot });
         }
+      }
+      // Booked at an exact time, so in no block — still this procedure's work.
+      for (const appt of this.allUnscheduled) {
+        if (appt.service === procedure) rows.push({ batch: null, slot: this.slotFrom(appt) });
       }
       const booked = rows.filter(r => !this.isReleased(r.slot.status)).length;
       return { procedure, rows, booked };
@@ -358,11 +418,14 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     return Math.max(0, batch.defaultServiceMinutes);
   }
 
-  /** Minutes a booked patient takes: their own, else their service's. */
-  slotCost(batch: Batch, slot: BatchSlot): number {
-    return slot.durationMinutes && slot.durationMinutes > 0
-      ? slot.durationMinutes
-      : this.minutesFor(batch, slot.service);
+  /**
+   * Minutes a booked patient takes: their own, else their service's. With no
+   * block (an exact-time booking) there is no per-block override to apply, so
+   * the clinic-wide default for the service stands.
+   */
+  slotCost(batch: Batch | null, slot: BatchSlot): number {
+    if (slot.durationMinutes && slot.durationMinutes > 0) return slot.durationMinutes;
+    return batch ? this.minutesFor(batch, slot.service) : this.defaultFor(slot.service);
   }
 
   onDrop(event: CdkDragDrop<BatchSlot[]>): void {
@@ -667,7 +730,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   }
 
   /** Pencil: unlock this patient's minutes, starting from what they have now. */
-  startSlotEdit(batch: Batch, slot: BatchSlot): void {
+  startSlotEdit(batch: Batch | null, slot: BatchSlot): void {
     this.slotMinutesDraft[slot.appointmentId] = this.slotCost(batch, slot);
     this.editingSlotMinutes.add(slot.appointmentId);
   }
@@ -681,7 +744,14 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
    * Saves minutes for this one patient. The procedure's default is left alone
    * — typing the default back in simply hands the patient back to it.
    */
-  saveSlotMinutes(batch: Batch, slot: BatchSlot): void {
+  saveSlotMinutes(batch: Batch | null, slot: BatchSlot): void {
+    // Per-patient minutes only mean something inside a block's budget; the
+    // board hides the pencil without one, so this is just the matching guard.
+    if (!batch) {
+      this.cancelSlotEdit(slot);
+      return;
+    }
+
     const minutes = Number(this.slotMinutesDraft[slot.appointmentId]);
 
     if (!Number.isFinite(minutes) || minutes < 1) {

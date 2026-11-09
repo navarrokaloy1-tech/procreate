@@ -10,6 +10,21 @@
       "autoPort": false
     },
     {
+      "name": "procreate-api-sqlite",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--no-launch-profile",
+        "--",
+        "--urls",
+        "http://localhost:5230",
+        "--ConnectionStrings:DefaultConnection= "
+      ],
+      "cwd": "procreate-api",
+      "port": 5230,
+      "autoPort": false
+    },
+    {
       "name": "dev-idp",
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],

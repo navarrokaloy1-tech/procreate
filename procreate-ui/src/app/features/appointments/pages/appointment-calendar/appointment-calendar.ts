@@ -623,9 +623,18 @@ export class AppointmentCalendarComponent implements OnInit {
     ) ?? null;
   }
 
-  /** Tells the user which block the chosen time will land the booking in. */
+  /**
+   * Tells the user where the chosen time will land the booking.
+   *
+   * A procedure is not run to the clock — it lands on its procedure's card on
+   * the Batches board whether or not a block happens to cover the time — so
+   * saying "no block covers this time" there would only be confusing.
+   */
   get timeBlockHint(): string {
     if (!this.form.time) return '';
+    if (this.mode === 'procedure') {
+      return `Goes onto the ${this.form.service} card on the Batches board.`;
+    }
     const block = this.blockForTime(this.form.time);
     return block
       ? `Goes into the ${block.label} block on the Batches board.`

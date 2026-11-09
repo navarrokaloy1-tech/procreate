@@ -65,7 +65,7 @@
     <p class="batch-bar__count" *ngIf="batches.length > 0 && !isProcedureMode">
       {{ usedMinutes }} of {{ totalMinutes }} min booked · {{ totalBooked }} patients
     </p>
-    <p class="batch-bar__count" *ngIf="batches.length > 0 && isProcedureMode">
+    <p class="batch-bar__count" *ngIf="isProcedureMode">
       {{ totalBooked }} {{ totalBooked === 1 ? 'patient' : 'patients' }} booked
     </p>
     <span class="batch-bar__saving" *ngIf="isSaving">
@@ -96,8 +96,9 @@
     <p>Loading the day...</p>
   </div>
 
-  <!-- No blocks defined for this weekday -->
-  <div class="empty-state" *ngIf="!isLoading && batches.length === 0">
+  <!-- No blocks defined for this weekday. The Procedures board is not built from
+       blocks, so it keeps its cards and never shows this. -->
+  <div class="empty-state" *ngIf="!isLoading && !isProcedureMode && batches.length === 0">
     <span class="empty-state__icon"><app-icon name="clock" [size]="30"></app-icon></span>
     <h3>No session blocks for this day</h3>
     <p>
@@ -217,7 +218,7 @@
   </div>
 
   <!-- Procedures board: one card per procedure, patients grouped by their procedure. -->
-  <div class="batch-grid" *ngIf="!isLoading && isProcedureMode && batches.length > 0">
+  <div class="batch-grid" *ngIf="!isLoading && isProcedureMode">
     <section
       class="batch"
       *ngFor="let group of procedureGroups; trackBy: trackProcedureGroup"
@@ -268,10 +269,12 @@
                 [attr.aria-label]="'Minutes for ' + row.slot.patientName"
               />
 
+              <!-- Only a patient inside a block has minutes to re-cut: the
+                   length is charged against that block's window. -->
               <button
                 type="button"
                 class="tool-btn slot__minutes-edit"
-                *ngIf="!isEditingSlotMinutes(row.slot)"
+                *ngIf="row.batch && !isEditingSlotMinutes(row.slot)"
                 (click)="startSlotEdit(row.batch, row.slot)"
                 [attr.aria-label]="'Edit minutes for ' + row.slot.patientName"
                 title="Change the minutes for this patient only"
@@ -326,8 +329,9 @@
     </section>
   </div>
 
-  <!-- Exact-time bookings for the day that sit in no block; still shown here. -->
-  <div class="unscheduled" *ngIf="!isLoading && unscheduled.length > 0">
+  <!-- Consultations booked at an exact time, which sit in no block. Procedures
+       are not run to the clock, so there they go onto their procedure's card. -->
+  <div class="unscheduled" *ngIf="!isLoading && !isProcedureMode && unscheduled.length > 0">
     <div class="unscheduled__head">
       <app-icon name="clock" [size]="15"></app-icon>
       Exact-time bookings (not in a block)

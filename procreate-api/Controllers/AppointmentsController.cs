@@ -134,7 +134,7 @@ public class AppointmentsController : ControllerBase
 
         var scheduledAt = ScheduledAtFor(request, batch);
 
-        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, batch is not null);
+        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, service, batch is not null);
         if (validation is not null) return validation;
 
         var appointment = new Appointment
@@ -174,7 +174,7 @@ public class AppointmentsController : ControllerBase
 
         var scheduledAt = ScheduledAtFor(request, batch);
 
-        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, batch is not null, id);
+        var validation = await ValidateAsync(request with { ScheduledAt = scheduledAt }, service, batch is not null, id);
         if (validation is not null) return validation;
 
         // Moving into a different block puts the patient at the back of it; the
@@ -275,9 +275,16 @@ public class AppointmentsController : ControllerBase
     /// <summary>
     /// Rejects unknown patients/doctors, out-of-hours slots, and double-booking
     /// the same practitioner at the same time.
+    ///
+    /// Procedures are the exception: they are run by the clinic rather than
+    /// booked against a named practitioner — the Procedures sheet does not even
+    /// offer a doctor — so none of the doctor's own rules (working days, hours,
+    /// clashes) apply to them. Only that the doctor on the record exists is
+    /// still checked, since the appointment has to point at one.
     /// </summary>
     private async Task<IActionResult?> ValidateAsync(
-        AppointmentWriteRequest request, bool batched = false, int? excludeAppointmentId = null)
+        AppointmentWriteRequest request, string service,
+        bool batched = false, int? excludeAppointmentId = null)
     {
         if (request.ScheduledAt == default)
             return BadRequest(new { message = "A date and time is required." });
@@ -291,6 +298,8 @@ public class AppointmentsController : ControllerBase
 
         if (doctor is null)
             return BadRequest(new { message = "Selected doctor does not exist." });
+
+        if (AppointmentBatchesController.ProcedureServices.Contains(service)) return null;
 
         if (!doctor.IsActive)
             return BadRequest(new { message = "Selected doctor is inactive." });
