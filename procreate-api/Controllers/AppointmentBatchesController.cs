@@ -381,9 +381,11 @@ public class AppointmentBatchesController : ControllerBase
     /// adjusts any one window afterwards.
     ///
     /// This date only — the weekday template other days inherit is left alone,
-    /// the same promise the block editor makes. Patients already placed in the
-    /// day are the one thing it will not do: re-cutting the windows underneath
-    /// them would silently move people, so the day has to be empty first.
+    /// the same promise the block editor makes. Consultations already placed in
+    /// the day are the one thing it will not do: re-cutting the windows
+    /// underneath a queue would silently move people, so the day has to be clear
+    /// of them first. Procedures share these blocks but do not depend on them,
+    /// and are simply let go of.
     /// </summary>
     [HttpPut("day/blocks")]
     public async Task<IActionResult> SetDayBlocks([FromBody] DayBlockCountRequest request)
@@ -413,19 +415,39 @@ public class AppointmentBatchesController : ControllerBase
             .OrderBy(b => b.StartTime)
             .ToListAsync();
 
-        var booked = existing.Sum(b => b.Appointments.Count(a => !a.IsArchived));
-        if (booked > 0)
+        var inBlocks = existing.SelectMany(b => b.Appointments).ToList();
+
+        // These blocks are shared with the Procedures board, but a procedure is
+        // not run to the clock — it shows on its procedure's card whether or not
+        // a block covers it. Only a consultation, whose place in a queue is the
+        // whole point of the block, can stand in the way of re-cutting the day.
+        var consultations = inBlocks
+            .Where(a => !a.IsArchived && !ProcedureServices.Contains(a.Service))
+            .ToList();
+
+        if (consultations.Count > 0)
             return Conflict(new
             {
-                message = booked == 1
-                    ? "Move or cancel the patient booked into this day before changing its blocks."
-                    : $"Move or cancel the {booked} patients booked into this day before changing its blocks."
+                message = consultations.Count == 1
+                    ? "Move or cancel the consultation booked into this day before changing its blocks."
+                    : $"Move or cancel the {consultations.Count} consultations booked into this day before changing its blocks."
             });
 
         // The day's existing service minutes are a setting, not a side effect of
         // how it happened to be divided, so the new blocks inherit them.
         var durationsJson = existing.FirstOrDefault()?.ServiceDurationsJson ?? "{}";
         var defaultMinutes = existing.FirstOrDefault()?.DefaultServiceMinutes ?? 15;
+
+        // Whatever is left in these blocks is a procedure (or archived), and the
+        // blocks are about to cease to exist. Let go of them first, by hand
+        // rather than by leaving it to the optional FK, so the row is explicit:
+        // the appointment keeps its date, its time and its place on the
+        // Procedures board, it just stops pointing at a block.
+        foreach (var appointment in inBlocks)
+        {
+            appointment.BatchId = null;
+            appointment.QueuePosition = 0;
+        }
 
         _db.AppointmentBatches.RemoveRange(existing);
         await _db.SaveChangesAsync();
