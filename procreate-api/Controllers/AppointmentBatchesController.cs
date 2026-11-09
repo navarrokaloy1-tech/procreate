@@ -69,6 +69,15 @@ public class AppointmentBatchesController : ControllerBase
     public record BlockTimeUpdate(int Id, string StartTime, string EndTime);
     public record DayTimesRequest(DateTime Date, List<BlockTimeUpdate> Blocks);
 
+    /// <summary>A day's clinic window re-cut into <paramref name="Count"/> equal blocks.</summary>
+    public record DayBlockCountRequest(DateTime Date, int Count, string StartTime, string EndTime);
+
+    /// <summary>Fewest minutes a block can run and still be worth booking into.</summary>
+    private const int MinBlockMinutes = 15;
+
+    /// <summary>More blocks than a clinic day sensibly divides into.</summary>
+    private const int MaxBlocksPerDay = 12;
+
     // ----------------------------------------------------------
     // Reading a day
     // ----------------------------------------------------------
@@ -365,6 +374,88 @@ public class AppointmentBatchesController : ControllerBase
         return Ok(new { date = day, data = await LoadDayAsync(day) });
     }
 
+    /// <summary>
+    /// Re-cuts one day into a given number of equal blocks across the clinic
+    /// window. This is how the front desk says "run five sessions today"
+    /// instead of building each block by hand; the pencil on a block still
+    /// adjusts any one window afterwards.
+    ///
+    /// This date only — the weekday template other days inherit is left alone,
+    /// the same promise the block editor makes. Patients already placed in the
+    /// day are the one thing it will not do: re-cutting the windows underneath
+    /// them would silently move people, so the day has to be empty first.
+    /// </summary>
+    [HttpPut("day/blocks")]
+    public async Task<IActionResult> SetDayBlocks([FromBody] DayBlockCountRequest request)
+    {
+        var day = request.Date.Date;
+
+        if (request.Count is < 1 or > MaxBlocksPerDay)
+            return BadRequest(new { message = $"A day runs between 1 and {MaxBlocksPerDay} blocks." });
+
+        var invalid = ValidateWindow(request.StartTime, request.EndTime);
+        if (invalid is not null) return invalid;
+
+        var from = (int)ParseTime(request.StartTime).TotalMinutes;
+        var to = (int)ParseTime(request.EndTime).TotalMinutes;
+        var span = to - from;
+
+        if (span < request.Count * MinBlockMinutes)
+            return BadRequest(new
+            {
+                message = $"{Display(request.StartTime)}–{Display(request.EndTime)} is {span} min; "
+                        + $"{request.Count} blocks need at least {request.Count * MinBlockMinutes}."
+            });
+
+        var existing = await _db.AppointmentBatches
+            .Include(b => b.Appointments)
+            .Where(b => b.BatchDate == day)
+            .OrderBy(b => b.StartTime)
+            .ToListAsync();
+
+        var booked = existing.Sum(b => b.Appointments.Count(a => !a.IsArchived));
+        if (booked > 0)
+            return Conflict(new
+            {
+                message = booked == 1
+                    ? "Move or cancel the patient booked into this day before changing its blocks."
+                    : $"Move or cancel the {booked} patients booked into this day before changing its blocks."
+            });
+
+        // The day's existing service minutes are a setting, not a side effect of
+        // how it happened to be divided, so the new blocks inherit them.
+        var durationsJson = existing.FirstOrDefault()?.ServiceDurationsJson ?? "{}";
+        var defaultMinutes = existing.FirstOrDefault()?.DefaultServiceMinutes ?? 15;
+
+        _db.AppointmentBatches.RemoveRange(existing);
+        await _db.SaveChangesAsync();
+
+        // Integer division leaves a remainder; handing one spare minute to each
+        // of the earliest blocks keeps the last one ending exactly at EndTime.
+        var size = span / request.Count;
+        var spare = span % request.Count;
+        var cursor = from;
+
+        for (var i = 0; i < request.Count; i++)
+        {
+            var length = size + (i < spare ? 1 : 0);
+
+            _db.AppointmentBatches.Add(new AppointmentBatch
+            {
+                BatchDate = day,
+                StartTime = ToHHmm(cursor),
+                EndTime = ToHHmm(cursor + length),
+                ServiceDurationsJson = durationsJson,
+                DefaultServiceMinutes = defaultMinutes
+            });
+
+            cursor += length;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { date = day, data = await LoadDayAsync(day) });
+    }
+
     /// <summary>Adds a one-off block to a date — an extra evening session, say.</summary>
     [HttpPost]
     public async Task<IActionResult> Create(
@@ -618,6 +709,13 @@ public class AppointmentBatchesController : ControllerBase
 
         var defaultMinutes = request.DefaultServiceMinutes is > 0 ? request.DefaultServiceMinutes.Value : 15;
         return (JsonSerializer.Serialize(map), defaultMinutes);
+    }
+
+    /// <summary>Minutes past midnight as "HH:mm", clamped to a single day.</summary>
+    private static string ToHHmm(int minutes)
+    {
+        var clamped = Math.Clamp(minutes, 0, 24 * 60);
+        return $"{clamped / 60:D2}:{clamped % 60:D2}";
     }
 
     /// <summary>"09:00" as a TimeSpan; falls back to midnight on anything odd.</summary>

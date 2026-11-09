@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../../../core/services/api';
@@ -135,6 +135,21 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   /** Ids of every block, so each list accepts drops from the others. */
   dropListIds: string[] = [];
+
+  // --- How many blocks the day runs ---
+  /**
+   * Consultations only. The Procedures board is one card per procedure, not a
+   * clock, so a block count would mean nothing there.
+   */
+  isCountModalOpen = false;
+  countError = '';
+  countForm = { count: 3, startTime: '09:00', endTime: '18:00' };
+
+  /** Blocks visible at once before the board turns into a carousel. */
+  readonly visibleBlocks = 3;
+
+  /** The scrolling track, so the arrows can move it a card at a time. */
+  @ViewChild('blockTrack') private blockTrack?: ElementRef<HTMLElement>;
 
   // --- Edit block modal ---
   isModalOpen = false;
@@ -313,6 +328,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     this.dropListIds = this.batches.map(b => this.dropListId(b));
     this.procedureGroups = this.buildProcedureGroups();
     this.recount();
+    // A different day is a different rail; leaving the dots mid-way would point
+    // at a page the new day may not even have.
+    this.blockPage = 0;
   }
 
   /**
@@ -505,6 +523,169 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
         this.load(true);
       },
     });
+  }
+
+  // ----------------------------------------------------------
+  // How many blocks the day runs
+  // ----------------------------------------------------------
+
+  /**
+   * Opens on the day as it stands, so the common change — "make it five
+   * instead of three" — is one keystroke. The window defaults to the hours the
+   * day already covers rather than a fixed 9–6, which would quietly move the
+   * clinic's opening time on a day that runs differently.
+   */
+  openBlockCount(): void {
+    const ordered = this.orderedByStart();
+
+    this.countForm = {
+      count: this.batches.length || 3,
+      startTime: ordered[0]?.startTime ?? '09:00',
+      endTime: ordered[ordered.length - 1]?.endTime ?? '18:00',
+    };
+
+    this.countError = '';
+    this.isCountModalOpen = true;
+  }
+
+  closeBlockCount(): void {
+    this.isCountModalOpen = false;
+  }
+
+  /** The windows the current form would produce — shown before anything is saved. */
+  get countPreview(): string[] {
+    const count = Math.round(Number(this.countForm.count));
+    const from = this.parseHHmm(this.countForm.startTime);
+    const to = this.parseHHmm(this.countForm.endTime);
+    const span = to - from;
+
+    if (!Number.isFinite(count) || count < 1 || count > 12) return [];
+    if (span < count * 15) return [];
+
+    // Mirrors the server's division, remainder first, so the preview is the
+    // same arithmetic the save will do rather than a rounded guess.
+    const size = Math.floor(span / count);
+    const spare = span % count;
+    const windows: string[] = [];
+    let cursor = from;
+
+    for (let i = 0; i < count; i++) {
+      const length = size + (i < spare ? 1 : 0);
+      windows.push(`${this.display(cursor)} – ${this.display(cursor + length)}`);
+      cursor += length;
+    }
+
+    return windows;
+  }
+
+  /** Minutes past midnight as "9:00 AM", matching the labels the server sends. */
+  private display(minutes: number): string {
+    const h24 = Math.floor(minutes / 60) % 24;
+    const m = minutes % 60;
+    const suffix = h24 < 12 ? 'AM' : 'PM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${`${m}`.padStart(2, '0')} ${suffix}`;
+  }
+
+  saveBlockCount(): void {
+    const count = Math.round(Number(this.countForm.count));
+
+    if (!Number.isFinite(count) || count < 1 || count > 12) {
+      this.countError = 'A day runs between 1 and 12 blocks.';
+      return;
+    }
+
+    this.isSaving = true;
+    this.countError = '';
+
+    this.api
+      .put<DayResponse>('appointment-batches/day/blocks', {
+        date: this.apiDate,
+        count,
+        startTime: this.countForm.startTime,
+        endTime: this.countForm.endTime,
+      })
+      .subscribe({
+        next: response => {
+          this.apply(response);
+          this.isSaving = false;
+          this.isCountModalOpen = false;
+          this.blockPage = 0;
+          this.flashNotice(`Day split into ${count} ${count === 1 ? 'block' : 'blocks'}.`);
+          this.cdr.markForCheck();
+        },
+        error: error => {
+          this.countError = this.messageFrom(error, 'Could not change the blocks for this day.');
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  // ----------------------------------------------------------
+  // Carousel
+  // ----------------------------------------------------------
+
+  /** Which page of blocks the track is scrolled to, for the dots. */
+  blockPage = 0;
+
+  /** Past three blocks the row would squeeze, so it scrolls instead. */
+  get isCarousel(): boolean {
+    return !this.isProcedureMode && this.batches.length > this.visibleBlocks;
+  }
+
+  get blockPages(): number[] {
+    const pages = Math.ceil(this.batches.length / this.visibleBlocks);
+    return Array.from({ length: Math.max(1, pages) }, (_, i) => i);
+  }
+
+  /**
+   * Scrolls the track rather than swapping which blocks are rendered: a drag
+   * from the first block to the last has to be possible, and the CDK can only
+   * auto-scroll to a drop list that is actually in the DOM.
+   */
+  scrollBlocks(direction: -1 | 1): void {
+    this.goToBlockPage(this.blockPage + direction);
+  }
+
+  /**
+   * Pages are spread across however far the track can actually scroll, not
+   * stepped by a fixed width: four blocks make a second page that is only a
+   * third of a screen wide, and stepping by a whole screen would stop short of
+   * it — leaving the last dot unreachable and the arrow enabled forever.
+   */
+  goToBlockPage(page: number): void {
+    const track = this.blockTrack?.nativeElement;
+    if (!track) return;
+
+    const last = this.blockPages.length - 1;
+    const target = Math.max(0, Math.min(last, page));
+    const max = track.scrollWidth - track.clientWidth;
+
+    track.scrollTo({ left: last > 0 ? (target / last) * max : 0, behavior: 'smooth' });
+  }
+
+  /** Keeps the dots and the arrows in step with wherever the track ends up. */
+  onBlockScroll(): void {
+    const track = this.blockTrack?.nativeElement;
+    if (!track) return;
+
+    const last = this.blockPages.length - 1;
+    const max = track.scrollWidth - track.clientWidth;
+    const page = last > 0 && max > 1 ? Math.round((track.scrollLeft / max) * last) : 0;
+
+    if (page === this.blockPage) return;
+
+    this.blockPage = page;
+    this.cdr.markForCheck();
+  }
+
+  get atFirstBlockPage(): boolean {
+    return this.blockPage <= 0;
+  }
+
+  get atLastBlockPage(): boolean {
+    return this.blockPage >= this.blockPages.length - 1;
   }
 
   // ----------------------------------------------------------

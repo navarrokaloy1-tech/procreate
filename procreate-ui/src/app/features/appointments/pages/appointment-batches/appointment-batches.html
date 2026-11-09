@@ -76,6 +76,17 @@
       <app-icon name="check" [size]="14"></app-icon>
       {{ noticeMessage }}
     </span>
+
+    <!-- Consultations only: Procedures is one card per procedure, not a clock. -->
+    <button
+      type="button"
+      class="btn btn-secondary batch-bar__blocks"
+      *ngIf="!isProcedureMode"
+      (click)="openBlockCount()"
+    >
+      <app-icon name="clock" [size]="14"></app-icon>
+      {{ batches.length === 1 ? '1 block' : batches.length + ' blocks' }}
+    </button>
   </div>
 
   <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
@@ -103,12 +114,37 @@
     <h3>No session blocks for this day</h3>
     <p>
       The clinic is not scheduled to run blocks on
-      {{ selectedDate | date: 'EEEE' }}s. Add them to the weekly pattern to open
-      the day for booking.
+      {{ selectedDate | date: 'EEEE' }}s. Split the day into blocks to open it
+      for booking, or add them to the weekly pattern so every
+      {{ selectedDate | date: 'EEEE' }} inherits them.
     </p>
+    <button type="button" class="btn btn-primary" (click)="openBlockCount()">
+      Split this day into blocks
+    </button>
   </div>
 
-  <div class="batch-grid" *ngIf="!isLoading && !isProcedureMode && batches.length > 0" cdkDropListGroup>
+  <!-- Past three blocks the row would squeeze, so it scrolls a page at a time.
+       The blocks all stay in the DOM: dragging a patient from the first to the
+       last has to keep working, and the CDK auto-scrolls the track to do it. -->
+  <div class="block-rail" *ngIf="!isLoading && !isProcedureMode && batches.length > 0">
+    <button
+      type="button"
+      class="block-rail__arrow"
+      *ngIf="isCarousel"
+      (click)="scrollBlocks(-1)"
+      [disabled]="atFirstBlockPage"
+      aria-label="Previous blocks"
+    >
+      <app-icon name="chevron-left" [size]="18"></app-icon>
+    </button>
+
+    <div
+      class="batch-grid"
+      [class.batch-grid--rail]="isCarousel"
+      #blockTrack
+      (scroll)="onBlockScroll()"
+      cdkDropListGroup
+    >
     <section
       class="batch"
       *ngFor="let batch of batches; trackBy: trackBatch"
@@ -214,7 +250,31 @@
           Nobody booked into this block yet.
         </p>
       </div>
-    </section>
+      </section>
+    </div>
+
+    <button
+      type="button"
+      class="block-rail__arrow"
+      *ngIf="isCarousel"
+      (click)="scrollBlocks(1)"
+      [disabled]="atLastBlockPage"
+      aria-label="More blocks"
+    >
+      <app-icon name="chevron-right" [size]="18"></app-icon>
+    </button>
+  </div>
+
+  <div class="block-dots" *ngIf="!isLoading && isCarousel">
+    <button
+      type="button"
+      class="block-dots__dot"
+      *ngFor="let page of blockPages"
+      [class.block-dots__dot--active]="page === blockPage"
+      (click)="goToBlockPage(page)"
+      [attr.aria-label]="'Blocks ' + (page * visibleBlocks + 1) + ' onwards'"
+      [attr.aria-current]="page === blockPage"
+    ></button>
   </div>
 
   <!-- Procedures board: one card per procedure, patients grouped by their procedure. -->
@@ -347,6 +407,99 @@
       </span>
       <span [class]="statusClass(appt.status)">{{ statusLabel(appt.status) }}</span>
     </article>
+  </div>
+</div>
+
+<!-- How many blocks the day runs -->
+<div class="modal-backdrop" *ngIf="isCountModalOpen" (click)="closeBlockCount()">
+  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="clock" [size]="19"></app-icon>
+          Blocks for this day
+        </h3>
+        <p class="modal-sheet__desc">
+          {{ selectedDate | date: 'EEEE, d MMMM y' }} only — the weekly pattern
+          other days inherit is left alone.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeBlockCount()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="countError">{{ countError }}</div>
+
+      <div class="form-group">
+        <label class="form-label" for="blockCount">Number of blocks</label>
+        <input
+          id="blockCount"
+          type="number"
+          min="1"
+          max="12"
+          class="form-control"
+          [(ngModel)]="countForm.count"
+          name="blockCount"
+        />
+        <small class="field-hint">
+          The clinic window below is divided into this many equal sessions. Tap
+          the pencil on a block afterwards to give one of them its own times.
+        </small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="dayStart">Day starts</label>
+          <input
+            id="dayStart"
+            type="time"
+            class="form-control"
+            [(ngModel)]="countForm.startTime"
+            name="dayStart"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="dayEnd">Day ends</label>
+          <input
+            id="dayEnd"
+            type="time"
+            class="form-control"
+            [(ngModel)]="countForm.endTime"
+            name="dayEnd"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">This gives you</label>
+        <ol class="count-preview" *ngIf="countPreview.length > 0">
+          <li *ngFor="let window of countPreview">{{ window }}</li>
+        </ol>
+        <p class="field-hint" *ngIf="countPreview.length === 0">
+          That many blocks will not fit between those two times — each one has
+          to run at least 15 minutes.
+        </p>
+      </div>
+
+      <p class="field-hint">
+        Re-cutting the day replaces its blocks, so it only works while nobody is
+        booked into them.
+      </p>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeBlockCount()">Cancel</button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="saveBlockCount()"
+        [disabled]="isSaving || countPreview.length === 0"
+      >
+        {{ isSaving ? 'Saving...' : 'Save blocks' }}
+      </button>
+    </div>
   </div>
 </div>
 

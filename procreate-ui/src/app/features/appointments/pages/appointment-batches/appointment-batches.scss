@@ -53,6 +53,17 @@
     color: var(--text-secondary);
   }
 
+  // Follows the count, which carries the bar's auto margin, so the two sit
+  // together at the end. On a day with no blocks there is no count and this
+  // falls back beside the date — where the empty state's own button also is.
+  &__blocks {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    font-size: var(--font-size-sm);
+  }
+
   &__saving {
     display: inline-flex;
     align-items: center;
@@ -119,6 +130,110 @@
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
   align-items: start;
+}
+
+// ------------------------------------------------------------
+// The blocks rail — a scrolling row once the day runs more than three
+// ------------------------------------------------------------
+
+.block-rail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  > .batch-grid { flex: 1 1 auto; min-width: 0; }
+
+  &__arrow {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-top: 28px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--white);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--white);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Three across, the rest scrolled to. A grid cannot both size its columns to
+// the viewport and overflow, so the rail lays the blocks out in a flex row.
+.batch-grid--rail {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 0;
+  padding-bottom: 6px;
+
+  // Dragging a patient across the rail scrolls it; a visible bar would jump
+  // under the cursor, so the arrows and dots are the controls instead.
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+
+  > .batch {
+    flex: 0 0 calc((100% - 32px) / 3);
+    scroll-snap-align: start;
+  }
+
+  @media (max-width: 900px) {
+    > .batch { flex-basis: calc((100% - 16px) / 2); }
+  }
+
+  @media (max-width: 620px) {
+    > .batch { flex-basis: 100%; }
+  }
+}
+
+.block-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 14px;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s ease, width 0.15s ease;
+
+    &--active {
+      width: 20px;
+      border-radius: 4px;
+      background: var(--primary);
+    }
+  }
+}
+
+// The windows a block count would produce, before anything is saved.
+.count-preview {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-color);
+
+  li {
+    padding: 3px 0;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .batch {
