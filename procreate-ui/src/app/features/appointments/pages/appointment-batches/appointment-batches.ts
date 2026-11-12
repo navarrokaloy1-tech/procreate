@@ -16,13 +16,24 @@ export interface BatchSlot {
   status: string;
   type: string;
   hasArrived: boolean;
+  /** When the booking was made. Not when the patient is due — see scheduledAt. */
   bookedAt: string;
+  /** When the patient is due. This is what the Procedures board's clock shows. */
+  scheduledAt: string;
   /** Minutes set aside for this patient, as the server works them out. */
   minutes: number;
   /** Set only when this one patient has been given their own minutes. */
   durationMinutes: number | null;
   /** The booking's Chief Notes — shown in place of the doctor on Procedures. */
   chiefComplaint: string;
+  /**
+   * The patient's place in their own doctor's line through the block, worked
+   * out on the board rather than sent by the server. `position` stays the
+   * block-wide order the API arranges by; this is what the card shows, so the
+   * numbers restart under each doctor's name. Zero for a cancellation or a
+   * no-show, which take no number at all.
+   */
+  seat: number;
 }
 
 export interface Batch {
@@ -39,6 +50,28 @@ export interface Batch {
   serviceDurations: Record<string, number>;
   isClosed: boolean;
   slots: BatchSlot[];
+  /** Built on the board, not sent by the server — see buildDoctorQueues. */
+  queues: DoctorQueue[];
+}
+
+/**
+ * One doctor's line through a session block.
+ *
+ * The block is still the unit of time the clinic sells, but two doctors
+ * sitting in the same block each see their own patients in their own order,
+ * so the card is split one list per doctor rather than showing a single
+ * queue the desk would have to read names out of.
+ */
+export interface DoctorQueue {
+  /** The doctor as the booking records them; 'Unassigned' when it has none. */
+  doctorName: string;
+  /** Drop-list id. Index-based: a doctor's name is not a safe DOM id. */
+  dropId: string;
+  slots: BatchSlot[];
+  /** Heads that still count — cancellations and no-shows are left out. */
+  booked: number;
+  /** Minutes this doctor's patients take out of the block. */
+  minutes: number;
 }
 
 interface DayResponse {
@@ -58,6 +91,14 @@ export interface ProcedureRow {
    */
   batch: Batch | null;
   slot: BatchSlot;
+  /** The time of day this patient is expected, as "HH:mm", for the dropdown. */
+  time: string;
+  /**
+   * True when that time is not one of the quarter-hours the dropdown offers —
+   * a booking made before this control existed, say. The row then adds its own
+   * option so the select shows the real time instead of coming up blank.
+   */
+  offGrid: boolean;
 }
 
 /** A Procedures card: every patient booked for one procedure, across all blocks. */
@@ -82,6 +123,17 @@ export interface UnscheduledAppt {
   chiefComplaint: string;
   batchId: number | null;
   isArchived: boolean;
+}
+
+/** Every quarter-hour from 6 am to 9 pm, as "HH:mm". */
+function buildTimeGrid(): string[] {
+  const times: string[] = [];
+  for (let minutes = 6 * 60; minutes <= 21 * 60; minutes += 15) {
+    const h = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const m = String(minutes % 60).padStart(2, "0");
+    times.push(`${h}:${m}`);
+  }
+  return times;
 }
 
 /**
@@ -133,8 +185,20 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   /** The minutes being typed, per appointment, while a row is unlocked. */
   slotMinutesDraft: Record<number, number> = {};
 
-  /** Ids of every block, so each list accepts drops from the others. */
+  /** Ids of every doctor list in the day, so each accepts drops from the others. */
   dropListIds: string[] = [];
+
+  /** Every doctor with a patient somewhere in the day, in name order. */
+  dayDoctors: string[] = [];
+
+  /**
+   * The times a procedure can be given on the board: every quarter-hour from
+   * 6 am to 9 pm, which covers any clinic day without making the dropdown a
+   * list of ninety-six entries. A booking already sitting between two of them
+   * keeps its own time — see ProcedureRow.offGrid.
+   */
+  readonly slotTimeOptions: string[] = buildTimeGrid();
+  private readonly slotTimeSet = new Set(this.slotTimeOptions);
 
   // --- How many blocks the day runs ---
   /**
@@ -276,10 +340,59 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       type: appt.type,
       hasArrived: false,
       bookedAt: appt.scheduledAt,
+      scheduledAt: appt.scheduledAt,
       minutes: 0,
       durationMinutes: null,
       chiefComplaint: appt.chiefComplaint ?? '',
+      seat: 0,
     };
+  }
+
+  /** One Procedures row, with the time its dropdown should be showing. */
+  private procedureRow(batch: Batch | null, slot: BatchSlot): ProcedureRow {
+    const time = this.timeOf(slot.scheduledAt);
+    return { batch, slot, time, offGrid: !!time && !this.slotTimeSet.has(time) };
+  }
+
+  /** "2026-11-12T14:30:00" as "14:30"; blank when there is no usable date. */
+  private timeOf(value: string): string {
+    const at = new Date(value);
+    if (Number.isNaN(at.getTime())) return "";
+    const h = String(at.getHours()).padStart(2, "0");
+    const m = String(at.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  /**
+   * Sets the time of day a procedure patient is expected.
+   *
+   * The booking stays on its procedure's card and in whatever block it was
+   * already in — a procedure is not run to the clock, so the time is something
+   * the desk tells the patient rather than a place in a queue.
+   */
+  setSlotTime(slot: BatchSlot, time: string): void {
+    if (!time || time === this.timeOf(slot.scheduledAt)) return;
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.noticeMessage = '';
+
+    this.api
+      .put<DayResponse>(`appointment-batches/slots/${slot.appointmentId}/time`, { time })
+      .subscribe({
+        next: () => {
+          this.isSaving = false;
+          this.flashNotice('Time saved.');
+          // Reloads rather than applying the response: a procedure booked at an
+          // exact time sits in no block, so it comes back from the other call.
+          this.load(true);
+        },
+        error: error => {
+          this.errorMessage = this.messageFrom(error, 'Could not save that time.');
+          this.isSaving = false;
+          this.load(true);
+        },
+      });
   }
 
   /** Services that belong to the Procedures board; everything else is a consultation. */
@@ -312,6 +425,8 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       return {
         ...batch,
         slots,
+        // Filled in by buildDoctorQueues once every block has been scoped.
+        queues: [],
         booked: seen,
         usedMinutes: used,
         remainingMinutes: Math.max(0, batch.totalMinutes - used),
@@ -325,7 +440,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     // board's own, summed from the slots that belong to it.
     this.totalMinutes = response.totalMinutes ?? 0;
     this.usedMinutes = this.batches.reduce((sum, b) => sum + b.usedMinutes, 0);
-    this.dropListIds = this.batches.map(b => this.dropListId(b));
+    this.buildDoctorQueues();
     this.procedureGroups = this.buildProcedureGroups();
     this.recount();
     // A different day is a different rail; leaving the dots mid-way would point
@@ -362,13 +477,17 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       const rows: ProcedureRow[] = [];
       for (const batch of this.batches) {
         for (const slot of batch.slots) {
-          if (slot.service === procedure) rows.push({ batch, slot });
+          if (slot.service === procedure) rows.push(this.procedureRow(batch, slot));
         }
       }
       // Booked at an exact time, so in no block — still this procedure's work.
       for (const appt of this.allUnscheduled) {
-        if (appt.service === procedure) rows.push({ batch: null, slot: this.slotFrom(appt) });
+        if (appt.service === procedure) {
+          rows.push(this.procedureRow(null, this.slotFrom(appt)));
+        }
       }
+      // A procedure card has no queue, so the time of day is the useful order.
+      rows.sort((a, b) => a.time.localeCompare(b.time));
       const booked = rows.filter(r => !this.isReleased(r.slot.status)).length;
       return { procedure, rows, booked };
     });
@@ -400,25 +519,84 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   // Drag and drop
   // ----------------------------------------------------------
 
-  dropListId(batch: Batch): string {
-    return `batch-${batch.id}`;
+  /** The doctor a booking sits under, as a key. */
+  doctorKey(slot: { doctorName: string }): string {
+    return slot.doctorName?.trim() || 'Unassigned';
+  }
+
+  /**
+   * Splits every block into one list per doctor.
+   *
+   * The roster is every doctor with a patient anywhere in the day, not just
+   * the ones already in this block, and every block gets a list for all of
+   * them — the empty ones included. A drag can only land under the doctor it
+   * started under, so a block showing only its own doctors would leave
+   * somebody being moved in from elsewhere with nowhere to land.
+   */
+  private buildDoctorQueues(): void {
+    const names = new Set<string>();
+    for (const batch of this.batches) {
+      for (const slot of batch.slots) names.add(this.doctorKey(slot));
+    }
+    this.dayDoctors = [...names].sort((a, b) => a.localeCompare(b));
+
+    for (const batch of this.batches) {
+      batch.queues = this.dayDoctors.map((doctorName, index) => {
+        const slots = batch.slots.filter(slot => this.doctorKey(slot) === doctorName);
+
+        let seen = 0;
+        let minutes = 0;
+        for (const slot of slots) {
+          if (this.isReleased(slot.status)) {
+            slot.seat = 0;
+          } else {
+            slot.seat = ++seen;
+            minutes += this.slotCost(batch, slot);
+          }
+        }
+
+        return {
+          doctorName,
+          dropId: `batch-${batch.id}-doc-${index}`,
+          slots,
+          booked: seen,
+          minutes,
+        };
+      });
+    }
+
+    this.dropListIds = this.batches.flatMap(batch => batch.queues.map(q => q.dropId));
+  }
+
+  /** The block and doctor list a drop-list id belongs to. */
+  private queueFor(dropId: string): { batch: Batch; queue: DoctorQueue } | null {
+    for (const batch of this.batches) {
+      const queue = batch.queues?.find(q => q.dropId === dropId);
+      if (queue) return { batch, queue };
+    }
+    return null;
   }
 
   /**
    * A block that is closed, or already at capacity, refuses drops from
    * elsewhere. Reordering inside it stays allowed — being full is a reason not
    * to take another patient, not a reason to freeze the order of the ones in it.
+   * A drop into another doctor's list is refused outright: moving somebody
+   * through the day must never quietly change who is seeing them.
    */
   canReceive = (drag: any, drop: any): boolean => {
-    const target = this.batches.find(b => this.dropListId(b) === drop.id);
-    if (!target) return false;
+    const found = this.queueFor(drop.id);
+    if (!found) return false;
+
+    const slot = drag.data as BatchSlot | undefined;
+    if (slot && this.doctorKey(slot) !== found.queue.doctorName) return false;
+
     if (drag.dropContainer.id === drop.id) return true;
-    if (target.isClosed) return false;
+    if (found.batch.isClosed) return false;
 
     // Room is time: the dragged patient's service has to fit the minutes left.
-    const slot = drag.data as BatchSlot | undefined;
-    const need = slot && !this.isReleased(slot.status) ? this.slotCost(target, slot) : 0;
-    return target.remainingMinutes >= need;
+    const need = slot && !this.isReleased(slot.status) ? this.slotCost(found.batch, slot) : 0;
+    return found.batch.remainingMinutes >= need;
   };
 
   /**
@@ -464,8 +642,20 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       );
     }
 
+    // The lists are the doctor queues, so each block's own order has to be put
+    // back together out of them before it can be numbered or saved.
+    this.regroupFromQueues();
     this.renumber();
+    this.buildDoctorQueues();
     this.saveArrangement();
+  }
+
+  /** Flattens each block's doctor lists back into the block's own order. */
+  private regroupFromQueues(): void {
+    for (const batch of this.batches) {
+      if (!batch.queues?.length) continue;
+      batch.slots = batch.queues.flatMap(queue => queue.slots);
+    }
   }
 
   /**
@@ -1026,6 +1216,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
 
   trackBatch = (_: number, batch: Batch) => batch.id;
   trackSlot = (_: number, slot: BatchSlot) => slot.appointmentId;
+  trackQueue = (_: number, queue: DoctorQueue) => queue.dropId;
 
   private messageFrom(error: any, fallback: string): string {
     return error?.error?.message || fallback;

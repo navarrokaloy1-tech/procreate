@@ -1,0 +1,157 @@
+<section class="page-hero page-hero--compact">
+  <div class="page-hero__row">
+    <div class="page-hero__title-group">
+      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to the patient chart">
+        <app-icon name="arrow-left" [size]="18"></app-icon>
+      </button>
+
+      <span class="page-hero__icon"><app-icon name="file-text" [size]="24"></app-icon></span>
+
+      <div class="page-hero__heading">
+        <h1>{{ title }}</h1>
+        <p class="page-hero__meta" *ngIf="patient">
+          <span class="page-hero__code">{{ patient.patientCode }}</span>
+          <span>{{ patient.fullName }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="hero-overlap soap-page">
+  <div class="card" *ngIf="isLoading">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading the note...</p>
+    </div>
+  </div>
+
+  <form class="card soap-page__card" *ngIf="!isLoading" (ngSubmit)="save()">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="soapDate">Date</label>
+        <input id="soapDate" type="date" class="form-control" [(ngModel)]="draft.noteDate" name="noteDate" />
+      </div>
+    </div>
+
+    <!-- The sections run in SOAP order. "Subjective" is not labelled: the two
+         fields under it say what they are, and the heading only repeated the S
+         that the screen's own title already stands for. -->
+    <div class="form-group">
+      <label class="form-label" for="soapChief">Chief Complaint</label>
+      <textarea
+        id="soapChief"
+        class="form-control"
+        rows="3"
+        placeholder="Why the patient came in..."
+        [(ngModel)]="draft.chiefComplaint"
+        name="chiefComplaint"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="soapHpi">History of Present Illness</label>
+      <textarea
+        id="soapHpi"
+        class="form-control"
+        rows="5"
+        placeholder="Onset, duration, associated symptoms..."
+        [(ngModel)]="draft.historyOfPresentIllness"
+        name="historyOfPresentIllness"
+      ></textarea>
+    </div>
+
+    <p class="soap-section-label">Objective</p>
+    <div class="form-group">
+      <label class="form-label" for="soapObjective">Remarks</label>
+      <textarea
+        id="soapObjective"
+        class="form-control"
+        rows="5"
+        placeholder="Examination findings, vitals, lab results..."
+        [(ngModel)]="draft.objectiveRemarks"
+        name="objectiveRemarks"
+      ></textarea>
+    </div>
+
+    <p class="soap-section-label">Assessment</p>
+    <div class="form-group">
+      <label class="form-label" for="soapAssessment">Diagnosis</label>
+      <textarea
+        id="soapAssessment"
+        class="form-control"
+        rows="3"
+        placeholder="Working diagnosis / impression..."
+        [(ngModel)]="draft.assessment"
+        name="assessment"
+      ></textarea>
+    </div>
+
+    <div
+      class="editor-row editor-row--pair"
+      *ngFor="let dx of draft.diagnoses; let i = index; trackBy: trackDiagnosis"
+    >
+      <div class="form-group">
+        <label class="form-label" [attr.for]="'soapDxDesc' + i">Coded diagnosis</label>
+        <input
+          [id]="'soapDxDesc' + i"
+          type="text"
+          class="form-control"
+          placeholder="Iron deficiency anemia"
+          [(ngModel)]="dx.description"
+          [name]="'dxDesc' + i"
+        />
+      </div>
+      <div class="form-group editor-row__narrow">
+        <label class="form-label" [attr.for]="'soapDxIcd' + i">ICD-10</label>
+        <input
+          [id]="'soapDxIcd' + i"
+          type="text"
+          class="form-control"
+          placeholder="D50.9"
+          [(ngModel)]="dx.icd10"
+          [name]="'dxIcd' + i"
+        />
+      </div>
+      <button
+        type="button"
+        class="table-actions__btn table-actions__btn--danger editor-row__remove"
+        (click)="removeDiagnosis(i)"
+        title="Remove row"
+        aria-label="Remove row"
+      >
+        <app-icon name="trash" [size]="16"></app-icon>
+      </button>
+    </div>
+
+    <button type="button" class="btn btn-secondary btn-sm" (click)="addDiagnosis()">
+      <app-icon name="plus" [size]="14"></app-icon>
+      Add diagnosis (+ ICD-10)
+    </button>
+
+    <p class="soap-section-label">Plan</p>
+    <div class="form-group">
+      <label class="form-label" for="soapPlan">Plan</label>
+      <textarea
+        id="soapPlan"
+        class="form-control"
+        rows="5"
+        placeholder="Treatment, medications, follow-up..."
+        [(ngModel)]="draft.plan"
+        name="plan"
+      ></textarea>
+    </div>
+
+    <div class="soap-page__foot">
+      <button type="button" class="btn btn-secondary" (click)="back()" [disabled]="isSaving">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+        <app-icon name="save" [size]="16"></app-icon>
+        {{ isSaving ? 'Saving...' : 'Save SOAP Note' }}
+      </button>
+    </div>
+  </form>
+</div>

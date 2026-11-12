@@ -196,57 +196,81 @@
         </div>
       </header>
 
-      <div
-        class="batch__list"
-        cdkDropList
-        [id]="dropListId(batch)"
-        [cdkDropListData]="batch.slots"
-        [cdkDropListConnectedTo]="dropListIds"
-        [cdkDropListEnterPredicate]="canReceive"
-        (cdkDropListDropped)="onDrop($event)"
-      >
-        <article
-          class="slot"
-          *ngFor="let slot of batch.slots; trackBy: trackSlot"
-          cdkDrag
-          [cdkDragData]="slot"
-          [class.slot--released]="isReleased(slot.status)"
-          [class.slot--arrived]="slot.hasArrived"
+      <!-- One card per doctor. The block is the unit of time, but each doctor
+           runs their own line through it, so the numbers restart under each
+           name. A patient can only be dragged into their own doctor's list. -->
+      <div class="batch__queues">
+        <section
+          class="doctor-queue"
+          *ngFor="let queue of batch.queues; trackBy: trackQueue"
+          [class.doctor-queue--empty]="queue.slots.length === 0"
         >
-          <div class="slot__placeholder" *cdkDragPlaceholder></div>
-
-          <span class="slot__handle" cdkDragHandle aria-label="Drag to reorder">
-            <app-icon name="grip-vertical" [size]="16"></app-icon>
-          </span>
-
-          <span class="slot__position" [class.slot__position--none]="slot.position === 0">
-            {{ slot.position === 0 ? '—' : slot.position }}
-          </span>
-
-          <div class="slot__body">
-            <p class="slot__name">
-              {{ slot.patientName }}
-              <span class="slot__code">{{ slot.patientCode }}</span>
-            </p>
-            <p class="slot__meta">
-              {{ slot.service }} &middot; {{ slot.doctorName }}
-            </p>
-          </div>
-
-          <div class="slot__flags">
-            <span
-              class="pill pill--success slot__arrived"
-              *ngIf="slot.hasArrived"
-              title="Patient is here"
-            >
-              <app-icon name="check" [size]="12"></app-icon>
-              Present
+          <header class="doctor-queue__head">
+            <span class="doctor-queue__name">
+              <app-icon name="stethoscope" [size]="14"></app-icon>
+              {{ queue.doctorName }}
             </span>
-            <span [class]="statusClass(slot.status)">{{ statusLabel(slot.status) }}</span>
-          </div>
-        </article>
+            <span class="doctor-queue__count">
+              {{ queue.booked }} {{ queue.booked === 1 ? 'patient' : 'patients' }}
+              <ng-container *ngIf="queue.minutes > 0"> &middot; {{ queue.minutes }} min</ng-container>
+            </span>
+          </header>
 
-        <p class="batch__empty" *ngIf="batch.slots.length === 0">
+          <div
+            class="batch__list doctor-queue__list"
+            cdkDropList
+            [id]="queue.dropId"
+            [cdkDropListData]="queue.slots"
+            [cdkDropListConnectedTo]="dropListIds"
+            [cdkDropListEnterPredicate]="canReceive"
+            (cdkDropListDropped)="onDrop($event)"
+          >
+            <article
+              class="slot"
+              *ngFor="let slot of queue.slots; trackBy: trackSlot"
+              cdkDrag
+              [cdkDragData]="slot"
+              [class.slot--released]="isReleased(slot.status)"
+              [class.slot--arrived]="slot.hasArrived"
+            >
+              <div class="slot__placeholder" *cdkDragPlaceholder></div>
+
+              <span class="slot__handle" cdkDragHandle aria-label="Drag to reorder">
+                <app-icon name="grip-vertical" [size]="16"></app-icon>
+              </span>
+
+              <span class="slot__position" [class.slot__position--none]="slot.seat === 0">
+                {{ slot.seat === 0 ? '—' : slot.seat }}
+              </span>
+
+              <div class="slot__body">
+                <p class="slot__name">
+                  {{ slot.patientName }}
+                  <span class="slot__code">{{ slot.patientCode }}</span>
+                </p>
+                <p class="slot__meta">{{ slot.service }}</p>
+              </div>
+
+              <div class="slot__flags">
+                <span
+                  class="pill pill--success slot__arrived"
+                  *ngIf="slot.hasArrived"
+                  title="Patient is here"
+                >
+                  <app-icon name="check" [size]="12"></app-icon>
+                  Present
+                </span>
+                <span [class]="statusClass(slot.status)">{{ statusLabel(slot.status) }}</span>
+              </div>
+            </article>
+
+            <p class="doctor-queue__empty" *ngIf="queue.slots.length === 0">
+              No patients — drop one here.
+            </p>
+          </div>
+        </section>
+
+        <p class="batch__empty" *ngIf="batch.queues.length === 0">
           Nobody booked into this block yet.
         </p>
       </div>
@@ -368,6 +392,23 @@
               {{ row.slot.chiefComplaint || 'No notes yet' }}
             </p>
           </div>
+
+          <!-- The time the patient is told to come in. It sets the booking's
+               time of day and nothing else: a procedure shows on this card
+               whichever block, if any, happens to cover that hour. -->
+          <span class="select-field select-field--sm slot__time">
+            <select
+              [ngModel]="row.time"
+              (ngModelChange)="setSlotTime(row.slot, $event)"
+              [name]="'slot-time-' + row.slot.appointmentId"
+              [disabled]="isSaving || isReleased(row.slot.status)"
+              [attr.aria-label]="'Time for ' + row.slot.patientName"
+            >
+              <option *ngIf="row.offGrid" [value]="row.time">{{ row.time }}</option>
+              <option *ngFor="let time of slotTimeOptions" [value]="time">{{ time }}</option>
+            </select>
+            <span class="select-field__caret"><app-icon name="chevron-down" [size]="13"></app-icon></span>
+          </span>
 
           <div class="slot__flags">
             <span

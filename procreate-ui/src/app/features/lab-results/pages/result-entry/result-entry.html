@@ -1,7 +1,7 @@
 <section class="page-hero page-hero--compact">
   <div class="page-hero__row">
     <div class="page-hero__title-group">
-      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to Laboratory">
+      <button type="button" class="page-hero__back" (click)="back()" aria-label="Back to Diagnostics">
         <app-icon name="arrow-left" [size]="18"></app-icon>
       </button>
       <div class="page-hero__heading">
@@ -47,7 +47,7 @@
   <div class="empty-rich">
     <span class="empty-rich__icon"><app-icon name="alert-circle" [size]="32"></app-icon></span>
     <h3 class="empty-rich__title">{{ errorMessage || 'Order not found' }}</h3>
-    <button type="button" class="btn btn-primary" (click)="back()">Back to Laboratory</button>
+    <button type="button" class="btn btn-primary" (click)="back()">Back to Diagnostics</button>
   </div>
 </div>
 

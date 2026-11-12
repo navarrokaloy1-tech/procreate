@@ -6,6 +6,7 @@ import { PatientsRoutingModule } from './patients-routing-module';
 import { PatientListComponent } from './pages/patient-list/patient-list';
 import { PatientFormComponent } from './pages/patient-form/patient-form';
 import { PatientDetailComponent } from './pages/patient-detail/patient-detail';
+import { SoapNotePageComponent } from './pages/soap-note/soap-note';
 import { IconComponent } from '../../core/components/icon/icon';
 import { ComboSelectComponent } from '../../core/components/combo-select/combo-select';
 import { CertificateFormComponent } from '../../core/components/certificate-form/certificate-form';
@@ -14,7 +15,12 @@ import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/
 import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
 
 @NgModule({
-  declarations: [PatientListComponent, PatientFormComponent, PatientDetailComponent],
+  declarations: [
+    PatientListComponent,
+    PatientFormComponent,
+    PatientDetailComponent,
+    SoapNotePageComponent,
+  ],
   imports: [
     CommonModule,
     PatientsRoutingModule,

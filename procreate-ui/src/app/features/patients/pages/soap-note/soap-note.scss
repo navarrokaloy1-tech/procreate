@@ -1,0 +1,96 @@
+:host {
+  display: block;
+}
+
+.soap-page {
+  // A note is read and typed in long lines, but not the full width of a desktop
+  // screen — past about this the eye loses the start of the line coming back.
+  max-width: 900px;
+
+  &__card {
+    padding: 22px 24px 24px;
+  }
+
+  // The actions sit at the end of the form rather than floating: on a page
+  // there is no sheet edge to pin them to, and a note is long enough that
+  // reaching them means you have read to the bottom.
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+// Section headings down the note. Shared with the chart's own SOAP styles in
+// name only — this page owns its spacing, which is looser than a sheet's.
+.soap-section-label {
+  margin: 26px 0 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.editor-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+
+  &--pair {
+    margin-bottom: 12px;
+  }
+
+  .form-group {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+  }
+
+  &__narrow {
+    flex: 0 0 160px;
+  }
+
+  &__remove {
+    flex: 0 0 auto;
+    margin-bottom: 6px;
+  }
+}
+
+// ------------------------------------------------------------
+// Loading
+// ------------------------------------------------------------
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: soap-note-spin 0.7s linear infinite;
+}
+
+@keyframes soap-note-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 620px) {
+  .editor-row--pair {
+    flex-wrap: wrap;
+
+    .editor-row__narrow {
+      flex-basis: 100%;
+    }
+  }
+}

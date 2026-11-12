@@ -274,7 +274,7 @@ $rx-danger: #a71d2a;
   padding: 26px 30px;
   background: #fff;
   color: $rx-ink;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
   // Keep the watermark and red flags when this is printed.
@@ -330,7 +330,7 @@ $rx-danger: #a71d2a;
 
     span {
       margin-top: 2px;
-      font-size: 8px;
+      font-size: 9px;
       font-style: italic;
       color: $rx-muted;
     }
@@ -339,7 +339,7 @@ $rx-danger: #a71d2a;
   &__contact {
     text-align: center;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: 13px;
     color: $rx-ink;
     line-height: 1.5;
 
@@ -359,7 +359,7 @@ $rx-danger: #a71d2a;
   &__patient {
     display: flex;
     gap: 16px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   &__col {
@@ -387,7 +387,7 @@ $rx-danger: #a71d2a;
   &__section-title {
     margin: 0 0 6px;
     text-align: center;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -396,7 +396,7 @@ $rx-danger: #a71d2a;
   &__table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
 
     thead th {
       text-align: left;
@@ -453,13 +453,13 @@ $rx-danger: #a71d2a;
   &__end {
     margin: 18px 0;
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
     color: $rx-muted;
   }
 
   &__files {
     margin: 10px 0 0;
-    font-size: 12px;
+    font-size: 13px;
     color: $rx-muted;
   }
 
@@ -509,7 +509,7 @@ $rx-danger: #a71d2a;
     border-top: 1px dashed $rx-muted;
     text-align: center;
     font-style: italic;
-    font-size: 11px;
+    font-size: 12px;
     color: $rx-muted;
   }
 }

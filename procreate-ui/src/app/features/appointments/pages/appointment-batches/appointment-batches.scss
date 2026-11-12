@@ -179,12 +179,30 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-padding-left: 0;
-  padding-bottom: 6px;
+  padding-bottom: 10px;
 
-  // Dragging a patient across the rail scrolls it; a visible bar would jump
-  // under the cursor, so the arrows and dots are the controls instead.
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  // A visible bar, alongside the arrows and dots: on a long day it is the
+  // quickest way to see how much of the rail is off-screen and to go
+  // straight to the far end. Slim, so it does not crowd the blocks.
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--primary-light);
+
+  &::-webkit-scrollbar {
+    display: block;
+    height: 9px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--primary-light);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 999px;
+
+    &:hover { background: var(--primary-dark); }
+  }
 
   > .batch {
     flex: 0 0 calc((100% - 32px) / 3);
@@ -246,10 +264,14 @@
 
   &--full .batch__head { background: var(--warning-light); }
 
+  // The window and the tools take a row each. Three cards abreast in the rail
+  // leaves each one a few hundred pixels, and a single row squeezed the title
+  // down to one word per line to make room for the pills beside it.
   &__head {
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px 10px;
     padding: 12px 14px;
     border-bottom: 1px solid var(--border-color);
     background: var(--light);
@@ -257,16 +279,23 @@
 
   &__title {
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 100%;
 
     h3 {
       margin: 0;
       font-size: var(--font-size-lg);
       color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   &__meta {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
   }
@@ -285,9 +314,98 @@
     padding: 10px;
   }
 
+  // The stack of doctor cards. A block with several doctors can run long,
+  // so it scrolls inside the card rather than stretching the whole rail to
+  // the height of its busiest block.
+  &__queues {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    max-height: 560px;
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--primary-light);
+
+    &::-webkit-scrollbar { width: 8px; }
+    &::-webkit-scrollbar-track { background: var(--primary-light); border-radius: 999px; }
+    &::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 999px;
+
+      &:hover { background: var(--primary-dark); }
+    }
+  }
+
   &__empty {
     margin: 0;
     padding: 18px 8px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+// The time of day on a Procedures row.
+.slot__time {
+  flex: 0 0 auto;
+  min-width: 96px;
+}
+
+// ------------------------------------------------------------
+// One doctor's line through a block
+// ------------------------------------------------------------
+
+.doctor-queue {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--light);
+  overflow: hidden;
+
+  // A doctor with nobody in this block is still shown, because a patient
+  // being moved in from another block has to have somewhere to land. It
+  // sits back so it does not read as a queue of its own.
+  &--empty { opacity: 0.66; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--primary-light);
+  }
+
+  &__name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
+
+  &__list {
+    min-height: 58px;
+    padding: 8px;
+    background: var(--white);
+  }
+
+  &__empty {
+    margin: 0;
+    padding: 10px 6px;
     text-align: center;
     font-size: var(--font-size-sm);
     color: var(--text-muted);
@@ -301,7 +419,11 @@
 .slot {
   display: flex;
   align-items: center;
-  gap: 10px;
+  // Three cards abreast leaves a row a few hundred pixels, and a Procedures
+  // row carries a time and a status on top of the name. Wrapping lets those
+  // drop to a second line instead of squeezing the name to one word.
+  flex-wrap: wrap;
+  gap: 8px 10px;
   padding: 10px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -350,7 +472,7 @@
   }
 
   &__body {
-    flex: 1 1 auto;
+    flex: 1 1 150px;
     min-width: 0;
   }
 
@@ -418,7 +540,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    margin-left: auto;
     flex-wrap: wrap;
     justify-content: flex-end;
   }

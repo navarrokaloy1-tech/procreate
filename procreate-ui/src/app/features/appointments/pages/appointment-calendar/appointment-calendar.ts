@@ -111,6 +111,17 @@ export class AppointmentCalendarComponent implements OnInit {
 
   monthAppointments: Appointment[] = [];
   dayAppointments: Appointment[] = [];
+
+  /** What the Day view's search box holds. Blank shows the whole day. */
+  daySearch = '';
+
+  /**
+   * The day's appointments after the search box. Held as a field and rebuilt
+   * whenever the day or the search changes — a getter that filtered on every
+   * change-detection pass would hand *ngFor a fresh array each time and, under
+   * zoneless CD, never settle.
+   */
+  visibleDayAppointments: Appointment[] = [];
   archivedCount = 0;
 
   doctors: DoctorOption[] = [];
@@ -404,6 +415,42 @@ export class AppointmentCalendarComponent implements OnInit {
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
   }
 
+  private setDayAppointments(appointments: Appointment[]): void {
+    this.dayAppointments = appointments;
+    this.applyDaySearch();
+  }
+
+  /** Narrows the Day view to the patients matching the search box. */
+  private applyDaySearch(): void {
+    const term = this.daySearch.trim().toLowerCase();
+
+    if (!term) {
+      this.visibleDayAppointments = this.dayAppointments;
+      return;
+    }
+
+    // Name or patient code: the desk has one or the other in front of them,
+    // and a code is what they read off a card.
+    this.visibleDayAppointments = this.dayAppointments.filter(a =>
+      a.patientName?.toLowerCase().includes(term) ||
+      a.patientCode?.toLowerCase().includes(term));
+  }
+
+  onDaySearch(term: string): void {
+    this.daySearch = term;
+    this.applyDaySearch();
+    this.cdr.markForCheck();
+  }
+
+  clearDaySearch(): void {
+    this.onDaySearch('');
+  }
+
+  /** True while the box is narrowing the day, so the count can say so. */
+  get isDayFiltered(): boolean {
+    return this.daySearch.trim().length > 0;
+  }
+
   /** True when an appointment belongs on this calendar (consultation vs procedure). */
   private inMode(appointment: Appointment): boolean {
     const isProcedure = this.procedureServiceSet.has(appointment.service);
@@ -414,14 +461,14 @@ export class AppointmentCalendarComponent implements OnInit {
   private rebuildForMode(): void {
     this.buildGrid();
     this.buildWeek();
-    this.dayAppointments = this.appointmentsOn(this.selectedDate);
+    this.setDayAppointments(this.appointmentsOn(this.selectedDate));
     this.loadArchivedCount();
     this.cdr.markForCheck();
   }
 
   selectDate(date: Date, refreshGrid = true): void {
     this.selectedDate = this.startOfDay(date);
-    this.dayAppointments = this.appointmentsOn(this.selectedDate);
+    this.setDayAppointments(this.appointmentsOn(this.selectedDate));
     this.buildWeek();
     if (refreshGrid) this.cdr.markForCheck();
   }
@@ -457,7 +504,7 @@ export class AppointmentCalendarComponent implements OnInit {
       this.viewMonth = new Date(next.getFullYear(), next.getMonth(), 1);
       this.loadMonth();
     } else {
-      this.dayAppointments = this.appointmentsOn(this.selectedDate);
+      this.setDayAppointments(this.appointmentsOn(this.selectedDate));
       this.buildWeek();
       this.cdr.markForCheck();
     }

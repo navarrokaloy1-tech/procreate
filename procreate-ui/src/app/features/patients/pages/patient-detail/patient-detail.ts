@@ -106,7 +106,7 @@ export interface LabHistoryEntry {
   visitCode: string;
 }
 
-/** One coded diagnosis row in the Advanced SOAP editor. */
+/** One coded diagnosis row on a SOAP note. */
 export interface SoapDiagnosis {
   description: string;
   icd10: string;
@@ -114,6 +114,10 @@ export interface SoapDiagnosis {
 
 export interface SoapNote {
   id: number;
+  /**
+   * Which editor wrote it. Kept because the API still stores it and older
+   * notes read 'Simple'; every note written now is a full one.
+   */
   mode: 'Simple' | 'Advanced';
   clinic: string;
   noteDate: string;
@@ -139,7 +143,7 @@ export interface PatientChart {
 }
 
 /** Which editor sheet is open, if any. */
-type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' | 'soap' | null;
+type Editor = 'allergies' | 'medications' | 'conditions' | 'vitals' | 'upload' | null;
 
 @Component({
   selector: 'app-patient-detail',
@@ -182,11 +186,6 @@ export class PatientDetailComponent implements OnInit {
    */
   readonly showAllergiesAndMeds = false;
 
-  // --- SOAP note editor ---
-  /** The note being edited, or null when composing a new one. */
-  editingSoapId: number | null = null;
-  soapTab: 'Simple' | 'Advanced' = 'Simple';
-  soapDraft = this.blankSoapDraft();
 
   vitalsDraft = {
     systolicBp: null as number | null,
@@ -509,111 +508,17 @@ export class PatientDetailComponent implements OnInit {
   // SOAP notes
   // ----------------------------------------------------------
 
-  private blankSoapDraft() {
-    return {
-      clinic: '',
-      noteDate: new Date().toISOString().slice(0, 10),
-      chiefComplaint: '',
-      historyOfPresentIllness: '',
-      objectiveRemarks: '',
-      assessment: '',
-      plan: '',
-      diagnoses: [] as SoapDiagnosis[],
-    };
-  }
-
-  /** Opens the editor on a blank note, on the Simple tab. */
+  /**
+   * Writing a note is a page, not a sheet over the chart. A consultation note
+   * is the longest thing anybody types in here, and a modal gave it a few
+   * hundred pixels of scrolling window to do it in.
+   */
   openSoapNote(): void {
-    this.editingSoapId = null;
-    this.soapTab = 'Simple';
-    this.soapDraft = this.blankSoapDraft();
-    this.openEditor('soap');
+    this.router.navigate(['/app/patients', this.patientId, 'soap', 'new']);
   }
 
-  /** Opens the editor on an existing note, on the tab it was written in. */
   editSoapNote(note: SoapNote): void {
-    this.editingSoapId = note.id;
-    this.soapTab = note.mode === 'Advanced' ? 'Advanced' : 'Simple';
-    this.soapDraft = {
-      clinic: note.clinic ?? '',
-      noteDate: (note.noteDate ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10),
-      chiefComplaint: note.chiefComplaint ?? '',
-      historyOfPresentIllness: note.historyOfPresentIllness ?? '',
-      objectiveRemarks: note.objectiveRemarks ?? '',
-      assessment: note.assessment ?? '',
-      plan: note.plan ?? '',
-      diagnoses: (note.diagnoses ?? []).map((d) => ({ ...d })),
-    };
-    this.openEditor('soap');
-  }
-
-  setSoapTab(tab: 'Simple' | 'Advanced'): void {
-    this.soapTab = tab;
-  }
-
-  addSoapDiagnosis(): void {
-    this.soapDraft.diagnoses.push({ description: '', icd10: '' });
-  }
-
-  removeSoapDiagnosis(index: number): void {
-    this.soapDraft.diagnoses.splice(index, 1);
-  }
-
-  saveSoapNote(): void {
-    const draft = this.soapDraft;
-
-    // A note needs at least one section filled; an empty note is noise on the chart.
-    const diagnoses = draft.diagnoses
-      .map((d) => ({ description: d.description.trim(), icd10: d.icd10.trim() }))
-      .filter((d) => d.description || d.icd10);
-
-    const hasContent =
-      draft.chiefComplaint.trim() ||
-      draft.historyOfPresentIllness.trim() ||
-      draft.objectiveRemarks.trim() ||
-      draft.assessment.trim() ||
-      draft.plan.trim() ||
-      diagnoses.length > 0;
-
-    if (!hasContent) {
-      this.editorError = 'Write at least one section before saving.';
-      return;
-    }
-
-    const body = {
-      mode: this.soapTab,
-      clinic: draft.clinic.trim(),
-      noteDate: draft.noteDate,
-      chiefComplaint: draft.chiefComplaint.trim(),
-      historyOfPresentIllness: draft.historyOfPresentIllness.trim(),
-      objectiveRemarks: draft.objectiveRemarks.trim(),
-      assessment: draft.assessment.trim(),
-      plan: draft.plan.trim(),
-      diagnoses,
-    };
-
-    this.isSaving = true;
-    this.editorError = '';
-
-    const request$ = this.editingSoapId
-      ? this.apiService.put<SoapNote>(`patients/${this.patientId}/soap-notes/${this.editingSoapId}`, body)
-      : this.apiService.post<SoapNote>(`patients/${this.patientId}/soap-notes`, body);
-
-    request$.subscribe({
-      next: () => {
-        this.isSaving = false;
-        this.closeEditor();
-        this.toast.success(this.editingSoapId ? 'SOAP note updated.' : 'SOAP note saved.');
-        this.editingSoapId = null;
-        this.loadChart();
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.isSaving = false;
-        this.editorError = err?.error?.message ?? 'Saving failed. Please try again.';
-        this.cdr.markForCheck();
-      },
-    });
+    this.router.navigate(['/app/patients', this.patientId, 'soap', note.id]);
   }
 
   async deleteSoapNote(note: SoapNote): Promise<void> {

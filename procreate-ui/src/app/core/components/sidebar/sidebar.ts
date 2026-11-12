@@ -81,7 +81,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { key: 'appointments', label: 'Appointments', route: '/app/appointments', icon: 'calendar', section: 'Clinic Operations', children: SidebarComponent.APPOINTMENT_CHILDREN },
     { key: 'reception-queue', label: 'Reception Queue', route: '/app/reception-queue', icon: 'monitor', section: 'Clinic Operations' },
     { key: 'patients', label: 'Patients', route: '/app/patients', icon: 'patients', section: 'Patient Care' },
-    { key: 'laboratory', label: 'Laboratory', route: '/app/lab-results', icon: 'flask', section: 'Patient Care' },
+    { key: 'laboratory', label: 'Diagnostic', route: '/app/lab-results', icon: 'flask', section: 'Patient Care' },
     { key: 'doctors', label: 'Doctors', route: '/app/doctors', icon: 'stethoscope', section: 'Clinic Setup' },
     { key: 'services', label: 'Services', route: '/app/services', icon: 'clipboard', section: 'Clinic Setup' },
     { key: 'test-panels', label: 'Test Panels', route: '/app/test-panels', icon: 'flask', section: 'Clinic Setup' },
@@ -132,7 +132,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
           label: 'Patient Care',
           items: [
             { label: 'Patients', route: '/app/patients', icon: 'patients' },
-            { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
+            { label: 'Diagnostic', route: '/app/lab-results', icon: 'flask' }
           ]
         },
         {
@@ -166,7 +166,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'Patient Care',
         items: [
           { label: 'Patients', route: '/app/patients', icon: 'patients' },
-          { label: 'Laboratory', route: '/app/lab-results', icon: 'flask' }
+          { label: 'Diagnostic', route: '/app/lab-results', icon: 'flask' }
         ]
       },
       // {

@@ -44,6 +44,10 @@ public class AppointmentBatchesController : ControllerBase
         int PatientId, string PatientName, string PatientCode,
         string DoctorName, string Service, string Status, string Type,
         bool HasArrived, DateTime BookedAt,
+        // When the booking was made (BookedAt) and when the patient is due
+        // (ScheduledAt). They are not the same thing, and the Procedures board
+        // reads the second one.
+        DateTime ScheduledAt,
         int Minutes, int? DurationMinutes, string ChiefComplaint);
 
     public record BatchDto(
@@ -64,6 +68,9 @@ public class AppointmentBatchesController : ControllerBase
 
     /// <summary>One patient's own minutes; null hands them back to the service default.</summary>
     public record SlotDurationRequest(int? Minutes);
+
+    /// <summary>The time of day one booking is expected at, as "HH:mm".</summary>
+    public record SlotTimeRequest(string Time);
 
     /// <summary>One block's new window, for the cascade save.</summary>
     public record BlockTimeUpdate(int Id, string StartTime, string EndTime);
@@ -271,6 +278,42 @@ public class AppointmentBatchesController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { date = batch.BatchDate, data = await LoadDayAsync(batch.BatchDate) });
+    }
+
+    /// <summary>
+    /// Sets the time of day one booking is expected at, leaving the block it
+    /// sits in alone.
+    ///
+    /// This is for the Procedures board. A procedure is not run to the clock —
+    /// it shows on its procedure's card whether or not a block covers it — but
+    /// the desk still has to be able to tell a patient when to come in. So the
+    /// time is written onto the appointment and nothing else moves: re-homing
+    /// it into whichever block now covers the time would reorder a queue that,
+    /// for a procedure, carries no meaning, and would take the booking off the
+    /// card it is being read from.
+    /// </summary>
+    [HttpPut("slots/{appointmentId:int}/time")]
+    public async Task<IActionResult> SetSlotTime(
+        int appointmentId, [FromBody] SlotTimeRequest request)
+    {
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == appointmentId && !a.IsArchived);
+
+        if (appointment is null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(request.Time) || !TimeSpan.TryParse(request.Time, out var time)
+            || time < TimeSpan.Zero || time >= TimeSpan.FromDays(1))
+        {
+            return BadRequest(new { message = "A time of day is required, as HH:mm." });
+        }
+
+        // The date is the booking's own; only the time of day is being set, so a
+        // change here can never move a patient to another day by accident.
+        var day = appointment.ScheduledAt.Date;
+        appointment.ScheduledAt = day.Add(time);
+
+        await _db.SaveChangesAsync();
+        return Ok(new { date = day, data = await LoadDayAsync(day) });
     }
 
     // ----------------------------------------------------------
@@ -670,6 +713,7 @@ public class AppointmentBatchesController : ControllerBase
                     a.Service, a.Status, a.Type,
                     a.Status is "CheckedIn" or "InProgress" or "Completed",
                     a.CreatedAt,
+                    a.ScheduledAt,
                     BatchBooking.MinutesFor(b, a, serviceDefaults),
                     a.DurationMinutes,
                     a.ChiefComplaint))

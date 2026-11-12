@@ -94,12 +94,16 @@
   --font-family-heading: 'Alice', Georgia, 'Times New Roman', serif;
   // Poppins Medium is the body weight, per the type sheet.
   --font-weight-body: 500;
-  --font-size-base: 14px;
-  --font-size-sm: 12px;
-  --font-size-lg: 16px;
-  --font-size-xl: 18px;
-  --font-size-2xl: 22px;
-  --font-size-3xl: 28px;
+  // Raised one step across the board (2026-11-12) — the console is read at
+  // arm's length across a desk and 14px base was too small for that. html's
+  // font-size follows --font-size-base, so anything sized in rem comes with
+  // it; the hardcoded px sizes in component SCSS were stepped up to match.
+  --font-size-base: 15px;
+  --font-size-sm: 13px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 31px;
   --line-height: 1.5;
 }
 
@@ -837,7 +841,7 @@ textarea.form-control {
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     border-radius: 10px;
     background-color: var(--border-color);
@@ -1712,7 +1716,7 @@ textarea.form-control {
     padding: 0 6px;
     border-radius: 11px;
     background: var(--border-color);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-secondary);
   }
@@ -1770,6 +1774,32 @@ textarea.form-control {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(11, 79, 108, 0.18);
+    }
+  }
+
+  // Sits inside the field, on the right, and only while there is something
+  // to clear — so the box reads as empty when it is.
+  &__clear {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 0;
+
+    &:hover {
+      background: var(--light);
+      color: var(--text-primary);
     }
   }
 }
@@ -1851,7 +1881,7 @@ textarea.form-control {
   text-transform: lowercase;
   overflow: visible;
 
-  &--sm { width: 26px; height: 26px; font-size: 10px; }
+  &--sm { width: 26px; height: 26px; font-size: 11px; }
   &--lg { width: 56px; height: 56px; font-size: var(--font-size-xl); }
 
   &--ring {
@@ -1912,7 +1942,7 @@ textarea.form-control {
   display: inline-block;
   padding: 0.12rem 0.45rem;
   border-radius: var(--border-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -2016,7 +2046,7 @@ textarea.form-control {
 
     &__unit {
       display: block;
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       color: var(--text-muted);
@@ -2504,7 +2534,7 @@ textarea.form-control {
     height: 40px;
     border-radius: var(--border-radius-sm);
     background: var(--light);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
     color: var(--text-secondary);

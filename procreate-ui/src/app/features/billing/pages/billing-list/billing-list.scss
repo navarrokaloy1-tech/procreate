@@ -11,7 +11,7 @@
   display: inline-block;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 
   &.badge-success {
@@ -40,7 +40,7 @@
   padding: 3px 8px;
   background-color: #e9ecef;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #495057;
   font-family: monospace;
@@ -58,7 +58,7 @@
 .page-ellipsis {
   padding: 6px 4px;
   color: #6c757d;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .page-btn {
@@ -67,7 +67,7 @@
   background: white;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
   &:hover:not(:disabled):not(.active) {
@@ -90,7 +90,7 @@
 .pagination-info {
   text-align: center;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: #6c757d;
 }
 
@@ -103,7 +103,7 @@
 
   p {
     margin-top: 12px;
-    font-size: 14px;
+    font-size: 15px;
   }
 }
 
@@ -117,6 +117,6 @@
 
   p {
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
   }
 }

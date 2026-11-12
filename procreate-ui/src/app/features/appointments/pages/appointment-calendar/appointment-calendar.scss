@@ -169,7 +169,7 @@
     max-width: 100%;
     padding: 1px 7px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -198,7 +198,7 @@
     border-left: 3px solid var(--secondary);
     border-radius: 2px;
     background: var(--light);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -211,7 +211,7 @@
   }
 
   &__more {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
   }
 
@@ -609,10 +609,17 @@ textarea.form-control {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 10px;
   }
 
-  &__count { font-size: var(--font-size-sm); color: var(--text-secondary); }
+  &__count {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+  }
   &__empty { padding: 2rem 0; }
 }
 
@@ -653,4 +660,12 @@ textarea.form-control {
     &__pill { display: none; }
     &__status { min-width: 0; }
   }
+}
+
+// The Day view head carries three things now: the count, the patient search,
+// and New. The search takes the slack so the other two keep their ends.
+.day-view__search {
+  flex: 1 1 220px;
+  min-width: 160px;
+  max-width: 380px;
 }

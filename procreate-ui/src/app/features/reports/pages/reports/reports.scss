@@ -19,7 +19,7 @@
 }
 
 .form-label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: #495057;
   margin: 0;
@@ -29,7 +29,7 @@
   padding: 9px 14px;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
@@ -64,7 +64,7 @@
 }
 
 .stat-icon {
-  font-size: 28px;
+  font-size: 31px;
   width: 52px;
   height: 52px;
   display: flex;
@@ -92,21 +92,21 @@
 
 .stat-info {
   .stat-value {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     color: #212529;
     line-height: 1.2;
   }
 
   .stat-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #6c757d;
     margin-top: 2px;
   }
 }
 
 .section-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #343a40;
   margin: 0 0 16px 0;
@@ -117,7 +117,7 @@
   padding: 3px 8px;
   background-color: #e9ecef;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #495057;
   font-family: monospace;
@@ -127,7 +127,7 @@
   display: inline-block;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 
   &.badge-success {
@@ -160,7 +160,7 @@
 
   p {
     margin-top: 12px;
-    font-size: 14px;
+    font-size: 15px;
   }
 }
 
@@ -174,6 +174,6 @@
 
   p {
     margin: 0;
-    font-size: 14px;
+    font-size: 15px;
   }
 }

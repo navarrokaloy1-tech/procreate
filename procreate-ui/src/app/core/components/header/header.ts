@@ -57,7 +57,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     patients: { section: 'Patient Care', page: 'Patient Management' },
     visits: { section: 'Medical Records', page: 'Consultations' },
     'medical-records': { section: 'Medical Records', page: 'Medical Certificates' },
-    'lab-results': { section: 'Patient Care', page: 'Laboratory & Diagnostics' },
+    'lab-results': { section: 'Patient Care', page: 'Diagnostics' },
     orders: { section: 'Billing & Orders', page: 'Orders' },
     billing: { section: 'Billing & Orders', page: 'Billing' },
     reports: { section: 'Reports', page: 'Reports & Analytics' }
