@@ -1,47 +1,23 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
+import { ChartPatient } from '../../../../core/components/patient-summary/patient-summary';
 import { ConfirmService } from '../../../../core/services/confirm';
 import { AuthService } from '../../../../core/services/auth';
 import { ToastService } from '../../../../core/services/toast';
 import { CertificateRecipient } from '../../../../core/components/certificate-form/certificate-form';
 import { DeliveryPatient } from '../../../../core/components/result-delivery/result-delivery';
 
+// The patient half of the chart lives with the component that draws it now,
+// so the SOAP editor can render the same column. Re-exported because
+// PatientChart below is built out of it.
+export type { ChartPatient };
+
 /** A file staged in the upload modal, with an object-URL preview. */
 export interface UploadItem {
   file: File;
   url: string;
   kind: 'image' | 'video' | 'file';
-}
-
-export interface ChartPatient {
-  id: number;
-  patientCode: string;
-  fullName: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  suffix?: string;
-  dateOfBirth: string;
-  age: number;
-  gender: string;
-  civilStatus?: string;
-  occupation?: string;
-  nationality?: string;
-  bloodType?: string;
-  contactNumber?: string;
-  landline?: string;
-  email?: string;
-  address?: string;
-  emergencyContactName?: string;
-  emergencyContactRelationship?: string;
-  emergencyContactNumber?: string;
-  philHealthNumber?: string;
-  seniorCitizenId?: string;
-  pwdId?: string;
-  hmoProvider?: string;
-  hmoAccountNumber?: string;
-  createdAt: string;
 }
 
 export interface Allergy {
@@ -912,10 +888,4 @@ export class PatientDetailComponent implements OnInit {
       .toUpperCase();
   }
 
-  /** Whether the patient has any statutory discount or insurance on file. */
-  get hasInsurance(): boolean {
-    const p = this.chart?.patient;
-    if (!p) return false;
-    return !!(p.philHealthNumber || p.seniorCitizenId || p.pwdId || p.hmoProvider);
-  }
 }

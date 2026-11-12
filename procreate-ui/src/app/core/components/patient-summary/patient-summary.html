@@ -1,0 +1,125 @@
+<div class="info-card">
+  <div class="info-card__head">
+    <h3 class="info-card__title">
+      <app-icon name="user" [size]="17"></app-icon>
+      Personal Information
+    </h3>
+  </div>
+  <div class="info-card__body">
+    <div class="field-list">
+      <div>
+        <span class="field-list__label">Date of Birth</span>
+        <span class="field-list__value">{{ patient.dateOfBirth | date: 'MMMM d, y' }}</span>
+      </div>
+      <div>
+        <span class="field-list__label">Civil Status</span>
+        <span class="field-list__value">{{ patient.civilStatus || 'Not specified' }}</span>
+      </div>
+      <div>
+        <span class="field-list__label">Occupation</span>
+        <span class="field-list__value">{{ patient.occupation || 'Not specified' }}</span>
+      </div>
+      <div>
+        <span class="field-list__label">Blood Type</span>
+        <span class="field-list__value">
+          <span class="pill pill--primary" *ngIf="patient.bloodType; else noBlood">
+            {{ patient.bloodType }}
+          </span>
+          <ng-template #noBlood>Unknown</ng-template>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info-card">
+  <div class="info-card__head">
+    <h3 class="info-card__title">
+      <app-icon name="phone" [size]="17"></app-icon>
+      Contact Information
+    </h3>
+  </div>
+  <div class="info-card__body">
+    <div class="field-list">
+      <div>
+        <span class="field-list__label">Mobile</span>
+        <span class="field-list__value">{{ patient.contactNumber || 'Not on file' }}</span>
+      </div>
+      <div *ngIf="patient.landline">
+        <span class="field-list__label">Landline</span>
+        <span class="field-list__value">{{ patient.landline }}</span>
+      </div>
+      <div>
+        <span class="field-list__label">Email</span>
+        <span class="field-list__value">{{ patient.email || 'Not on file' }}</span>
+      </div>
+      <div>
+        <span class="field-list__label">Address</span>
+        <span class="field-list__value">{{ patient.address || 'Not on file' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info-card">
+  <div class="info-card__head">
+    <h3 class="info-card__title">
+      <app-icon name="shield" [size]="17"></app-icon>
+      Insurance &amp; Discounts
+    </h3>
+  </div>
+  <div class="info-card__body">
+    <div class="field-list" *ngIf="hasInsurance; else noInsurance">
+      <div *ngIf="patient.philHealthNumber">
+        <span class="field-list__label">PhilHealth</span>
+        <span class="field-list__value">{{ patient.philHealthNumber }}</span>
+      </div>
+      <div *ngIf="patient.seniorCitizenId">
+        <span class="field-list__label">Senior Citizen ID</span>
+        <span class="field-list__value">{{ patient.seniorCitizenId }}</span>
+      </div>
+      <div *ngIf="patient.pwdId">
+        <span class="field-list__label">PWD ID</span>
+        <span class="field-list__value">{{ patient.pwdId }}</span>
+      </div>
+      <div *ngIf="patient.hmoProvider">
+        <span class="field-list__label">HMO</span>
+        <span class="field-list__value">
+          {{ patient.hmoProvider }}
+          <small class="text-muted" *ngIf="patient.hmoAccountNumber">
+            &middot; {{ patient.hmoAccountNumber }}
+          </small>
+        </span>
+      </div>
+    </div>
+    <ng-template #noInsurance>
+      <p class="text-muted">No insurance information on file</p>
+    </ng-template>
+  </div>
+</div>
+
+<div class="info-card" *ngIf="showEmergencyContact && patient.emergencyContactName">
+  <div class="info-card__head">
+    <h3 class="info-card__title">
+      <app-icon name="users" [size]="17"></app-icon>
+      Emergency Contact
+    </h3>
+  </div>
+  <div class="info-card__body">
+    <div class="field-list">
+      <div>
+        <span class="field-list__label">Name</span>
+        <span class="field-list__value">
+          {{ patient.emergencyContactName }}
+          <small class="text-muted" *ngIf="patient.emergencyContactRelationship">
+            &middot; {{ patient.emergencyContactRelationship }}
+          </small>
+        </span>
+      </div>
+      <div>
+        <span class="field-list__label">Contact Number</span>
+        <span class="field-list__value">{{ patient.emergencyContactNumber || 'Not on file' }}</span>
+      </div>
+    </div>
+  </div>
+</div>

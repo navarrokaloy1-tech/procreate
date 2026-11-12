@@ -2,13 +2,8 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
 import { ToastService } from '../../../../core/services/toast';
+import { ChartPatient } from '../../../../core/components/patient-summary/patient-summary';
 import { SoapDiagnosis, SoapNote } from '../patient-detail/patient-detail';
-
-/** The patient this note belongs to, as the chart reports them. */
-interface NotePatient {
-  fullName: string;
-  patientCode: string;
-}
 
 /**
  * Writing one SOAP note, on a page of its own.
@@ -35,7 +30,12 @@ export class SoapNotePageComponent implements OnInit {
   /** The note being edited, or null when this is a new one. */
   noteId: number | null = null;
 
-  patient: NotePatient | null = null;
+  /**
+   * The whole patient, not just their name: the column down the left of this
+   * page is the same one the chart shows, so writing a note never means going
+   * back to look something up.
+   */
+  patient: ChartPatient | null = null;
 
   isLoading = false;
   isSaving = false;
@@ -78,13 +78,13 @@ export class SoapNotePageComponent implements OnInit {
   // ----------------------------------------------------------
 
   /**
-   * The chart, for the patient's name in the hero. Read-only here — the note is
-   * saved against the id from the route, so a slow or failed chart never stops
-   * somebody writing.
+   * The chart, for the hero and the column beside the form. Read-only here —
+   * the note is saved against the id from the route, so a slow or failed chart
+   * never stops somebody writing.
    */
   private loadPatient(): void {
     this.api
-      .get<{ patient: NotePatient }>(`patients/${this.patientId}/chart`)
+      .get<{ patient: ChartPatient }>(`patients/${this.patientId}/chart`)
       .subscribe({
         next: chart => {
           this.patient = chart.patient;
@@ -209,6 +209,17 @@ export class SoapNotePageComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** The two letters the hero avatar shows, as on the chart. */
+  initials(name: string): string {
+    return (name ?? '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
   }
 
   /** Back to the chart this note belongs to. */

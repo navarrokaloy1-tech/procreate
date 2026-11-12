@@ -2,11 +2,34 @@
   display: block;
 }
 
-.soap-page {
-  // A note is read and typed in long lines, but not the full width of a desktop
-  // screen — past about this the eye loses the start of the line coming back.
-  max-width: 900px;
+// Hero, detail grid and info cards come from the shared console pattern layer
+// in styles.scss; the patient column is app-patient-summary, the same one the
+// chart draws.
 
+.page-hero__meta {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+// Says which note this is, now that the hero is given over to the patient.
+.page-hero__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--white);
+  white-space: nowrap;
+}
+
+.soap-page {
   &__card {
     padding: 22px 24px 24px;
   }

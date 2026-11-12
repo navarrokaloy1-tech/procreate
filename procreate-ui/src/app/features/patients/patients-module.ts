@@ -13,6 +13,7 @@ import { CertificateFormComponent } from '../../core/components/certificate-form
 import { ResultDeliveryComponent } from '../../core/components/result-delivery/result-delivery';
 import { TestOrderSheetComponent } from '../../core/components/test-order-sheet/test-order-sheet';
 import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.directive';
+import { PatientSummaryComponent } from '../../core/components/patient-summary/patient-summary';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { ScrollOnErrorDirective } from '../../core/directives/scroll-on-error.di
     ResultDeliveryComponent,
     TestOrderSheetComponent,
     ScrollOnErrorDirective,
+    PatientSummaryComponent,
   ],
 })
 export class PatientsModule {}
