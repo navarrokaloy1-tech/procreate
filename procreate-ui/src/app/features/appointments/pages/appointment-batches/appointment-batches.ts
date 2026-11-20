@@ -91,14 +91,8 @@ export interface ProcedureRow {
    */
   batch: Batch | null;
   slot: BatchSlot;
-  /** The time of day this patient is expected, as "HH:mm", for the dropdown. */
+  /** The time of day this patient is expected, as "HH:mm", for the clock. */
   time: string;
-  /**
-   * True when that time is not one of the quarter-hours the dropdown offers —
-   * a booking made before this control existed, say. The row then adds its own
-   * option so the select shows the real time instead of coming up blank.
-   */
-  offGrid: boolean;
 }
 
 /** A Procedures card: every patient booked for one procedure, across all blocks. */
@@ -125,16 +119,6 @@ export interface UnscheduledAppt {
   isArchived: boolean;
 }
 
-/** Every quarter-hour from 6 am to 9 pm, as "HH:mm". */
-function buildTimeGrid(): string[] {
-  const times: string[] = [];
-  for (let minutes = 6 * 60; minutes <= 21 * 60; minutes += 15) {
-    const h = String(Math.floor(minutes / 60)).padStart(2, "0");
-    const m = String(minutes % 60).padStart(2, "0");
-    times.push(`${h}:${m}`);
-  }
-  return times;
-}
 
 /**
  * The day's session blocks and the order patients are seen in each.
@@ -179,11 +163,6 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   /** Rows the admin has unlocked to override for this one block. */
   editingDurations = new Set<string>();
 
-  /** Appointment ids whose minutes are currently unlocked on the board. */
-  editingSlotMinutes = new Set<number>();
-
-  /** The minutes being typed, per appointment, while a row is unlocked. */
-  slotMinutesDraft: Record<number, number> = {};
 
   /** Ids of every doctor list in the day, so each accepts drops from the others. */
   dropListIds: string[] = [];
@@ -191,14 +170,6 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   /** Every doctor with a patient somewhere in the day, in name order. */
   dayDoctors: string[] = [];
 
-  /**
-   * The times a procedure can be given on the board: every quarter-hour from
-   * 6 am to 9 pm, which covers any clinic day without making the dropdown a
-   * list of ninety-six entries. A booking already sitting between two of them
-   * keeps its own time — see ProcedureRow.offGrid.
-   */
-  readonly slotTimeOptions: string[] = buildTimeGrid();
-  private readonly slotTimeSet = new Set(this.slotTimeOptions);
 
   // --- How many blocks the day runs ---
   /**
@@ -348,10 +319,9 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     };
   }
 
-  /** One Procedures row, with the time its dropdown should be showing. */
+  /** One Procedures row, with the time its clock should be showing. */
   private procedureRow(batch: Batch | null, slot: BatchSlot): ProcedureRow {
-    const time = this.timeOf(slot.scheduledAt);
-    return { batch, slot, time, offGrid: !!time && !this.slotTimeSet.has(time) };
+    return { batch, slot, time: this.timeOf(slot.scheduledAt) };
   }
 
   /** "2026-11-12T14:30:00" as "14:30"; blank when there is no usable date. */
@@ -1090,69 +1060,6 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
     const h = Math.floor(clamped / 60);
     const m = clamped % 60;
     return `${`${h}`.padStart(2, '0')}:${`${m}`.padStart(2, '0')}`;
-  }
-
-  // ----------------------------------------------------------
-  // One patient's minutes
-  // ----------------------------------------------------------
-
-  isEditingSlotMinutes(slot: BatchSlot): boolean {
-    return this.editingSlotMinutes.has(slot.appointmentId);
-  }
-
-  /** Pencil: unlock this patient's minutes, starting from what they have now. */
-  startSlotEdit(batch: Batch | null, slot: BatchSlot): void {
-    this.slotMinutesDraft[slot.appointmentId] = this.slotCost(batch, slot);
-    this.editingSlotMinutes.add(slot.appointmentId);
-  }
-
-  cancelSlotEdit(slot: BatchSlot): void {
-    this.editingSlotMinutes.delete(slot.appointmentId);
-    delete this.slotMinutesDraft[slot.appointmentId];
-  }
-
-  /**
-   * Saves minutes for this one patient. The procedure's default is left alone
-   * — typing the default back in simply hands the patient back to it.
-   */
-  saveSlotMinutes(batch: Batch | null, slot: BatchSlot): void {
-    // Per-patient minutes only mean something inside a block's budget; the
-    // board hides the pencil without one, so this is just the matching guard.
-    if (!batch) {
-      this.cancelSlotEdit(slot);
-      return;
-    }
-
-    const minutes = Number(this.slotMinutesDraft[slot.appointmentId]);
-
-    if (!Number.isFinite(minutes) || minutes < 1) {
-      this.errorMessage = 'Minutes have to be a whole number of at least 1.';
-      return;
-    }
-
-    const rounded = Math.round(minutes);
-    const body = { minutes: rounded === this.minutesFor(batch, slot.service) ? null : rounded };
-
-    this.isSaving = true;
-    this.errorMessage = '';
-    this.noticeMessage = '';
-
-    this.api
-      .put<DayResponse>(`appointment-batches/slots/${slot.appointmentId}/duration`, body)
-      .subscribe({
-        next: response => {
-          this.apply(response);
-          this.cancelSlotEdit(slot);
-          this.isSaving = false;
-          this.flashNotice('Minutes saved.');
-          this.cdr.markForCheck();
-        },
-        error: error => {
-          this.errorMessage = this.messageFrom(error, 'Could not save those minutes.');
-          this.isSaving = false;
-          this.cdr.markForCheck();
-        },
-      });
   }
 
   // ----------------------------------------------------------

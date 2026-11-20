@@ -98,8 +98,8 @@
   </p>
   <p class="batch-hint" *ngIf="isProcedureMode">
     <app-icon name="info" [size]="14"></app-icon>
-    One card per procedure. Each patient shows the procedure's default minutes —
-    tap the pencil to set a different length for that patient only.
+    One card per procedure, each patient in the order they are expected. Set
+    the time you told them to come in; the chief notes are shown underneath.
   </p>
 
   <div class="batch-loading" *ngIf="isLoading">
@@ -327,88 +327,26 @@
             <p class="slot__name">
               {{ row.slot.patientName }}
               <span class="slot__code">{{ row.slot.patientCode }}</span>
-
-              <!-- Minutes set aside for this patient: the procedure default, or their own. -->
-              <span
-                class="slot__minutes"
-                *ngIf="!isEditingSlotMinutes(row.slot)"
-                [class.slot__minutes--custom]="row.slot.durationMinutes"
-                [title]="
-                  row.slot.durationMinutes
-                    ? 'Set for this patient only'
-                    : 'Default for ' + row.slot.service
-                "
-              >{{ slotCost(row.batch, row.slot) }} min</span>
-
-              <input
-                *ngIf="isEditingSlotMinutes(row.slot)"
-                type="number"
-                min="1"
-                max="480"
-                class="form-control slot__minutes-input"
-                [(ngModel)]="slotMinutesDraft[row.slot.appointmentId]"
-                [name]="'slot-min-' + row.slot.appointmentId"
-                (keyup.enter)="saveSlotMinutes(row.batch, row.slot)"
-                (keyup.escape)="cancelSlotEdit(row.slot)"
-                [attr.aria-label]="'Minutes for ' + row.slot.patientName"
-              />
-
-              <!-- Only a patient inside a block has minutes to re-cut: the
-                   length is charged against that block's window. -->
-              <button
-                type="button"
-                class="tool-btn slot__minutes-edit"
-                *ngIf="row.batch && !isEditingSlotMinutes(row.slot)"
-                (click)="startSlotEdit(row.batch, row.slot)"
-                [attr.aria-label]="'Edit minutes for ' + row.slot.patientName"
-                title="Change the minutes for this patient only"
-              >
-                <app-icon name="edit" [size]="13"></app-icon>
-              </button>
-
-              <ng-container *ngIf="isEditingSlotMinutes(row.slot)">
-                <button
-                  type="button"
-                  class="tool-btn slot__minutes-edit slot__minutes-edit--active"
-                  (click)="saveSlotMinutes(row.batch, row.slot)"
-                  [disabled]="isSaving"
-                  [attr.aria-label]="'Save minutes for ' + row.slot.patientName"
-                  title="Save"
-                >
-                  <app-icon name="check" [size]="13"></app-icon>
-                </button>
-                <button
-                  type="button"
-                  class="tool-btn slot__minutes-edit"
-                  (click)="cancelSlotEdit(row.slot)"
-                  [attr.aria-label]="'Cancel editing minutes for ' + row.slot.patientName"
-                  title="Cancel"
-                >
-                  <app-icon name="x" [size]="13"></app-icon>
-                </button>
-              </ng-container>
             </p>
             <p class="slot__meta">
-              {{ row.slot.chiefComplaint || 'No notes yet' }}
+              <span class="note-text" *ngIf="row.slot.chiefComplaint">
+                {{ row.slot.chiefComplaint }}
+              </span>
+              <span *ngIf="!row.slot.chiefComplaint">No notes yet</span>
             </p>
           </div>
 
           <!-- The time the patient is told to come in. It sets the booking's
                time of day and nothing else: a procedure shows on this card
                whichever block, if any, happens to cover that hour. -->
-          <span class="select-field select-field--sm slot__time">
-            <select
-              [ngModel]="row.time"
-              (ngModelChange)="setSlotTime(row.slot, $event)"
-              [name]="'slot-time-' + row.slot.appointmentId"
-              [disabled]="isSaving || isReleased(row.slot.status)"
-              [attr.aria-label]="'Time for ' + row.slot.patientName"
-            >
-              <option *ngIf="row.offGrid" [value]="row.time">{{ row.time }}</option>
-              <option *ngFor="let time of slotTimeOptions" [value]="time">{{ time }}</option>
-            </select>
-            <span class="select-field__caret"><app-icon name="chevron-down" [size]="13"></app-icon></span>
-          </span>
+          <input
+            type="time"
+            class="form-control slot__time"
+            [value]="row.time"
+            (change)="setSlotTime(row.slot, $any($event.target).value)"
+            [disabled]="isSaving || isReleased(row.slot.status)"
+            [attr.aria-label]="'Time for ' + row.slot.patientName"
+          />
 
           <div class="slot__flags">
             <span
@@ -452,8 +390,8 @@
 </div>
 
 <!-- How many blocks the day runs -->
-<div class="modal-backdrop" *ngIf="isCountModalOpen" (click)="closeBlockCount()">
-  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="isCountModalOpen">
+  <div class="modal-sheet modal-sheet--narrow">
     <div class="modal-sheet__head">
       <div>
         <h3 class="modal-sheet__title">
@@ -546,8 +484,8 @@
 </div>
 
 <!-- Edit block -->
-<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="isModalOpen">
+  <div class="modal-sheet modal-sheet--narrow">
     <div class="modal-sheet__head">
       <div>
         <h3 class="modal-sheet__title">

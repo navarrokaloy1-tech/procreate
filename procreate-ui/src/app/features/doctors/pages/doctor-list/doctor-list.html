@@ -246,8 +246,8 @@
 </div>
 
 <!-- Add / edit doctor sheet -->
-<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-  <div class="modal-sheet" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="isModalOpen">
+  <div class="modal-sheet">
     <div class="modal-sheet__head">
       <h3 class="modal-sheet__title">
         <app-icon name="stethoscope" [size]="19"></app-icon>

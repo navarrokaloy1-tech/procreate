@@ -1,5 +1,5 @@
-<div class="modal-backdrop" *ngIf="open" (click)="close()">
-  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="open">
+  <div class="modal-sheet modal-sheet--narrow">
     <div class="modal-sheet__head">
       <h3 class="modal-sheet__title">
         <app-icon name="qr" [size]="19"></app-icon>

@@ -269,10 +269,9 @@
           </p>
         </div>
 
+        <!-- Stacked, primary first: the aside is narrow and this label grows
+             with the batch, so side by side it ran off the card. -->
         <div class="card-footer summary-actions">
-          <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">
-            Cancel
-          </button>
           <button
             type="submit"
             class="btn btn-primary"
@@ -282,6 +281,9 @@
             {{ isSaving
                 ? 'Registering...'
                 : 'Register ' + entries.length + ' consultation' + (entries.length === 1 ? '' : 's') }}
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">
+            Cancel
           </button>
         </div>
       </div>

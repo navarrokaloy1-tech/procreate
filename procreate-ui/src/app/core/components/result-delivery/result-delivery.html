@@ -1,5 +1,5 @@
-<div class="modal-backdrop" *ngIf="open" (click)="close()">
-  <div class="modal-sheet delivery" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="open">
+  <div class="modal-sheet delivery">
     <div class="delivery__sending" *ngIf="isSending" role="status" aria-live="polite">
       <span class="delivery__sending__spinner" aria-hidden="true"></span>
       <p class="delivery__sending__title">Sending results…</p>

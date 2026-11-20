@@ -13,7 +13,7 @@ import { ConfirmService } from '../../services/confirm';
   imports: [IconComponent],
   template: `
     @if (confirmService.request(); as request) {
-      <div class="modal-backdrop confirm-backdrop" (click)="confirmService.dismiss()">
+      <div class="modal-backdrop confirm-backdrop">
         <div
           class="modal modal-sm confirm"
           role="alertdialog"

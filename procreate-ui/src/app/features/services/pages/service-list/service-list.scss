@@ -82,8 +82,19 @@
   &--muted { color: var(--text-muted); }
 }
 
-.orderable-tag {
-  margin-left: 6px;
+// The tag used to follow the category name, so it landed at a different
+// place on every row and the column read as a zigzag. The name now holds a
+// column of its own wide enough for the longest of them, and the tags line
+// up down the page.
+.category-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &__name {
+    flex: 0 0 auto;
+    min-width: 118px;
+  }
 }
 
 .check-row {

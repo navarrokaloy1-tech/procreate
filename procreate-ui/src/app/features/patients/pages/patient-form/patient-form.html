@@ -1,10 +1,9 @@
 <!-- Dimmed backdrop; clicking it dismisses the sheet. -->
-<div class="modal-backdrop" *ngIf="open" (click)="cancel()">
+<div class="modal-backdrop" *ngIf="open">
   <form
     class="modal-sheet modal-sheet--wide"
     [formGroup]="patientForm"
     (ngSubmit)="onSubmit()"
-    (click)="$event.stopPropagation()"
     novalidate
   >
     <div class="modal-sheet__head">

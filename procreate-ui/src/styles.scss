@@ -1804,6 +1804,16 @@ textarea.form-control {
   }
 }
 
+// A note somebody typed about a booking — chief notes, remarks, whatever
+// the desk was told at the counter. It sits among fields the system filled
+// in itself (the service, the doctor, the time), so it takes the sky accent
+// and an italic face: the same palette, read at a glance as a person's own
+// words rather than another column of data.
+.note-text {
+  color: var(--secondary-dark);
+  font-style: italic;
+}
+
 .select-field {
   position: relative;
   display: inline-block;

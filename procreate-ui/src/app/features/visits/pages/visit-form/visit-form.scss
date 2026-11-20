@@ -382,3 +382,18 @@
   color: #721c24;
   font-size: var(--font-size-base);
 }
+
+// The summary sits in a 340px aside and its primary label counts the batch
+// ("Register 11 consultations"), so the shared card footer's single row ran
+// the button off the edge, where the card clipped it. Full width, stacked,
+// primary on top.
+.summary-actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

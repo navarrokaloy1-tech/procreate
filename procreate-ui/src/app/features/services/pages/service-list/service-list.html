@@ -89,9 +89,11 @@
             </td>
 
             <td>
-              {{ service.category }}
-              <span class="pill pill--info orderable-tag" *ngIf="service.orderable" title="Appears when staff order tests">
-                Orderable
+              <span class="category-cell">
+                <span class="category-cell__name">{{ service.category }}</span>
+                <span class="pill pill--info" *ngIf="service.orderable" title="Appears when staff order tests">
+                  Orderable
+                </span>
               </span>
             </td>
 
@@ -230,8 +232,8 @@
 </div>
 
 <!-- Add / edit service -->
-<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-  <div class="modal-sheet" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="isModalOpen">
+  <div class="modal-sheet">
     <div class="modal-sheet__head">
       <div>
         <h3 class="modal-sheet__title">

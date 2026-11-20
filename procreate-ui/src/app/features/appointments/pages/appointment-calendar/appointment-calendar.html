@@ -239,7 +239,7 @@
           </span>
           <span class="day-row__meta" *ngIf="mode === 'procedure'">
             {{ appointment.service }}<ng-container *ngIf="appointment.chiefComplaint">
-              · {{ appointment.chiefComplaint }}</ng-container>
+              · <span class="note-text">{{ appointment.chiefComplaint }}</span></ng-container>
           </span>
         </span>
         <span class="pill day-row__pill" [class]="'pill day-row__pill ' + statusClass(appointment.status)">
@@ -316,7 +316,7 @@
         </p>
         <p class="slot-card__row" *ngIf="appointment.chiefComplaint">
           <app-icon name="alert-circle" [size]="14"></app-icon>
-          {{ appointment.chiefComplaint }}
+          <span class="note-text">{{ appointment.chiefComplaint }}</span>
         </p>
 
         <!--
@@ -363,8 +363,8 @@
 </div>
 
 <!-- New appointment sheet -->
-<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
-  <div class="modal-sheet modal-sheet--narrow" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="isModalOpen">
+  <div class="modal-sheet modal-sheet--narrow">
     <div class="modal-sheet__head">
       <div>
         <h3 class="modal-sheet__title">

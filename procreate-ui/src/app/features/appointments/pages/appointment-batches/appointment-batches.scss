@@ -347,10 +347,14 @@
   }
 }
 
-// The time of day on a Procedures row.
+// The time of day on a Procedures row. A clock rather than a list: the desk
+// types or spins the time it agreed with the patient instead of hunting for
+// it among every quarter-hour of the day.
 .slot__time {
   flex: 0 0 auto;
-  min-width: 96px;
+  width: auto;
+  min-width: 128px;
+  padding: 0.35rem 0.5rem;
 }
 
 // ------------------------------------------------------------

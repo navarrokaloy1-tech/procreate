@@ -196,7 +196,7 @@
   </div>
 
   <!-- ================= Register New Patient modal ================= -->
-  <div class="modal-backdrop" *ngIf="showRegister" (click)="closeRegister()">
+  <div class="modal-backdrop" *ngIf="showRegister">
     <div class="modal register-modal" (click)="$event.stopPropagation()">
       <div class="register-modal__header">
         <span class="register-modal__title"><app-icon name="user-plus" [size]="24"></app-icon> Register New Patient</span>
@@ -264,7 +264,7 @@
   </div>
 
   <!-- ================= Add Product modal ================= -->
-  <div class="modal-backdrop" *ngIf="showAddProduct" (click)="closeAddProduct()">
+  <div class="modal-backdrop" *ngIf="showAddProduct">
     <div class="modal addproduct-modal" (click)="$event.stopPropagation()">
       <div class="register-modal__header">
         <span class="register-modal__title"><app-icon name="cart" [size]="22"></app-icon> Add Product</span>
