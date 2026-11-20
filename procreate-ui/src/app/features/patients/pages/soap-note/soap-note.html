@@ -160,9 +160,10 @@
         Add diagnosis (+ ICD-10)
       </button>
 
-      <!-- Scans, photographs of a finding, a report brought in on paper. The
-           files go up when the note is saved, so a note that is abandoned
-           leaves nothing behind. -->
+      <!-- Usually the chart a patient brings from another clinic, scanned or
+           photographed so this consultation can be written against what has
+           already been done. The files go up when the note is saved, so a
+           note that is abandoned leaves nothing behind. -->
       <p class="soap-section-label">Upload</p>
       <div class="upload">
         <label class="upload__drop">
@@ -174,8 +175,13 @@
             [disabled]="isSaving"
           />
           <app-icon name="upload" [size]="20"></app-icon>
-          <span class="upload__drop__label">Choose images or PDFs</span>
-          <span class="upload__drop__hint">PNG, JPG, WebP or PDF &middot; up to 10 MB each</span>
+          <span class="upload__drop__label">Add records from another clinic</span>
+          <span class="upload__drop__hint">
+            Scans, photographs or PDFs of the chart this patient came in with
+          </span>
+          <span class="upload__drop__hint">
+            PNG, JPG, WebP or PDF &middot; up to {{ maxFileMb }} MB each
+          </span>
         </label>
 
         <!-- Already on the note. -->
@@ -260,7 +266,7 @@
         </div>
 
         <p class="upload__empty" *ngIf="attachments.length === 0 && staged.length === 0">
-          Nothing attached to this note yet.
+          No outside records attached to this note yet.
         </p>
       </div>
 

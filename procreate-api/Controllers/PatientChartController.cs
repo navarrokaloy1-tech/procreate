@@ -25,8 +25,13 @@ public class PatientChartController : ControllerBase
     /// <summary>A lab video (ultrasound clip, etc.) — larger than a still, so its own cap.</summary>
     private const long MaxVideoBytes = 100 * 1024 * 1024;
 
-    /// <summary>A file filed with a note: a page or a photograph, not a study.</summary>
-    private const long MaxAttachmentBytes = 10 * 1024 * 1024;
+    /// <summary>
+    /// A file filed with a note. Larger than a patient document's cap, because
+    /// this is usually somebody else's chart scanned in one go rather than a
+    /// single result page, and a scanned chart of any length runs well past
+    /// ten megabytes.
+    /// </summary>
+    private const long MaxAttachmentBytes = 25 * 1024 * 1024;
 
     /// <summary>What a patient document may be. Kept in step with the UI accept list.</summary>
     private static readonly HashSet<string> DocumentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -242,10 +247,11 @@ public class PatientChartController : ControllerBase
     /// <summary>
     /// Attaches one scan, photograph or PDF to a note.
     ///
-    /// Images and PDFs only, and smaller than a patient document: this is a
-    /// page of a report or a picture of a finding, filed with what was written
-    /// about it, not the study itself. A study belongs on the chart, under its
-    /// department and its own date.
+    /// What this is for is a patient arriving from another clinic: their chart
+    /// is scanned or photographed and filed with the consultation written
+    /// against it, so whoever reads the note later has the history it was
+    /// based on. Images and PDFs only. A study this clinic performed belongs
+    /// on the chart instead, under its department and its own date.
     /// </summary>
     [HttpPost("soap-notes/{noteId:int}/attachments")]
     [RequestSizeLimit(MaxAttachmentBytes + 1024 * 64)]

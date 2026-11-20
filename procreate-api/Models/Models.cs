@@ -821,14 +821,20 @@ public class SoapNote
 }
 
 /// <summary>
-/// A file filed with one SOAP note — a scan, a photograph of a finding, a
-/// report somebody brought in on paper.
+/// A file filed with one SOAP note.
+///
+/// Mostly this is a chart from somewhere else: a patient who has been seen
+/// at another clinic arrives with their records, and those are scanned or
+/// photographed here so the consultation can be written against what has
+/// already been done. Whatever else gets attached — a photograph of a
+/// finding, a report handed over on paper — files the same way.
 ///
 /// Kept apart from <see cref="PatientDocument"/> on purpose: a patient
-/// document is a result filed under a department and a study date, where this
-/// belongs to the consultation it was written up with, and goes when the note
-/// goes. Stored as bytes in the row, the same as a patient document, so a
-/// clinic running on nothing but the database still has its files.
+/// document is a result this clinic produced, filed under a department and
+/// a study date, where this is outside material read alongside one
+/// consultation and goes when that note goes. Stored as bytes in the row,
+/// the same as a patient document, so a clinic running on nothing but the
+/// database still has its files.
 /// </summary>
 public class SoapAttachment
 {

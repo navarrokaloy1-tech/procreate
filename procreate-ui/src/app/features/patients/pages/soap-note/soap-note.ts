@@ -65,8 +65,13 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
   uploadProgress = '';
 
   /** What the file picker will take. Kept in step with the API. */
+  /**
+   * What the picker takes. A scanned chart from another clinic is the usual
+   * case, so the cap is roomier than a single result page needs.
+   */
   readonly acceptedTypes = 'application/pdf,image/png,image/jpeg,image/webp';
-  private readonly maxBytes = 10 * 1024 * 1024;
+  readonly maxFileMb = 25;
+  private readonly maxBytes = this.maxFileMb * 1024 * 1024;
 
   /**
    * Object URLs for the files already on the note, by attachment id.
@@ -201,7 +206,7 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
 
     for (const file of chosen) {
       if (file.size > this.maxBytes) {
-        this.errorMessage = `${file.name} is larger than the 10 MB limit.`;
+        this.errorMessage = `${file.name} is larger than the ${this.maxFileMb} MB limit.`;
         continue;
       }
 
