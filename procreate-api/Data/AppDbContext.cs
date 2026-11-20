@@ -35,6 +35,7 @@ public class AppDbContext : DbContext
     public DbSet<PatientMedication> PatientMedications => Set<PatientMedication>();
     public DbSet<PatientCondition> PatientConditions => Set<PatientCondition>();
     public DbSet<SoapNote> SoapNotes => Set<SoapNote>();
+    public DbSet<SoapAttachment> SoapAttachments => Set<SoapAttachment>();
     public DbSet<VitalSignRecord> VitalSignRecords => Set<VitalSignRecord>();
     public DbSet<PatientDocument> PatientDocuments => Set<PatientDocument>();
     public DbSet<InventoryCategory> InventoryCategories => Set<InventoryCategory>();
@@ -283,6 +284,16 @@ public class AppDbContext : DbContext
         // Vitals and documents are always shown newest-first.
         modelBuilder.Entity<VitalSignRecord>().HasIndex(v => v.RecordedAt);
         modelBuilder.Entity<PatientDocument>().HasIndex(d => d.ResultDate);
+
+        // A note's files belong to the note, not to the chart at large: deleting
+        // the note takes them with it, and every read is "the files on this note".
+        modelBuilder.Entity<SoapAttachment>()
+            .HasOne(a => a.SoapNote)
+            .WithMany(n => n.Attachments)
+            .HasForeignKey(a => a.SoapNoteId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SoapAttachment>().HasIndex(a => a.SoapNoteId);
 
         // An item keeps its history when its category or supplier is removed,
         // so both links go null rather than cascading.

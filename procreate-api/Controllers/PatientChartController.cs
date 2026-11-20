@@ -25,6 +25,9 @@ public class PatientChartController : ControllerBase
     /// <summary>A lab video (ultrasound clip, etc.) — larger than a still, so its own cap.</summary>
     private const long MaxVideoBytes = 100 * 1024 * 1024;
 
+    /// <summary>A file filed with a note: a page or a photograph, not a study.</summary>
+    private const long MaxAttachmentBytes = 10 * 1024 * 1024;
+
     /// <summary>What a patient document may be. Kept in step with the UI accept list.</summary>
     private static readonly HashSet<string> DocumentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -105,6 +108,7 @@ public class PatientChartController : ControllerBase
             .ToListAsync();
 
         var soapNotes = (await _db.SoapNotes
+            .Include(s => s.Attachments)
             .Where(s => s.PatientId == patientId)
             .OrderByDescending(s => s.NoteDate).ThenByDescending(s => s.Id)
             .ToListAsync())
@@ -178,6 +182,7 @@ public class PatientChartController : ControllerBase
         if (!await PatientExists(patientId)) return NotFound(new { message = "Patient not found." });
 
         var notes = (await _db.SoapNotes
+            .Include(s => s.Attachments)
             .Where(s => s.PatientId == patientId)
             .OrderByDescending(s => s.NoteDate).ThenByDescending(s => s.Id)
             .ToListAsync())
@@ -224,7 +229,98 @@ public class PatientChartController : ControllerBase
             .FirstOrDefaultAsync(s => s.Id == noteId && s.PatientId == patientId);
         if (note is null) return NotFound();
 
+        // The files go with it — the FK cascades.
         _db.SoapNotes.Remove(note);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ----------------------------------------------------------
+    // Files filed with a note
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// Attaches one scan, photograph or PDF to a note.
+    ///
+    /// Images and PDFs only, and smaller than a patient document: this is a
+    /// page of a report or a picture of a finding, filed with what was written
+    /// about it, not the study itself. A study belongs on the chart, under its
+    /// department and its own date.
+    /// </summary>
+    [HttpPost("soap-notes/{noteId:int}/attachments")]
+    [RequestSizeLimit(MaxAttachmentBytes + 1024 * 64)]
+    public async Task<IActionResult> UploadSoapAttachment(
+        int patientId, int noteId, [FromForm] IFormFile? file)
+    {
+        var note = await _db.SoapNotes
+            .FirstOrDefaultAsync(s => s.Id == noteId && s.PatientId == patientId);
+        if (note is null) return NotFound(new { message = "SOAP note not found." });
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "No file was uploaded." });
+
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType)
+            ? "application/octet-stream"
+            : file.ContentType;
+
+        if (!DocumentTypes.Contains(contentType))
+            return BadRequest(new { message = "Only PDF or image (PNG/JPG/WebP) files can be attached to a note." });
+
+        if (file.Length > MaxAttachmentBytes)
+            return BadRequest(new
+            {
+                message = $"The file is larger than the {MaxAttachmentBytes / (1024 * 1024)} MB limit."
+            });
+
+        using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer);
+
+        var attachment = new SoapAttachment
+        {
+            SoapNoteId = note.Id,
+            FileName = Path.GetFileName(file.FileName),
+            ContentType = contentType,
+            SizeBytes = file.Length,
+            UploadedBy = User.Identity?.Name ?? string.Empty,
+            Content = buffer.ToArray()
+        };
+
+        _db.SoapAttachments.Add(attachment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            attachment.Id, attachment.FileName, attachment.ContentType,
+            attachment.SizeBytes, attachment.UploadedBy, attachment.UploadedAt
+        });
+    }
+
+    /// <summary>Streams the file back, inline, so a PDF opens in the viewer.</summary>
+    [HttpGet("soap-notes/{noteId:int}/attachments/{attachmentId:int}")]
+    public async Task<IActionResult> GetSoapAttachment(int patientId, int noteId, int attachmentId)
+    {
+        var attachment = await _db.SoapAttachments
+            .Include(a => a.SoapNote)
+            .FirstOrDefaultAsync(a => a.Id == attachmentId
+                                   && a.SoapNoteId == noteId
+                                   && a.SoapNote.PatientId == patientId);
+        if (attachment is null) return NotFound();
+
+        Response.Headers.ContentDisposition = $"inline; filename=\"{attachment.FileName}\"";
+        return File(attachment.Content, attachment.ContentType);
+    }
+
+    [HttpDelete("soap-notes/{noteId:int}/attachments/{attachmentId:int}")]
+    public async Task<IActionResult> DeleteSoapAttachment(int patientId, int noteId, int attachmentId)
+    {
+        var attachment = await _db.SoapAttachments
+            .Include(a => a.SoapNote)
+            .FirstOrDefaultAsync(a => a.Id == attachmentId
+                                   && a.SoapNoteId == noteId
+                                   && a.SoapNote.PatientId == patientId);
+        if (attachment is null) return NotFound();
+
+        _db.SoapAttachments.Remove(attachment);
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -263,7 +359,14 @@ public class PatientChartController : ControllerBase
         s.Plan,
         diagnoses = ParseDiagnoses(s.DiagnosesJson),
         s.CreatedBy,
-        s.CreatedAt
+        s.CreatedAt,
+        attachments = (s.Attachments ?? new List<SoapAttachment>())
+            .OrderBy(a => a.UploadedAt)
+            .Select(a => new
+            {
+                a.Id, a.FileName, a.ContentType, a.SizeBytes, a.UploadedBy, a.UploadedAt
+            })
+            .ToList()
     };
 
     private static List<SoapDiagnosisDto> ParseDiagnoses(string json)

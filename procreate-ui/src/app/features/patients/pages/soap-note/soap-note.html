@@ -160,6 +160,110 @@
         Add diagnosis (+ ICD-10)
       </button>
 
+      <!-- Scans, photographs of a finding, a report brought in on paper. The
+           files go up when the note is saved, so a note that is abandoned
+           leaves nothing behind. -->
+      <p class="soap-section-label">Upload</p>
+      <div class="upload">
+        <label class="upload__drop">
+          <input
+            type="file"
+            multiple
+            [accept]="acceptedTypes"
+            (change)="onFilesChosen($event)"
+            [disabled]="isSaving"
+          />
+          <app-icon name="upload" [size]="20"></app-icon>
+          <span class="upload__drop__label">Choose images or PDFs</span>
+          <span class="upload__drop__hint">PNG, JPG, WebP or PDF &middot; up to 10 MB each</span>
+        </label>
+
+        <!-- Already on the note. -->
+        <div class="upload__list" *ngIf="attachments.length > 0">
+          <div class="upload__row" *ngFor="let file of attachments">
+            <a
+              class="upload__thumb"
+              *ngIf="isImage(file.contentType) && attachmentUrl(file)"
+              [href]="attachmentUrl(file)"
+              target="_blank"
+              rel="noopener"
+            >
+              <img [src]="attachmentUrl(file)" [alt]="file.fileName" />
+            </a>
+            <span
+              class="upload__thumb"
+              [class.upload__thumb--file]="!isImage(file.contentType)"
+              *ngIf="!isImage(file.contentType) || !attachmentUrl(file)"
+            >
+              <app-icon name="file-text" [size]="20"></app-icon>
+            </span>
+
+            <span class="upload__body">
+              <a
+                class="upload__name"
+                *ngIf="attachmentUrl(file); else plainName"
+                [href]="attachmentUrl(file)"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ file.fileName }}
+              </a>
+              <ng-template #plainName>
+                <span class="upload__name">{{ file.fileName }}</span>
+              </ng-template>
+              <span class="upload__meta">
+                {{ fileSize(file.sizeBytes) }}
+                <ng-container *ngIf="file.uploadedBy"> &middot; {{ file.uploadedBy }}</ng-container>
+              </span>
+            </span>
+
+            <button
+              type="button"
+              class="table-actions__btn table-actions__btn--danger"
+              (click)="removeAttachment(file)"
+              [attr.aria-label]="'Remove ' + file.fileName"
+              title="Remove this file"
+            >
+              <app-icon name="trash" [size]="16"></app-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chosen, not yet sent. -->
+        <div class="upload__list" *ngIf="staged.length > 0">
+          <div class="upload__row upload__row--staged" *ngFor="let item of staged; let i = index">
+            <span class="upload__thumb" *ngIf="item.isImage">
+              <img [src]="item.url" [alt]="item.file.name" />
+            </span>
+            <span class="upload__thumb upload__thumb--file" *ngIf="!item.isImage">
+              <app-icon name="file-text" [size]="20"></app-icon>
+            </span>
+
+            <span class="upload__body">
+              <span class="upload__name">{{ item.file.name }}</span>
+              <span class="upload__meta">
+                {{ fileSize(item.file.size) }} &middot;
+                <span class="note-text">attached when you save</span>
+              </span>
+            </span>
+
+            <button
+              type="button"
+              class="table-actions__btn table-actions__btn--danger"
+              (click)="removeStaged(i)"
+              [attr.aria-label]="'Remove ' + item.file.name"
+              title="Remove this file"
+            >
+              <app-icon name="x" [size]="16"></app-icon>
+            </button>
+          </div>
+        </div>
+
+        <p class="upload__empty" *ngIf="attachments.length === 0 && staged.length === 0">
+          Nothing attached to this note yet.
+        </p>
+      </div>
+
       <p class="soap-section-label">Plan</p>
       <div class="form-group">
         <label class="form-label" for="soapPlan">Plan</label>
@@ -179,7 +283,9 @@
         </button>
         <button type="submit" class="btn btn-primary" [disabled]="isSaving">
           <app-icon name="save" [size]="16"></app-icon>
-          {{ isSaving ? 'Saving...' : 'Save SOAP Note' }}
+          {{ isSaving
+              ? (uploadProgress ? 'Attaching ' + uploadProgress + '...' : 'Saving...')
+              : 'Save SOAP Note' }}
         </button>
       </div>
     </form>

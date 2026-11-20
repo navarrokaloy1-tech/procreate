@@ -105,6 +105,18 @@ export interface SoapNote {
   diagnoses: SoapDiagnosis[];
   createdBy: string;
   createdAt: string;
+  /** Scans, photographs and PDFs filed with the note. */
+  attachments: SoapAttachment[];
+}
+
+/** One file filed with a SOAP note. The bytes stay on the server. */
+export interface SoapAttachment {
+  id: number;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploadedAt: string;
 }
 
 export interface PatientChart {

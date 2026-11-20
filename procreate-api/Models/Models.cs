@@ -815,6 +815,33 @@ public class SoapNote
     public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Scans, photographs and PDFs filed with this note.</summary>
+    public List<SoapAttachment> Attachments { get; set; } = new();
+}
+
+/// <summary>
+/// A file filed with one SOAP note — a scan, a photograph of a finding, a
+/// report somebody brought in on paper.
+///
+/// Kept apart from <see cref="PatientDocument"/> on purpose: a patient
+/// document is a result filed under a department and a study date, where this
+/// belongs to the consultation it was written up with, and goes when the note
+/// goes. Stored as bytes in the row, the same as a patient document, so a
+/// clinic running on nothing but the database still has its files.
+/// </summary>
+public class SoapAttachment
+{
+    public int Id { get; set; }
+    public int SoapNoteId { get; set; }
+    public SoapNote SoapNote { get; set; } = null!;
+
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/octet-stream";
+    public long SizeBytes { get; set; }
+    public string UploadedBy { get; set; } = string.Empty;
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public byte[] Content { get; set; } = Array.Empty<byte>();
 }
 
 /// <summary>One past or ongoing condition in the patient's medical history.</summary>

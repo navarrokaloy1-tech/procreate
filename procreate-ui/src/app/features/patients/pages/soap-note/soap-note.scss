@@ -83,6 +83,139 @@
 }
 
 // ------------------------------------------------------------
+// Files filed with the note
+// ------------------------------------------------------------
+
+.upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  // The whole panel is the picker: a label wrapping a hidden input, so the
+  // click target is the area somebody would aim at anyway.
+  &__drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 22px 18px;
+    border: 1px dashed var(--secondary);
+    border-radius: var(--border-radius);
+    background: var(--secondary-light);
+    color: var(--primary);
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition);
+
+    &:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    // Shown through the label, so it never needs to be seen itself.
+    input[type='file'] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &:has(input:disabled) {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    &__label {
+      font-weight: 600;
+    }
+
+    &__hint {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--white);
+
+    // Not saved yet, so it sits back from the ones that are.
+    &--staged {
+      border-style: dashed;
+      background: var(--light);
+    }
+  }
+
+  &__thumb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    background: var(--light);
+    color: var(--primary);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &--file {
+      background: var(--primary-light);
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:is(a) {
+      color: var(--primary);
+      text-decoration: none;
+
+      &:hover { text-decoration: underline; }
+    }
+  }
+
+  &__meta {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__empty {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+// ------------------------------------------------------------
 // Loading
 // ------------------------------------------------------------
 

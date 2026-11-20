@@ -223,6 +223,22 @@ using (var scope = app.Services.CreateScope())
             """);
         db.Database.ExecuteSqlRaw("""CREATE INDEX IF NOT EXISTS "IX_SoapNotes_PatientId" ON "SoapNotes" ("PatientId")""");
 
+        // The files filed with a note came later still, for the same reason.
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS "SoapAttachments" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_SoapAttachments" PRIMARY KEY AUTOINCREMENT,
+                "SoapNoteId" INTEGER NOT NULL,
+                "FileName" TEXT NOT NULL DEFAULT '',
+                "ContentType" TEXT NOT NULL DEFAULT '',
+                "SizeBytes" INTEGER NOT NULL DEFAULT 0,
+                "UploadedBy" TEXT NOT NULL DEFAULT '',
+                "UploadedAt" TEXT NOT NULL,
+                "Content" BLOB NOT NULL,
+                CONSTRAINT "FK_SoapAttachments_SoapNotes_SoapNoteId" FOREIGN KEY ("SoapNoteId") REFERENCES "SoapNotes" ("Id") ON DELETE CASCADE
+            )
+            """);
+        db.Database.ExecuteSqlRaw("""CREATE INDEX IF NOT EXISTS "IX_SoapAttachments_SoapNoteId" ON "SoapAttachments" ("SoapNoteId")""");
+
         // Per-block service durations (minute budget) were added after
         // EnsureCreated first ran for many dev DBs — add the columns by hand.
         foreach (var table in new[] { "AppointmentBatches", "AppointmentBatchTemplates" })
