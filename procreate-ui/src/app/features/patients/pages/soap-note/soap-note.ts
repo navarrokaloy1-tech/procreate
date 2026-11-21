@@ -1,4 +1,6 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api';
 import { ToastService } from '../../../../core/services/toast';
@@ -49,6 +51,26 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
   isSaving = false;
   errorMessage = '';
 
+  /**
+   * Whether the patient column is showing. Off by default: a consultation
+   * note is written about somebody already sitting in front of you, and a
+   * chart on screen is a chart somebody walking past can read. The choice
+   * is remembered per browser, so anybody who wants it up keeps it up.
+   */
+  showPersonalInfo = false;
+  private static readonly PERSONAL_INFO_KEY = 'procreate.soap.showPersonalInfo';
+
+  togglePersonalInfo(): void {
+    this.showPersonalInfo = !this.showPersonalInfo;
+    try {
+      localStorage.setItem(
+        SoapNotePageComponent.PERSONAL_INFO_KEY, String(this.showPersonalInfo));
+    } catch {
+      // Private browsing, or storage turned off. The choice simply does not
+      // outlive the page, which is no reason to fail the click.
+    }
+  }
+
   // --- Files filed with the note -----------------------------------------
 
   /** What is already on the note, from the server. */
@@ -82,6 +104,70 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
    */
   private previews = new Map<number, string>();
 
+  // --- Looking at a file ---------------------------------------------
+
+  /**
+   * The attachment open in the viewer, or null when it is closed. Opening
+   * one in a tab loses the note underneath it; a viewer keeps the page and
+   * lets a run of scans be stepped through, which is what reading somebody
+   * else's chart actually involves.
+   */
+  viewing: SoapAttachment | null = null;
+
+  /** Only the images are steppable — a PDF opens in its own viewer. */
+  get viewableImages(): SoapAttachment[] {
+    return this.images;
+  }
+
+  /** The images among the attachments, rebuilt whenever they change. */
+  images: SoapAttachment[] = [];
+
+  get viewingIndex(): number {
+    return this.viewing ? this.images.findIndex(a => a.id === this.viewing!.id) : -1;
+  }
+
+  get hasPreviousImage(): boolean {
+    return this.viewingIndex > 0;
+  }
+
+  get hasNextImage(): boolean {
+    const i = this.viewingIndex;
+    return i >= 0 && i < this.images.length - 1;
+  }
+
+  openViewer(attachment: SoapAttachment): void {
+    if (!this.isImage(attachment.contentType)) return;
+    this.viewing = attachment;
+  }
+
+  closeViewer(): void {
+    this.viewing = null;
+  }
+
+  /** Left and right through the images, wherever the viewer was opened from. */
+  stepViewer(delta: -1 | 1): void {
+    const i = this.viewingIndex;
+    if (i < 0) return;
+
+    const next = i + delta;
+    if (next < 0 || next >= this.images.length) return;
+    this.viewing = this.images[next];
+  }
+
+  /** Arrow keys and Escape, while the viewer is open. */
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    if (!this.viewing) return;
+
+    if (event.key === 'Escape') this.closeViewer();
+    else if (event.key === 'ArrowLeft') this.stepViewer(-1);
+    else if (event.key === 'ArrowRight') this.stepViewer(1);
+    else return;
+
+    event.preventDefault();
+    this.cdr.markForCheck();
+  }
+
   draft = {
     noteDate: new Date().toISOString().slice(0, 10),
     chiefComplaint: '',
@@ -106,6 +192,13 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
 
     const noteId = this.route.snapshot.paramMap.get('noteId');
     this.noteId = noteId ? Number(noteId) : null;
+
+    try {
+      this.showPersonalInfo =
+        localStorage.getItem(SoapNotePageComponent.PERSONAL_INFO_KEY) === 'true';
+    } catch {
+      this.showPersonalInfo = false;
+    }
 
     this.loadPatient();
     if (this.noteId) this.loadNote();
@@ -169,6 +262,7 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
         };
 
         this.attachments = note.attachments ?? [];
+        this.images = this.attachments.filter(a => this.isImage(a.contentType));
         this.loadPreviews();
 
         this.isLoading = false;
@@ -291,6 +385,8 @@ export class SoapNotePageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.attachments = this.attachments.filter(a => a.id !== attachment.id);
+          this.images = this.attachments.filter(a => this.isImage(a.contentType));
+          if (this.viewing?.id === attachment.id) this.closeViewer();
           this.cdr.markForCheck();
         },
         error: () => {

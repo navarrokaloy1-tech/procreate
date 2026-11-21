@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<QueueEntry> QueueEntries => Set<QueueEntry>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
+    public DbSet<DoctorDayOff> DoctorDaysOff => Set<DoctorDayOff>();
+    public DbSet<ClinicHoliday> ClinicHolidays => Set<ClinicHoliday>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<ResultDelivery> ResultDeliveries => Set<ResultDelivery>();
     public DbSet<LoginActivity> LoginActivities => Set<LoginActivity>();
@@ -294,6 +296,21 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<SoapAttachment>().HasIndex(a => a.SoapNoteId);
+
+        // A doctor's days off go with the doctor, and a date is only ever set
+        // once per doctor — a second entry for the same day would mean nothing.
+        modelBuilder.Entity<DoctorDayOff>()
+            .HasOne(d => d.Doctor)
+            .WithMany()
+            .HasForeignKey(d => d.DoctorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DoctorDayOff>()
+            .HasIndex(d => new { d.DoctorId, d.Date })
+            .IsUnique();
+
+        // One entry per closed date, clinic-wide.
+        modelBuilder.Entity<ClinicHoliday>().HasIndex(h => h.Date).IsUnique();
 
         // An item keeps its history when its category or supplier is removed,
         // so both links go null rather than cascading.

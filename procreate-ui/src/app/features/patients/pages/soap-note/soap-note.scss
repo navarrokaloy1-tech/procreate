@@ -30,6 +30,14 @@
 }
 
 .soap-page {
+  // With the patient column folded away there is only one column, and a form
+  // run the full width of a desktop screen is a form nobody can read a line
+  // of. It keeps roughly the width it had with the column beside it.
+  &--solo {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 1100px;
+  }
+
   &__card {
     padding: 22px 24px 24px;
   }
@@ -179,6 +187,13 @@
     &--file {
       background: var(--primary-light);
     }
+
+    // The image thumbnails open the viewer, so they are buttons.
+    &--button {
+      padding: 0;
+      border: none;
+      cursor: pointer;
+    }
   }
 
   &__body {
@@ -195,11 +210,23 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    &:is(a) {
+    &:is(a),
+    &--button {
       color: var(--primary);
       text-decoration: none;
 
       &:hover { text-decoration: underline; }
+    }
+
+    // A button that reads as a link: it opens the viewer rather than a page.
+    &--button {
+      padding: 0;
+      border: none;
+      background: none;
+      font: inherit;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
     }
   }
 
@@ -210,6 +237,118 @@
 
   &__empty {
     margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+}
+
+// ------------------------------------------------------------
+// Looking at a scan
+// ------------------------------------------------------------
+
+.viewer {
+  // Darker than an ordinary sheet's backdrop: the point here is the picture,
+  // and a scan reads better against something close to black.
+  background: rgba(7, 47, 66, 0.82);
+
+  &__sheet {
+    display: flex;
+    flex-direction: column;
+    width: min(1080px, 94vw);
+    max-height: 92vh;
+    border-radius: var(--border-radius-lg);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--light);
+  }
+
+  &__title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  &__stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px;
+    background: var(--dark);
+  }
+
+  &__image {
+    max-width: 100%;
+    max-height: 72vh;
+    object-fit: contain;
+    display: block;
+  }
+
+  // Sit over the picture rather than beside it, so a wide scan still gets the
+  // full width of the sheet.
+  &__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--primary);
+    cursor: pointer;
+    transition: background var(--transition), opacity var(--transition);
+
+    &:hover:not(:disabled) { background: var(--white); }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    &--prev { left: 14px; }
+    &--next { right: 14px; }
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-color);
+    background: var(--light);
+  }
+
+  &__meta {
     font-size: var(--font-size-sm);
     color: var(--text-muted);
   }

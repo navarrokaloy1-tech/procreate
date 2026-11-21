@@ -249,6 +249,23 @@
                   <span class="slot__code">{{ slot.patientCode }}</span>
                 </p>
                 <p class="slot__meta">{{ slot.service }}</p>
+
+              <!-- Where they have got to while they wait. Saved when the box
+                   loses focus, and it never disturbs the running order. -->
+              <label class="waiting-note">
+                <app-icon name="edit" [size]="13"></app-icon>
+                <input
+                  type="text"
+                  maxlength="200"
+                  placeholder="Stepped out? Note it here"
+                  [value]="noteFor(slot)"
+                  (input)="onNoteInput(slot, $any($event.target).value)"
+                  (blur)="saveNote(slot)"
+                  (keyup.enter)="saveNote(slot)"
+                  [attr.aria-label]="'Waiting note for ' + slot.patientName"
+                />
+                <app-icon name="check" [size]="13" *ngIf="isSavingNote(slot)"></app-icon>
+              </label>
               </div>
 
               <div class="slot__flags">
@@ -334,6 +351,23 @@
               </span>
               <span *ngIf="!row.slot.chiefComplaint">No notes yet</span>
             </p>
+
+            <!-- Where they have got to while they wait. Saved when the box
+                 loses focus, and it never disturbs the running order. -->
+            <label class="waiting-note">
+              <app-icon name="edit" [size]="13"></app-icon>
+              <input
+                type="text"
+                maxlength="200"
+                placeholder="Stepped out? Note it here"
+                [value]="noteFor(row.slot)"
+                (input)="onNoteInput(row.slot, $any($event.target).value)"
+                (blur)="saveNote(row.slot)"
+                (keyup.enter)="saveNote(row.slot)"
+                [attr.aria-label]="'Waiting note for ' + row.slot.patientName"
+              />
+              <app-icon name="check" [size]="13" *ngIf="isSavingNote(row.slot)"></app-icon>
+            </label>
           </div>
 
           <!-- The time the patient is told to come in. It sets the booking's

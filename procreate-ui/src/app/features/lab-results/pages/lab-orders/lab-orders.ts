@@ -4,6 +4,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../../core/services/api';
 import { ConfirmService } from '../../../../core/services/confirm';
+import { ToastService } from '../../../../core/services/toast';
 
 export interface LabOrder {
   id: number;
@@ -47,7 +48,8 @@ export class LabOrders implements OnInit, OnDestroy {
   departments: DepartmentTab[] = [];
   activeDepartment = 'Laboratory';
 
-  readonly stageFilters = ['All Orders', 'Pending', 'In Progress', 'For Reading', 'Completed'];
+  readonly stageFilters =
+    ['All Orders', 'Pending', 'In Progress', 'For Reading', 'Completed', 'Cancelled'];
   activeStage = 'All Orders';
 
   searchTerm = '';
@@ -71,7 +73,8 @@ export class LabOrders implements OnInit, OnDestroy {
     private apiService: ApiService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private confirm: ConfirmService
+    private confirm: ConfirmService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -355,6 +358,45 @@ export class LabOrders implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Cancels an order and puts back whatever it drew out of the store.
+   *
+   * The desk is told that is what will happen before it happens: the stock
+   * going back is the part that is easy to miss and hard to unpick, and it is
+   * the reason this is not simply a status change.
+   */
+  async cancelOrder(order: LabOrder): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Cancel this order',
+      message: `Cancel ${order.testName} for ${order.patientName}?`,
+      detail:
+        'Anything this test draws from the store goes back on the shelf, and ' +
+        'the order can no longer be collected or resulted.',
+      confirmLabel: 'Cancel order',
+      cancelLabel: 'Keep it',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.apiService
+      .post<{ itemsReturned: number }>(`lab/orders/${order.id}/cancel`, {})
+      .subscribe({
+        next: result => {
+          const n = result.itemsReturned;
+          const plural = n === 1 ? '' : 's';
+          this.toast.success(
+            n > 0
+              ? `Order cancelled. ${n} item${plural} put back in stock.`
+              : 'Order cancelled.');
+          this.loadOrders();
+        },
+        error: err => {
+          this.toast.error(err?.error?.message ?? 'That order could not be cancelled.');
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   stagePill(stage: string): string {
     switch (stage) {
       case 'Pending':
@@ -365,6 +407,8 @@ export class LabOrders implements OnInit, OnDestroy {
         return 'pill pill--primary';
       case 'Completed':
         return 'pill pill--success';
+      case 'Cancelled':
+        return 'pill pill--danger';
       default:
         return 'pill';
     }
@@ -422,10 +466,19 @@ export class LabOrders implements OnInit, OnDestroy {
   // Group by patient
   // ----------------------------------------------------------
 
-  /** When on, orders are shown gathered under each patient instead of a flat list. */
-  groupByPatient = false;
-  /** Patients whose group is currently folded away. */
-  private collapsedPatients = new Set<number>();
+  /**
+   * Orders are gathered under each patient by default, rather than listed flat.
+   * The desk works a patient at a time — everything ordered for whoever is in
+   * front of them — and a flat list makes that a hunt down the page.
+   */
+  groupByPatient = true;
+
+  /**
+   * Patients whose group is open. Held the right way round: every group starts
+   * folded, so a busy day opens as a readable list of names rather than a wall
+   * of rows, and a patient is unfolded when somebody wants them.
+   */
+  private expandedPatients = new Set<number>();
 
   toggleGrouping(): void {
     this.groupByPatient = !this.groupByPatient;
@@ -433,12 +486,12 @@ export class LabOrders implements OnInit, OnDestroy {
   }
 
   togglePatientGroup(patientId: number): void {
-    if (this.collapsedPatients.has(patientId)) this.collapsedPatients.delete(patientId);
-    else this.collapsedPatients.add(patientId);
+    if (this.expandedPatients.has(patientId)) this.expandedPatients.delete(patientId);
+    else this.expandedPatients.add(patientId);
   }
 
   isGroupCollapsed(patientId: number): boolean {
-    return this.collapsedPatients.has(patientId);
+    return !this.expandedPatients.has(patientId);
   }
 
   /** The filtered orders gathered per patient, each group alphabetical by name. */

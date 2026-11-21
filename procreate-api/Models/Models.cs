@@ -212,6 +212,15 @@ public class LabOrder
     public DateTime? ReleasedAt { get; set; }
 
     /// <summary>
+    /// Set when the order is cancelled. Cancelling puts the supplies the test
+    /// drew down back on the shelf, so the stamp is kept: it is the evidence
+    /// for the returning movements in the stock ledger.
+    /// </summary>
+    public DateTime? CancelledAt { get; set; }
+    public string CancelledBy { get; set; } = string.Empty;
+    public string CancelReason { get; set; } = string.Empty;
+
+    /// <summary>
     /// Free-text findings, used by tests with no measurable parameters —
     /// imaging, ultrasound and heart-station studies are read, not measured.
     /// </summary>
@@ -544,6 +553,37 @@ public class DoctorSchedule
 }
 
 /// <summary>
+/// One date a doctor is not available, set ahead of time: leave, a
+/// conference, a hospital duty. It overrides the weekly schedule for that
+/// date alone, so the desk can block out a Tuesday without unpicking every
+/// Tuesday.
+/// </summary>
+public class DoctorDayOff
+{
+    public int Id { get; set; }
+    public int DoctorId { get; set; }
+    public Doctor Doctor { get; set; } = null!;
+    /// <summary>Date only; the time of day is never used.</summary>
+    public DateTime Date { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// A date the clinic itself is closed — a public holiday, a company event.
+/// It blocks every doctor at once, so a holiday is entered once rather than
+/// against each of them in turn.
+/// </summary>
+public class ClinicHoliday
+{
+    public int Id { get; set; }
+    /// <summary>Date only; the time of day is never used.</summary>
+    public DateTime Date { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
 /// A certificate issued to a patient or to an unregistered walk-in. Exactly one
 /// of PatientId / WalkInName identifies the recipient — see IssuedTo.
 /// </summary>
@@ -591,6 +631,16 @@ public class Appointment
     public string Status { get; set; } = "Scheduled";
     public string ChiefComplaint { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// What the desk needs to remember about this patient right now —
+    /// "stepped out for lunch, back 12:30", "waiting in the car", "gone for
+    /// an X-ray first". It belongs to the day rather than to the record: it
+    /// is read off the board while the queue is running and means nothing
+    /// afterwards, which is why it is not the clinical Notes above.
+    /// </summary>
+    public string WaitingNote { get; set; } = string.Empty;
+
     public bool IsArchived { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -1018,8 +1068,11 @@ public static class StockMovementTypes
     public const string Adjustment = "Adjustment";
     /// <summary>Drawn down automatically when a test that uses it is ordered.</summary>
     public const string AutoDeduction = "Auto-Deduction";
+    /// <summary>Put back automatically when that test is cancelled.</summary>
+    public const string AutoReturn = "Auto-Return";
 
-    public static readonly string[] All = { StockIn, StockOut, Adjustment, AutoDeduction };
+    public static readonly string[] All =
+        { StockIn, StockOut, Adjustment, AutoDeduction, AutoReturn };
 }
 
 /// <summary>

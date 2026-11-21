@@ -21,6 +21,10 @@
         </select>
         <span class="select-field__caret"><app-icon name="chevron-down" [size]="15"></app-icon></span>
       </span>
+      <button type="button" class="btn btn-hero-ghost" (click)="openHolidays()">
+        <app-icon name="calendar" [size]="16"></app-icon>
+        Holidays
+      </button>
       <button type="button" class="btn btn-hero" (click)="openModal()">
         <app-icon name="plus" [size]="16"></app-icon>
         New Appointment
@@ -493,6 +497,81 @@
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving">
         {{ isSaving ? 'Creating...' : 'Create Appointment' }}
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Days the clinic is shut. One list, blocking every doctor at once — a
+     doctor's own leave is their days off, on their record. -->
+<div class="modal-backdrop" *ngIf="isHolidaysOpen">
+  <div class="modal-sheet modal-sheet--narrow">
+    <div class="modal-sheet__head">
+      <div>
+        <h3 class="modal-sheet__title">
+          <app-icon name="calendar" [size]="19"></app-icon>
+          Clinic Holidays
+        </h3>
+        <p class="modal-sheet__desc">
+          Booking is refused on these dates, for every doctor and every procedure.
+        </p>
+      </div>
+      <button type="button" class="modal-sheet__close" (click)="closeHolidays()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </div>
+
+    <div class="modal-sheet__body">
+      <div class="alert alert-danger" *ngIf="holidayError">{{ holidayError }}</div>
+
+      <div class="day-off-add">
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="holidayForm.date"
+          name="holidayDate"
+          aria-label="Date the clinic is closed"
+        />
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Name (optional) — Rizal Day, company outing..."
+          [(ngModel)]="holidayForm.name"
+          name="holidayName"
+          aria-label="Holiday name"
+        />
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="addHoliday()"
+          [disabled]="isSavingHoliday || !holidayForm.date"
+        >
+          <app-icon name="plus" [size]="14"></app-icon>
+          Add
+        </button>
+      </div>
+
+      <div class="day-off-row" *ngFor="let holiday of holidays">
+        <app-icon name="calendar" [size]="15"></app-icon>
+        <span class="day-off-row__date">{{ holiday.date | date: 'EEEE, MMMM d, y' }}</span>
+        <span class="note-text" *ngIf="holiday.name">{{ holiday.name }}</span>
+        <button
+          type="button"
+          class="table-actions__btn table-actions__btn--danger"
+          (click)="removeHoliday(holiday.id)"
+          [attr.aria-label]="'Remove ' + holiday.date"
+          title="Remove"
+        >
+          <app-icon name="trash" [size]="15"></app-icon>
+        </button>
+      </div>
+
+      <p class="text-muted" *ngIf="holidays.length === 0">
+        No closed dates ahead.
+      </p>
+    </div>
+
+    <div class="modal-sheet__foot">
+      <button type="button" class="btn btn-secondary" (click)="closeHolidays()">Close</button>
     </div>
   </div>
 </div>

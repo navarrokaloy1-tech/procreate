@@ -197,3 +197,37 @@ textarea.form-control {
   font-size: var(--font-size-sm);
   color: var(--text-muted);
 }
+
+// Blocking out a date, and the dates already blocked.
+.day-off-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  input[type="date"] { flex: 0 0 auto; }
+  input[type="text"] { flex: 1 1 220px; min-width: 0; }
+  .btn { flex: 0 0 auto; }
+}
+
+.day-off-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  color: var(--text-secondary);
+
+  & + & { margin-top: 8px; }
+
+  &__date {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  // The reason sits back; the button keeps the end.
+  .note-text { flex: 1 1 auto; min-width: 0; }
+  .table-actions__btn { margin-left: auto; }
+}

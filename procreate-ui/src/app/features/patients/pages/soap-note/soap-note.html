@@ -28,6 +28,16 @@
     </div>
 
     <div class="page-hero__actions">
+      <button
+        type="button"
+        class="btn btn-hero-ghost"
+        *ngIf="patient"
+        (click)="togglePersonalInfo()"
+        [attr.aria-pressed]="showPersonalInfo"
+      >
+        <app-icon [name]="showPersonalInfo ? 'x' : 'eye'" [size]="16"></app-icon>
+        {{ showPersonalInfo ? 'Hide personal info' : 'View personal info' }}
+      </button>
       <span class="page-hero__tag">
         <app-icon name="file-text" [size]="16"></app-icon>
         {{ title }}
@@ -43,9 +53,15 @@
   </div>
 </div>
 
-<div class="detail-grid hero-overlap soap-page" *ngIf="!isLoading">
-  <!-- ==================== Left column: who they are ==================== -->
-  <div class="detail-grid__col">
+<div
+  class="detail-grid hero-overlap soap-page"
+  [class.soap-page--solo]="!showPersonalInfo"
+  *ngIf="!isLoading"
+>
+  <!-- Who they are. Folded away by default — a note is written about somebody
+       already in the room, and a chart left on screen is a chart anybody
+       walking past can read. The hero button brings it back. -->
+  <div class="detail-grid__col" *ngIf="showPersonalInfo">
     <app-patient-summary
       *ngIf="patient"
       [patient]="patient"
@@ -187,15 +203,15 @@
         <!-- Already on the note. -->
         <div class="upload__list" *ngIf="attachments.length > 0">
           <div class="upload__row" *ngFor="let file of attachments">
-            <a
-              class="upload__thumb"
+            <button
+              type="button"
+              class="upload__thumb upload__thumb--button"
               *ngIf="isImage(file.contentType) && attachmentUrl(file)"
-              [href]="attachmentUrl(file)"
-              target="_blank"
-              rel="noopener"
+              (click)="openViewer(file)"
+              [attr.aria-label]="'View ' + file.fileName"
             >
               <img [src]="attachmentUrl(file)" [alt]="file.fileName" />
-            </a>
+            </button>
             <span
               class="upload__thumb"
               [class.upload__thumb--file]="!isImage(file.contentType)"
@@ -205,18 +221,26 @@
             </span>
 
             <span class="upload__body">
+              <!-- An image opens in the viewer so a run of scans can be stepped
+                   through; a PDF goes to the browser, which reads it better. -->
+              <button
+                type="button"
+                class="upload__name upload__name--button"
+                *ngIf="attachmentUrl(file) && isImage(file.contentType)"
+                (click)="openViewer(file)"
+              >
+                {{ file.fileName }}
+              </button>
               <a
                 class="upload__name"
-                *ngIf="attachmentUrl(file); else plainName"
+                *ngIf="attachmentUrl(file) && !isImage(file.contentType)"
                 [href]="attachmentUrl(file)"
                 target="_blank"
                 rel="noopener"
               >
                 {{ file.fileName }}
               </a>
-              <ng-template #plainName>
-                <span class="upload__name">{{ file.fileName }}</span>
-              </ng-template>
+              <span class="upload__name" *ngIf="!attachmentUrl(file)">{{ file.fileName }}</span>
               <span class="upload__meta">
                 {{ fileSize(file.sizeBytes) }}
                 <ng-container *ngIf="file.uploadedBy"> &middot; {{ file.uploadedBy }}</ng-container>
@@ -295,5 +319,58 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Looking at a scan. Stays on the page so the note is still there behind it,
+     and steps through the note's images with the arrows, the keyboard, or by
+     clicking either edge. -->
+<div class="modal-backdrop viewer" *ngIf="viewing">
+  <div class="viewer__sheet">
+    <header class="viewer__head">
+      <span class="viewer__title">
+        {{ viewing.fileName }}
+        <span class="viewer__count" *ngIf="images.length > 1">
+          {{ viewingIndex + 1 }} of {{ images.length }}
+        </span>
+      </span>
+      <button type="button" class="modal-sheet__close" (click)="closeViewer()" aria-label="Close">
+        <app-icon name="x" [size]="18"></app-icon>
+      </button>
+    </header>
+
+    <div class="viewer__stage">
+      <button
+        type="button"
+        class="viewer__arrow viewer__arrow--prev"
+        *ngIf="images.length > 1"
+        (click)="stepViewer(-1)"
+        [disabled]="!hasPreviousImage"
+        aria-label="Previous image"
+      >
+        <app-icon name="chevron-left" [size]="22"></app-icon>
+      </button>
+
+      <img class="viewer__image" [src]="attachmentUrl(viewing)" [alt]="viewing.fileName" />
+
+      <button
+        type="button"
+        class="viewer__arrow viewer__arrow--next"
+        *ngIf="images.length > 1"
+        (click)="stepViewer(1)"
+        [disabled]="!hasNextImage"
+        aria-label="Next image"
+      >
+        <app-icon name="chevron-right" [size]="22"></app-icon>
+      </button>
+    </div>
+
+    <footer class="viewer__foot">
+      <span class="viewer__meta">{{ fileSize(viewing.sizeBytes) }}</span>
+      <a class="btn btn-secondary btn-sm" [href]="attachmentUrl(viewing)" target="_blank" rel="noopener">
+        <app-icon name="external-link" [size]="14"></app-icon>
+        Open full size
+      </a>
+    </footer>
   </div>
 </div>

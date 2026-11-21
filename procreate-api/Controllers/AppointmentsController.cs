@@ -299,10 +299,40 @@ public class AppointmentsController : ControllerBase
         if (doctor is null)
             return BadRequest(new { message = "Selected doctor does not exist." });
 
+        // A clinic holiday shuts the building, so it stops a procedure as surely
+        // as a consultation — checked before the procedure exemption below.
+        var date = request.ScheduledAt.Date;
+        var holiday = await _db.ClinicHolidays.FirstOrDefaultAsync(h => h.Date == date);
+
+        if (holiday is not null)
+        {
+            return BadRequest(new
+            {
+                message = holiday.Name.Length > 0
+                    ? $"The clinic is closed on {date:MMMM d} ({holiday.Name})."
+                    : $"The clinic is closed on {date:MMMM d}."
+            });
+        }
+
         if (AppointmentBatchesController.ProcedureServices.Contains(service)) return null;
 
         if (!doctor.IsActive)
             return BadRequest(new { message = "Selected doctor is inactive." });
+
+        // Leave, a conference, a hospital duty — set ahead of time against this
+        // one date, and it overrides whatever the weekly schedule says.
+        var dayOff = await _db.DoctorDaysOff
+            .FirstOrDefaultAsync(d => d.DoctorId == doctor.Id && d.Date == date);
+
+        if (dayOff is not null)
+        {
+            return BadRequest(new
+            {
+                message = dayOff.Reason.Length > 0
+                    ? $"Dr. {doctor.LastName} is away on {date:MMMM d} ({dayOff.Reason})."
+                    : $"Dr. {doctor.LastName} is away on {date:MMMM d}."
+            });
+        }
 
         var day = (int)request.ScheduledAt.DayOfWeek;
         var slot = doctor.Schedules.FirstOrDefault(s => s.DayOfWeek == day);

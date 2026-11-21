@@ -772,3 +772,44 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+// Where a waiting patient has got to. Deliberately quiet — it is scratch
+// written while the queue runs, not part of the record — but it has to be
+// readable across a desk, so it keeps the body size.
+.waiting-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--text-muted);
+
+  input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 3px 7px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    font-style: italic;
+    color: var(--secondary-dark);
+
+    &::placeholder {
+      font-style: normal;
+      color: var(--text-muted);
+    }
+
+    &:hover { border-color: var(--secondary); }
+
+    &:focus {
+      outline: none;
+      border-style: solid;
+      border-color: var(--primary);
+      background: var(--white);
+    }
+  }
+
+  // The tick that says it went.
+  .app-icon:last-child { color: var(--success); }
+}

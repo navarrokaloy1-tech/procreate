@@ -85,6 +85,37 @@ public class InventoryLedger
         return movement;
     }
 
+    /// <summary>
+    /// Puts stock back that a cancelled piece of work had drawn down.
+    ///
+    /// It raises the balance without opening a lot, because the supplies were
+    /// never actually used: the lots they came out of are not known by the
+    /// time a cancellation arrives, and inventing a new one would misreport
+    /// the expiry dates on the shelf. The ledger carries both movements, so
+    /// the deduction and its reversal read as the pair they are.
+    /// </summary>
+    public StockMovement? Return(InventoryItem item, int quantity, string reason,
+        string reference, string performedBy)
+    {
+        if (quantity <= 0) return null;
+
+        item.CurrentStock += quantity;
+        item.UpdatedAt = DateTime.UtcNow;
+
+        var movement = new StockMovement
+        {
+            InventoryItemId = item.Id,
+            MovementType = StockMovementTypes.AutoReturn,
+            QuantityChange = quantity,
+            BalanceAfter = item.CurrentStock,
+            Reason = (reason ?? string.Empty).Trim(),
+            Reference = reference ?? string.Empty,
+            PerformedBy = performedBy,
+        };
+        _db.StockMovements.Add(movement);
+        return movement;
+    }
+
     /// <summary>A positive manual correction — a recount upwards, not a receipt,
     /// so it carries no batch or expiry.</summary>
     public StockMovement AdjustUp(InventoryItem item, int quantity, string reason, string performedBy)

@@ -415,10 +415,19 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="dAffiliation">Affiliation</label>
-            <select id="dAffiliation" class="form-control" [(ngModel)]="form.affiliation">
+            <select
+              id="dAffiliation"
+              class="form-control"
+              [(ngModel)]="form.affiliation"
+              (ngModelChange)="applyAffiliation()"
+            >
               <option value="In-House">In-House</option>
               <option value="Outside">Outside</option>
             </select>
+            <p class="field-hint" *ngIf="isOutsideDoctor">
+              An outside doctor refers patients in rather than holding clinics here,
+              so their licences and clinic hours are not kept.
+            </p>
           </div>
           <div class="form-group">
             <label class="form-label" for="dFee">Consultation Fee (₱)</label>
@@ -477,6 +486,70 @@
             [attr.aria-label]="dayNames[row.dayOfWeek] + ' end time'"
           />
         </div>
+
+        <!-- Dates that override the week above: leave, a conference, a
+             hospital duty. Saved as they are added, because a day off is a
+             fact about the diary rather than a draft. -->
+        <p class="form-section">
+          <span class="form-section__dot"></span>
+          Days Off
+        </p>
+
+        <p class="text-muted mb-3" *ngIf="!editingId">
+          Save the doctor first, then their days off can be blocked out here.
+        </p>
+
+        <ng-container *ngIf="editingId">
+          <p class="text-muted mb-3">
+            Booking is refused on these dates whatever the weekly schedule says.
+          </p>
+
+          <div class="alert alert-danger" *ngIf="dayOffError">{{ dayOffError }}</div>
+
+          <div class="day-off-add">
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="dayOffForm.date"
+              aria-label="Date to block out"
+            />
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Reason (optional) — leave, conference..."
+              [(ngModel)]="dayOffForm.reason"
+              aria-label="Reason"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="addDayOff()"
+              [disabled]="isSavingDayOff || !dayOffForm.date"
+            >
+              <app-icon name="plus" [size]="14"></app-icon>
+              Block out
+            </button>
+          </div>
+
+          <div class="day-off-row" *ngFor="let day of daysOff">
+            <app-icon name="calendar" [size]="15"></app-icon>
+            <span class="day-off-row__date">{{ day.date | date: 'EEEE, MMMM d, y' }}</span>
+            <span class="note-text" *ngIf="day.reason">{{ day.reason }}</span>
+            <button
+              type="button"
+              class="table-actions__btn table-actions__btn--danger"
+              (click)="removeDayOff(day.id)"
+              [attr.aria-label]="'Remove ' + day.date"
+              title="Remove"
+            >
+              <app-icon name="trash" [size]="15"></app-icon>
+            </button>
+          </div>
+
+          <p class="text-muted" *ngIf="daysOff.length === 0">
+            No days blocked out ahead.
+          </p>
+        </ng-container>
       </ng-container>
     </div>
 

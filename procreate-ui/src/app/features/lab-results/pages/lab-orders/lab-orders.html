@@ -227,6 +227,19 @@
               >
                 <app-icon name="eye" [size]="17"></app-icon>
               </button>
+
+              <!-- Up until the result is out. Cancelling puts the supplies
+                   this test drew down back on the shelf. -->
+              <button
+                *ngIf="order.stage !== 'Completed' && order.stage !== 'Cancelled'"
+                type="button"
+                class="table-actions__btn table-actions__btn--danger"
+                (click)="cancelOrder(order)"
+                title="Cancel this order and return its supplies"
+                aria-label="Cancel this order"
+              >
+                <app-icon name="x" [size]="17"></app-icon>
+              </button>
             </div>
           </td>
         </tr>

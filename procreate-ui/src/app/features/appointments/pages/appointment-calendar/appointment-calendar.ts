@@ -127,6 +127,89 @@ export class AppointmentCalendarComponent implements OnInit {
   doctors: DoctorOption[] = [];
   doctorFilter: number | '' = '';
 
+  // --- Days the clinic is shut -------------------------------------------
+
+  /**
+   * Clinic holidays, from today forward. A holiday blocks every doctor at
+   * once, which is why it lives here on the clinic calendar rather than
+   * being entered against each doctor in turn alongside their own leave.
+   */
+  holidays: { id: number; date: string; name: string }[] = [];
+  isHolidaysOpen = false;
+  holidayForm = { date: '', name: '' };
+  holidayError = '';
+  isSavingHoliday = false;
+
+  openHolidays(): void {
+    this.isHolidaysOpen = true;
+    this.holidayForm = { date: '', name: '' };
+    this.holidayError = '';
+    this.loadHolidays();
+  }
+
+  closeHolidays(): void {
+    this.isHolidaysOpen = false;
+  }
+
+  private loadHolidays(): void {
+    this.api
+      .get<{ data: { id: number; date: string; name: string }[] }>('clinic-holidays')
+      .subscribe({
+        next: res => {
+          this.holidays = res.data ?? [];
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.holidays = [];
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  addHoliday(): void {
+    if (!this.holidayForm.date) {
+      this.holidayError = 'Pick a date first.';
+      return;
+    }
+
+    this.isSavingHoliday = true;
+    this.holidayError = '';
+
+    this.api
+      .post<{ id: number; date: string; name: string }>('clinic-holidays', {
+        date: this.holidayForm.date,
+        name: this.holidayForm.name,
+      })
+      .subscribe({
+        next: added => {
+          this.holidays = [...this.holidays, added]
+            .sort((a, b) => a.date.localeCompare(b.date));
+          this.holidayForm = { date: '', name: '' };
+          this.isSavingHoliday = false;
+          this.cdr.markForCheck();
+        },
+        error: err => {
+          this.isSavingHoliday = false;
+          this.holidayError =
+            err?.error?.message ?? 'That holiday could not be saved.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  removeHoliday(id: number): void {
+    this.api.delete<void>(`clinic-holidays/${id}`).subscribe({
+      next: () => {
+        this.holidays = this.holidays.filter(h => h.id !== id);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.holidayError = 'That holiday could not be removed.';
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   isLoading = false;
   errorMessage = '';
 
@@ -205,9 +288,15 @@ export class AppointmentCalendarComponent implements OnInit {
   // Loading
   // ----------------------------------------------------------
 
+  /**
+   * In-house doctors only, for both the day filter and the booking sheet.
+   * An outside doctor refers patients in; they do not hold clinics here, so
+   * listing them only makes the filter longer and the booking riskier.
+   */
   loadDoctors(): void {
     this.api
-      .get<{ data: DoctorOption[] }>('doctors', { isActive: true, pageSize: 100 })
+      .get<{ data: DoctorOption[] }>(
+        'doctors', { isActive: true, affiliation: 'In-House', pageSize: 100 })
       .subscribe({
         next: (res) => {
           this.doctors = res.data;

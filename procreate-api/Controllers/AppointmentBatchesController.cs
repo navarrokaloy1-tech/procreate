@@ -48,7 +48,9 @@ public class AppointmentBatchesController : ControllerBase
         // (ScheduledAt). They are not the same thing, and the Procedures board
         // reads the second one.
         DateTime ScheduledAt,
-        int Minutes, int? DurationMinutes, string ChiefComplaint);
+        int Minutes, int? DurationMinutes, string ChiefComplaint,
+        /// <summary>Where this patient has got to while they wait.</summary>
+        string WaitingNote);
 
     public record BatchDto(
         int Id, DateTime BatchDate, string StartTime, string EndTime, string Label,
@@ -71,6 +73,9 @@ public class AppointmentBatchesController : ControllerBase
 
     /// <summary>The time of day one booking is expected at, as "HH:mm".</summary>
     public record SlotTimeRequest(string Time);
+
+    /// <summary>Where a waiting patient has got to; blank clears it.</summary>
+    public record SlotNoteRequest(string? Note);
 
     /// <summary>One block's new window, for the cascade save.</summary>
     public record BlockTimeUpdate(int Id, string StartTime, string EndTime);
@@ -292,6 +297,34 @@ public class AppointmentBatchesController : ControllerBase
     /// for a procedure, carries no meaning, and would take the booking off the
     /// card it is being read from.
     /// </summary>
+    /// <summary>
+    /// Records where a waiting patient has got to — stepped out for lunch,
+    /// waiting in the car, gone for an X-ray first.
+    ///
+    /// It is the day's business rather than the record's, so it is kept apart
+    /// from the clinical notes and nothing else reads it: the desk writes it
+    /// while the queue is running and it means nothing once the day is done.
+    /// Saved on its own so typing it never disturbs the running order.
+    /// </summary>
+    [HttpPut("slots/{appointmentId:int}/note")]
+    public async Task<IActionResult> SetSlotNote(
+        int appointmentId, [FromBody] SlotNoteRequest request)
+    {
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == appointmentId && !a.IsArchived);
+
+        if (appointment is null) return NotFound();
+
+        var note = (request.Note ?? string.Empty).Trim();
+        if (note.Length > 200)
+            return BadRequest(new { message = "Keep the note under 200 characters." });
+
+        appointment.WaitingNote = note;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { appointment.Id, appointment.WaitingNote });
+    }
+
     [HttpPut("slots/{appointmentId:int}/time")]
     public async Task<IActionResult> SetSlotTime(
         int appointmentId, [FromBody] SlotTimeRequest request)
@@ -716,7 +749,8 @@ public class AppointmentBatchesController : ControllerBase
                     a.ScheduledAt,
                     BatchBooking.MinutesFor(b, a, serviceDefaults),
                     a.DurationMinutes,
-                    a.ChiefComplaint))
+                    a.ChiefComplaint,
+                    a.WaitingNote))
                 .ToList();
 
             var booked = slots.Count(s => !ReleasedStatuses.Contains(s.Status));

@@ -27,6 +27,11 @@ export interface BatchSlot {
   /** The booking's Chief Notes — shown in place of the doctor on Procedures. */
   chiefComplaint: string;
   /**
+   * Where this patient has got to while they wait — "stepped out for lunch",
+   * "waiting in the car". The day's business, not the record's.
+   */
+  waitingNote: string;
+  /**
    * The patient's place in their own doctor's line through the block, worked
    * out on the board rather than sent by the server. `position` stays the
    * block-wide order the API arranges by; this is what the card shows, so the
@@ -315,6 +320,7 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
       minutes: 0,
       durationMinutes: null,
       chiefComplaint: appt.chiefComplaint ?? '',
+      waitingNote: '',
       seat: 0,
     };
   }
@@ -488,6 +494,67 @@ export class AppointmentBatchesComponent implements OnInit, OnDestroy {
   // ----------------------------------------------------------
   // Drag and drop
   // ----------------------------------------------------------
+
+  // ----------------------------------------------------------
+  // Where a waiting patient has got to
+  // ----------------------------------------------------------
+
+  /**
+   * Notes being typed, by appointment id. Held apart from the slot so a
+   * reload landing mid-sentence cannot wipe what somebody is writing.
+   */
+  waitingDraft: Record<number, string> = {};
+
+  /** Appointment ids whose note is in flight, for the row's saved tick. */
+  private savingNotes = new Set<number>();
+
+  noteFor(slot: BatchSlot): string {
+    return this.waitingDraft[slot.appointmentId] ?? slot.waitingNote ?? "";
+  }
+
+  onNoteInput(slot: BatchSlot, value: string): void {
+    this.waitingDraft[slot.appointmentId] = value;
+  }
+
+  isSavingNote(slot: BatchSlot): boolean {
+    return this.savingNotes.has(slot.appointmentId);
+  }
+
+  /**
+   * Saves on blur rather than on every keystroke: the desk types a few words
+   * and moves on, and a request per character would put the board under
+   * constant reload for something nobody else is waiting to read.
+   */
+  saveNote(slot: BatchSlot): void {
+    const note = (this.waitingDraft[slot.appointmentId] ?? slot.waitingNote ?? "").trim();
+    if (note === (slot.waitingNote ?? "")) {
+      delete this.waitingDraft[slot.appointmentId];
+      return;
+    }
+
+    this.savingNotes.add(slot.appointmentId);
+    this.cdr.markForCheck();
+
+    this.api
+      .put<{ id: number; waitingNote: string }>(
+        `appointment-batches/slots/${slot.appointmentId}/note`, { note })
+      .subscribe({
+        next: saved => {
+          // Written onto the slot in place rather than reloading the day: a
+          // note changes nothing about the order, and a reload here would
+          // yank the board out from under whoever is reading it.
+          slot.waitingNote = saved.waitingNote;
+          delete this.waitingDraft[slot.appointmentId];
+          this.savingNotes.delete(slot.appointmentId);
+          this.cdr.markForCheck();
+        },
+        error: error => {
+          this.savingNotes.delete(slot.appointmentId);
+          this.errorMessage = this.messageFrom(error, 'Could not save that note.');
+          this.cdr.markForCheck();
+        },
+      });
+  }
 
   /** The doctor a booking sits under, as a key. */
   doctorKey(slot: { doctorName: string }): string {

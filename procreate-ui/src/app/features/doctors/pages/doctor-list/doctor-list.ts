@@ -71,12 +71,126 @@ export class DoctorListComponent implements OnInit {
 
   readonly genderOptions = ['Male', 'Female', 'Other'];
 
-  readonly tabs = [
+  private readonly allTabs = [
     { id: 'personal', label: 'Personal Info', icon: 'user' },
     { id: 'licenses', label: 'Licenses', icon: 'credit-card' },
     { id: 'practice', label: 'Practice', icon: 'briefcase' },
     { id: 'schedule', label: 'Schedule', icon: 'calendar' },
   ];
+
+  /**
+   * The tabs this doctor actually has.
+   *
+   * An outside doctor is a referrer, not somebody who practises here: the
+   * clinic holds none of their licensing — PRC, PTR, S2, TIN — and has no
+   * clinic hours to give them. Rebuilt whenever the affiliation changes
+   * rather than computed in the template, which under zoneless CD would
+   * hand *ngFor a fresh array on every pass.
+   */
+  tabs = this.allTabs;
+
+  /** True while the doctor on the form is an outside referrer. */
+  get isOutsideDoctor(): boolean {
+    return this.form.affiliation === 'Outside';
+  }
+
+  /** Call after anything changes the affiliation. */
+  applyAffiliation(): void {
+    this.tabs = this.isOutsideDoctor
+      ? this.allTabs.filter(t => t.id !== 'licenses' && t.id !== 'schedule')
+      : this.allTabs;
+
+    // Never leave the form sitting on a tab that has just gone.
+    if (!this.tabs.some(t => t.id === this.activeTab)) {
+      this.activeTab = this.tabs[0].id;
+    }
+  }
+
+  // --- Days this doctor is away -----------------------------------------
+
+  /**
+   * Dates blocked out for the doctor on the form, from today forward.
+   *
+   * Saved as they are added rather than with the rest of the form: a day off
+   * is a fact about the diary, not a draft, and somebody blocking out leave
+   * should not have to remember to press Save afterwards. It needs a saved
+   * doctor to hang on, so the section only appears once there is one.
+   */
+  daysOff: { id: number; date: string; reason: string }[] = [];
+  dayOffForm = { date: '', reason: '' };
+  dayOffError = '';
+  isSavingDayOff = false;
+
+  private loadDaysOff(): void {
+    if (!this.editingId) {
+      this.daysOff = [];
+      return;
+    }
+
+    this.api
+      .get<{ data: { id: number; date: string; reason: string }[] }>(
+        `doctors/${this.editingId}/days-off`)
+      .subscribe({
+        next: res => {
+          this.daysOff = res.data ?? [];
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.daysOff = [];
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  addDayOff(): void {
+    if (!this.editingId || !this.dayOffForm.date) {
+      this.dayOffError = 'Pick a date first.';
+      return;
+    }
+
+    this.isSavingDayOff = true;
+    this.dayOffError = '';
+
+    this.api
+      .post<{ id: number; date: string; reason: string }>(
+        `doctors/${this.editingId}/days-off`, {
+          date: this.dayOffForm.date,
+          reason: this.dayOffForm.reason,
+        })
+      .subscribe({
+        next: added => {
+          this.daysOff = [...this.daysOff, added]
+            .sort((a, b) => a.date.localeCompare(b.date));
+          this.dayOffForm = { date: '', reason: '' };
+          this.isSavingDayOff = false;
+          this.cdr.markForCheck();
+        },
+        error: err => {
+          this.isSavingDayOff = false;
+          this.dayOffError =
+            err?.error?.message ?? 'That day off could not be saved.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  removeDayOff(dayOffId: number): void {
+    if (!this.editingId) return;
+
+    this.api
+      .delete<void>(
+        `doctors/${this.editingId}/days-off/${dayOffId}`)
+      .subscribe({
+        next: () => {
+          this.daysOff = this.daysOff.filter(d => d.id !== dayOffId);
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.dayOffError = 'That day off could not be removed.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
 
   doctors: DoctorRow[] = [];
   specialties: string[] = [];
@@ -228,6 +342,10 @@ export class DoctorListComponent implements OnInit {
     this.form = this.emptyForm();
     this.schedule = this.defaultSchedule();
     this.activeTab = 'personal';
+    this.applyAffiliation();
+    this.daysOff = [];
+    this.dayOffForm = { date: '', reason: '' };
+    this.dayOffError = '';
     this.modalError = '';
     this.resetSignature();
     this.isModalOpen = true;
@@ -358,6 +476,10 @@ export class DoctorListComponent implements OnInit {
           ? detail.schedules.map((s) => ({ ...s }))
           : this.defaultSchedule();
         this.activeTab = 'personal';
+        this.applyAffiliation();
+        this.dayOffForm = { date: '', reason: '' };
+        this.dayOffError = '';
+        this.loadDaysOff();
         this.modalError = '';
         this.isModalOpen = true;
         this.cdr.markForCheck();

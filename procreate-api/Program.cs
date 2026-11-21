@@ -239,6 +239,46 @@ using (var scope = app.Services.CreateScope())
             """);
         db.Database.ExecuteSqlRaw("""CREATE INDEX IF NOT EXISTS "IX_SoapAttachments_SoapNoteId" ON "SoapAttachments" ("SoapNoteId")""");
 
+        // Days a doctor is away and days the clinic is shut, both later again.
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS "DoctorDaysOff" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_DoctorDaysOff" PRIMARY KEY AUTOINCREMENT,
+                "DoctorId" INTEGER NOT NULL,
+                "Date" TEXT NOT NULL,
+                "Reason" TEXT NOT NULL DEFAULT '',
+                "CreatedAt" TEXT NOT NULL,
+                CONSTRAINT "FK_DoctorDaysOff_Doctors_DoctorId" FOREIGN KEY ("DoctorId") REFERENCES "Doctors" ("Id") ON DELETE CASCADE
+            )
+            """);
+        db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_DoctorDaysOff_DoctorId_Date" ON "DoctorDaysOff" ("DoctorId", "Date")""");
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS "ClinicHolidays" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_ClinicHolidays" PRIMARY KEY AUTOINCREMENT,
+                "Date" TEXT NOT NULL,
+                "Name" TEXT NOT NULL DEFAULT '',
+                "CreatedAt" TEXT NOT NULL
+            )
+            """);
+        db.Database.ExecuteSqlRaw("""CREATE UNIQUE INDEX IF NOT EXISTS "IX_ClinicHolidays_Date" ON "ClinicHolidays" ("Date")""");
+
+        // Columns added to existing tables after EnsureCreated first ran.
+        foreach (var (table, column, definition) in new[]
+                 {
+                     ("Appointments", "WaitingNote", "TEXT NOT NULL DEFAULT ''"),
+                     ("LabOrders", "CancelledAt", "TEXT NULL"),
+                     ("LabOrders", "CancelledBy", "TEXT NOT NULL DEFAULT ''"),
+                     ("LabOrders", "CancelReason", "TEXT NOT NULL DEFAULT ''"),
+                 })
+        {
+            var columns = db.Database
+                .SqlQueryRaw<string>($"SELECT name AS Value FROM pragma_table_info('{table}')")
+                .ToList();
+
+            if (columns.Count > 0 && !columns.Contains(column))
+                db.Database.ExecuteSqlRaw($"""ALTER TABLE "{table}" ADD COLUMN "{column}" {definition}""");
+        }
+
         // Per-block service durations (minute budget) were added after
         // EnsureCreated first ran for many dev DBs — add the columns by hand.
         foreach (var table in new[] { "AppointmentBatches", "AppointmentBatchTemplates" })

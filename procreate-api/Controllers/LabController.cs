@@ -1,5 +1,6 @@
 using ProCreateApi.Data;
 using ProCreateApi.Services.Search;
+using ProCreateApi.Services.Inventory;
 using ProCreateApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,19 @@ namespace ProCreateApi.Controllers;
 public class LabController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public LabController(AppDbContext db) => _db = db;
+    private readonly InventoryLedger _ledger;
+
+    public LabController(AppDbContext db, InventoryLedger ledger)
+    {
+        _db = db;
+        _ledger = ledger;
+    }
+
+    public record CancelOrderRequest(string? Reason);
+
+    /// <summary>Statuses past which an order is no longer cancellable.</summary>
+    private static readonly HashSet<string> SettledStatuses =
+        new(StringComparer.OrdinalIgnoreCase) { "Completed", "Released", "Cancelled" };
 
     /// <summary>
     /// The lab departments the signed-in user may work in. An empty list means
@@ -368,6 +381,76 @@ public class LabController : ControllerBase
         var age = asOf.Year - dateOfBirth.Year;
         if (asOf < dateOfBirth.AddYears(age)) age--;
         return age < 0 ? 0 : age;
+    }
+
+    /// <summary>
+    /// Cancels one diagnostic order and puts its supplies back.
+    ///
+    /// Ordering a test draws down whatever the test consumes, so cancelling
+    /// one has to give it back, or the shelf count drifts every time a
+    /// patient changes their mind. The return is worked out from the test's
+    /// recipe, the same figures the deduction used, and written to the ledger
+    /// as Auto-Return movements against this order — the deduction and its
+    /// reversal then read as the pair they are.
+    ///
+    /// An order whose results are already out cannot be cancelled: the work
+    /// has been done, the supplies really were used, and the result is on the
+    /// patient's chart.
+    /// </summary>
+    [HttpPost("orders/{id}/cancel")]
+    public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderRequest? request)
+    {
+        var order = await _db.LabOrders
+            .Include(o => o.LabTest)
+            .Include(o => o.Visit)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order is null) return NotFound();
+
+        if (SettledStatuses.Contains(order.Status) || order.ReleasedAt is not null)
+        {
+            return Conflict(new
+            {
+                message = order.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+                    ? "That order is already cancelled."
+                    : "That order's results are already out, so it can no longer be cancelled."
+            });
+        }
+
+        var performedBy = User.Identity?.Name ?? "system";
+        var reference = order.SpecimenBarcode.Length > 0
+            ? order.SpecimenBarcode
+            : $"LAB-{order.Id}";
+
+        var recipe = await _db.TestInventoryItems
+            .Include(r => r.InventoryItem)
+            .Where(r => r.LabTestId == order.LabTestId)
+            .ToListAsync();
+
+        var returned = 0;
+        foreach (var line in recipe)
+        {
+            if (line.InventoryItem is null || !line.InventoryItem.IsActive) continue;
+
+            var movement = _ledger.Return(
+                line.InventoryItem, line.Quantity,
+                $"{order.LabTest.Name} cancelled", reference, performedBy);
+
+            if (movement is not null) returned++;
+        }
+
+        order.Status = "Cancelled";
+        order.CancelledAt = DateTime.UtcNow;
+        order.CancelledBy = performedBy;
+        order.CancelReason = request?.Reason?.Trim() ?? string.Empty;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            order.Id, order.Status, order.CancelledAt, order.CancelledBy, order.CancelReason,
+            itemsReturned = returned
+        });
     }
 
     [HttpPost("orders/{id}/collect")]

@@ -22,6 +22,9 @@ public class DoctorsController : ControllerBase
 
     public record ScheduleDto(int DayOfWeek, bool IsAvailable, string StartTime, string EndTime);
 
+    public record DayOffDto(int Id, DateTime Date, string Reason);
+    public record DayOffRequest(DateTime Date, string? Reason);
+
     public record DoctorDetailDto(
         int Id, string DoctorCode, string FirstName, string MiddleName, string LastName,
         string Suffix, string Gender, string Specialty, string SubSpecialty, string Affiliation,
@@ -41,6 +44,7 @@ public class DoctorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search, [FromQuery] string? specialty, [FromQuery] bool? isActive,
+        [FromQuery] string? affiliation,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
     {
         var query = _db.Doctors.AsQueryable();
@@ -67,6 +71,13 @@ public class DoctorsController : ControllerBase
         if (isActive.HasValue)
             query = query.Where(d => d.IsActive == isActive.Value);
 
+        // "In-House" or "Outside". The appointment calendars ask for in-house
+        // only: an outside doctor is somebody who refers patients here, not
+        // somebody who holds clinics, so they have no place in a day's filter
+        // or in the list you book against.
+        if (!string.IsNullOrWhiteSpace(affiliation))
+            query = query.Where(d => d.Affiliation == affiliation);
+
         var total = await query.CountAsync();
 
         var doctors = await query
@@ -84,6 +95,73 @@ public class DoctorsController : ControllerBase
             .ToListAsync();
 
         return Ok(new { total, page, pageSize, data = doctors });
+    }
+
+    // ----------------------------------------------------------
+    // Days a doctor is not here
+    // ----------------------------------------------------------
+
+    /// <summary>
+    /// The dates this doctor is blocked out for, from today forward.
+    ///
+    /// Past days off are left out: they are history, and a list of them
+    /// would bury the ones that still stop a booking.
+    /// </summary>
+    [HttpGet("{id:int}/days-off")]
+    public async Task<IActionResult> GetDaysOff(int id, [FromQuery] bool includePast = false)
+    {
+        if (!await _db.Doctors.AnyAsync(d => d.Id == id))
+            return NotFound(new { message = "Doctor not found." });
+
+        var from = DateTime.Today;
+        var query = _db.DoctorDaysOff.Where(d => d.DoctorId == id);
+        if (!includePast) query = query.Where(d => d.Date >= from);
+
+        var days = await query
+            .OrderBy(d => d.Date)
+            .Select(d => new DayOffDto(d.Id, d.Date, d.Reason))
+            .ToListAsync();
+
+        return Ok(new { total = days.Count, data = days });
+    }
+
+    [HttpPost("{id:int}/days-off")]
+    public async Task<IActionResult> AddDayOff(int id, [FromBody] DayOffRequest request)
+    {
+        if (!await _db.Doctors.AnyAsync(d => d.Id == id))
+            return NotFound(new { message = "Doctor not found." });
+
+        var date = request.Date.Date;
+        if (date == default)
+            return BadRequest(new { message = "A date is required." });
+
+        if (await _db.DoctorDaysOff.AnyAsync(d => d.DoctorId == id && d.Date == date))
+            return Conflict(new { message = "That date is already blocked out for this doctor." });
+
+        var dayOff = new DoctorDayOff
+        {
+            DoctorId = id,
+            Date = date,
+            Reason = request.Reason?.Trim() ?? string.Empty,
+        };
+
+        _db.DoctorDaysOff.Add(dayOff);
+        await _db.SaveChangesAsync();
+
+        return Ok(new DayOffDto(dayOff.Id, dayOff.Date, dayOff.Reason));
+    }
+
+    [HttpDelete("{id:int}/days-off/{dayOffId:int}")]
+    public async Task<IActionResult> RemoveDayOff(int id, int dayOffId)
+    {
+        var dayOff = await _db.DoctorDaysOff
+            .FirstOrDefaultAsync(d => d.Id == dayOffId && d.DoctorId == id);
+
+        if (dayOff is null) return NotFound();
+
+        _db.DoctorDaysOff.Remove(dayOff);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 
     /// <summary>Distinct specialties present in the data, for the filter dropdown.</summary>
