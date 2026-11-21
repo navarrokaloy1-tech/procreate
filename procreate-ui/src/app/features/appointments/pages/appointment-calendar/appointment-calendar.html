@@ -241,6 +241,10 @@
           <span class="day-row__meta" *ngIf="mode !== 'procedure'">
             {{ appointment.service }} · {{ appointment.doctorName }}
           </span>
+          <!-- Stepped out, waiting in the car, gone for an X-ray first. -->
+          <span class="day-row__meta note-text" *ngIf="appointment.waitingNote">
+            {{ appointment.waitingNote }}
+          </span>
           <span class="day-row__meta" *ngIf="mode === 'procedure'">
             {{ appointment.service }}<ng-container *ngIf="appointment.chiefComplaint">
               · <span class="note-text">{{ appointment.chiefComplaint }}</span></ng-container>
@@ -321,6 +325,10 @@
         <p class="slot-card__row" *ngIf="appointment.chiefComplaint">
           <app-icon name="alert-circle" [size]="14"></app-icon>
           <span class="note-text">{{ appointment.chiefComplaint }}</span>
+        </p>
+        <p class="slot-card__row" *ngIf="appointment.waitingNote">
+          <app-icon name="clock" [size]="14"></app-icon>
+          <span class="note-text">{{ appointment.waitingNote }}</span>
         </p>
 
         <!--

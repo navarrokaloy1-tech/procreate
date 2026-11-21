@@ -776,24 +776,35 @@
 // Where a waiting patient has got to. Deliberately quiet — it is scratch
 // written while the queue runs, not part of the record — but it has to be
 // readable across a desk, so it keeps the body size.
+//
+// It takes a row of its own under the patient rather than sharing one with
+// the name and the status pill: a note worth writing is "gone to the
+// pharmacy, back about half past", and squeezed beside them it showed
+// three words and an ellipsis.
 .waiting-note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
-  margin-top: 6px;
+  flex: 1 1 100%;
+  margin-top: 2px;
   color: var(--text-muted);
 
-  input {
+  // A textarea rather than an input, because a note that does not fit is a
+  // note nobody can act on. Two rows holds what the desk actually writes,
+  // and it can be dragged taller for the rare long one.
+  textarea {
     flex: 1 1 auto;
     min-width: 0;
-    padding: 3px 7px;
+    padding: 6px 9px;
     border: 1px dashed var(--border-color);
     border-radius: var(--border-radius-sm);
     background: transparent;
     font-family: inherit;
     font-size: var(--font-size-sm);
     font-style: italic;
+    line-height: 1.35;
     color: var(--secondary-dark);
+    resize: vertical;
 
     &::placeholder {
       font-style: normal;

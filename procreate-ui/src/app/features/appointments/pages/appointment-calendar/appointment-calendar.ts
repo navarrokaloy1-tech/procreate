@@ -19,6 +19,12 @@ export interface Appointment {
   type: string;
   status: string;
   chiefComplaint: string;
+  /**
+   * Where the desk last said this patient had got to. Written on the
+   * Batches board while the queue runs; shown here because the Day view is
+   * the other place somebody looks to see who is actually in the building.
+   */
+  waitingNote: string;
   notes: string;
   isArchived: boolean;
 }

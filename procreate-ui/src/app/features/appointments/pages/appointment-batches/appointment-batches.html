@@ -249,23 +249,6 @@
                   <span class="slot__code">{{ slot.patientCode }}</span>
                 </p>
                 <p class="slot__meta">{{ slot.service }}</p>
-
-              <!-- Where they have got to while they wait. Saved when the box
-                   loses focus, and it never disturbs the running order. -->
-              <label class="waiting-note">
-                <app-icon name="edit" [size]="13"></app-icon>
-                <input
-                  type="text"
-                  maxlength="200"
-                  placeholder="Stepped out? Note it here"
-                  [value]="noteFor(slot)"
-                  (input)="onNoteInput(slot, $any($event.target).value)"
-                  (blur)="saveNote(slot)"
-                  (keyup.enter)="saveNote(slot)"
-                  [attr.aria-label]="'Waiting note for ' + slot.patientName"
-                />
-                <app-icon name="check" [size]="13" *ngIf="isSavingNote(slot)"></app-icon>
-              </label>
               </div>
 
               <div class="slot__flags">
@@ -279,6 +262,24 @@
                 </span>
                 <span [class]="statusClass(slot.status)">{{ statusLabel(slot.status) }}</span>
               </div>
+
+              <!-- Where they have got to while they wait. A line of its own, because
+                   a note worth writing does not fit beside a name. Saved when the box
+                   loses focus, and it never disturbs the running order. -->
+              <label class="waiting-note">
+                <app-icon name="edit" [size]="13"></app-icon>
+                <textarea
+                  rows="2"
+                  maxlength="200"
+                  placeholder="Stepped out? Note it here"
+                  [value]="noteFor(slot)"
+                  (input)="onNoteInput(slot, $any($event.target).value)"
+                  (blur)="saveNote(slot)"
+                  (keydown.enter)="$event.preventDefault(); saveNote(slot)"
+                  [attr.aria-label]="'Waiting note for ' + slot.patientName"
+                ></textarea>
+                <app-icon name="check" [size]="13" *ngIf="isSavingNote(slot)"></app-icon>
+              </label>
             </article>
 
             <p class="doctor-queue__empty" *ngIf="queue.slots.length === 0">
@@ -351,23 +352,6 @@
               </span>
               <span *ngIf="!row.slot.chiefComplaint">No notes yet</span>
             </p>
-
-            <!-- Where they have got to while they wait. Saved when the box
-                 loses focus, and it never disturbs the running order. -->
-            <label class="waiting-note">
-              <app-icon name="edit" [size]="13"></app-icon>
-              <input
-                type="text"
-                maxlength="200"
-                placeholder="Stepped out? Note it here"
-                [value]="noteFor(row.slot)"
-                (input)="onNoteInput(row.slot, $any($event.target).value)"
-                (blur)="saveNote(row.slot)"
-                (keyup.enter)="saveNote(row.slot)"
-                [attr.aria-label]="'Waiting note for ' + row.slot.patientName"
-              />
-              <app-icon name="check" [size]="13" *ngIf="isSavingNote(row.slot)"></app-icon>
-            </label>
           </div>
 
           <!-- The time the patient is told to come in. It sets the booking's
@@ -393,6 +377,24 @@
             </span>
             <span [class]="statusClass(row.slot.status)">{{ statusLabel(row.slot.status) }}</span>
           </div>
+
+            <!-- Where they have got to while they wait. A line of its own, because
+                 a note worth writing does not fit beside a name. Saved when the box
+                 loses focus, and it never disturbs the running order. -->
+            <label class="waiting-note">
+              <app-icon name="edit" [size]="13"></app-icon>
+              <textarea
+                rows="2"
+                maxlength="200"
+                placeholder="Stepped out? Note it here"
+                [value]="noteFor(row.slot)"
+                (input)="onNoteInput(row.slot, $any($event.target).value)"
+                (blur)="saveNote(row.slot)"
+                (keydown.enter)="$event.preventDefault(); saveNote(row.slot)"
+                [attr.aria-label]="'Waiting note for ' + row.slot.patientName"
+              ></textarea>
+              <app-icon name="check" [size]="13" *ngIf="isSavingNote(row.slot)"></app-icon>
+            </label>
         </article>
 
         <p class="batch__empty" *ngIf="group.rows.length === 0">

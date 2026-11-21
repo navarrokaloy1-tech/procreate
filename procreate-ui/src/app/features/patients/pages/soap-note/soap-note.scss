@@ -30,12 +30,12 @@
 }
 
 .soap-page {
-  // With the patient column folded away there is only one column, and a form
-  // run the full width of a desktop screen is a form nobody can read a line
-  // of. It keeps roughly the width it had with the column beside it.
+  // With the patient column folded away the form takes the whole width it
+  // is given. The boxes are what grow: a line of prose still wraps at a
+  // readable length inside them, and a long diagnosis or a pasted history
+  // was the thing being cramped.
   &--solo {
     grid-template-columns: minmax(0, 1fr);
-    max-width: 1100px;
   }
 
   &__card {

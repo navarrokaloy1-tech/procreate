@@ -31,7 +31,9 @@ public class AppointmentsController : ControllerBase
         int Id, string AppointmentCode, int PatientId, string PatientName, string PatientCode,
         int DoctorId, string DoctorName, string Service, DateTime ScheduledAt,
         string Type, string Status, string ChiefComplaint, string Notes, bool IsArchived,
-        int? BatchId, int QueuePosition);
+        int? BatchId, int QueuePosition,
+        /// <summary>Where this patient has got to while they wait.</summary>
+        string WaitingNote);
 
     /// <summary>
     /// <paramref name="BatchId"/> books into a session block, which sets the
@@ -387,7 +389,7 @@ public class AppointmentsController : ControllerBase
         ("Dr. " + a.Doctor.FirstName + " " + a.Doctor.LastName).Trim(),
         a.Service, a.ScheduledAt, a.Type, a.Status,
         a.ChiefComplaint, a.Notes, a.IsArchived,
-        a.BatchId, a.QueuePosition);
+        a.BatchId, a.QueuePosition, a.WaitingNote);
 
     private async Task<string> NextCodeAsync(DateTime scheduledAt)
     {
